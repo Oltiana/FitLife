@@ -24,12 +24,12 @@ namespace FitLifeAPI.Services
 
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
-            // Kontrollo nëse ekziston useri
+            
             var existingUser = await _authRepository.GetByEmailAsync(request.Email);
             if (existingUser != null)
                 throw new Exception("Email already exists");
 
-            // Krijo userin e ri
+            
             var user = new User
             {
                 FullName = request.FullName,
@@ -40,7 +40,7 @@ namespace FitLifeAPI.Services
 
             await _authRepository.AddAsync(user);
 
-            // TODO: Dërgo email verifikimi
+     
 
             return new AuthResponse
             {
@@ -91,7 +91,7 @@ namespace FitLifeAPI.Services
             user.ResetTokenExpiry = DateTime.UtcNow.AddHours(1);
             await _authRepository.UpdateAsync(user);
 
-            // TODO: Dërgo email me reset token
+           
 
             return true;
         }
@@ -109,7 +109,6 @@ namespace FitLifeAPI.Services
             return true;
         }
 
-        // Helper methods
         private string GenerateJwtToken(User user)
         {
             var key = new SymmetricSecurityKey(
