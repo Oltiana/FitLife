@@ -1,11 +1,11 @@
 namespace FitLifeAPI.DTOs.Responses
 {
-    public class AuthResponse
+    public class UserProfileResponse
     {
-        public string Token { get; set; } = string.Empty;
-        public string RefreshToken { get; set; } = string.Empty; 
+        public int Id { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public bool IsVerified { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

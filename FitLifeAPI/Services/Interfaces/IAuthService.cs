@@ -7,6 +7,7 @@ namespace FitLifeAPI.Services.Interfaces
     {
         Task<AuthResponse> RegisterAsync(RegisterRequest request);
         Task<AuthResponse> LoginAsync(LoginRequest request);
+        Task<AuthResponse?> RefreshTokenAsync(string refreshToken);
         Task<bool> VerifyEmailAsync(string token);
         Task<bool> ForgotPasswordAsync(string email);
         Task<bool> ResetPasswordAsync(string token, string newPassword);

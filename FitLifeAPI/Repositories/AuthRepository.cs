@@ -43,5 +43,52 @@ namespace FitLifeAPI.Repositories
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
         }
+      public async Task SaveRefreshTokenAsync(RefreshToken refreshToken)
+        {
+            _context.RefreshTokens.Add(refreshToken);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<RefreshToken?> GetRefreshTokenAsync(string token)
+        {
+            return await _context.RefreshTokens
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.Token == token
+                                       && !r.IsRevoked
+                                       && r.ExpiresAt > DateTime.UtcNow);
+        }
+
+        public async Task RevokeRefreshTokenAsync(string token)
+        {
+            var refreshToken = await _context.RefreshTokens
+                .FirstOrDefaultAsync(r => r.Token == token);
+
+            if (refreshToken != null)
+            {
+                refreshToken.IsRevoked = true;
+                await _context.SaveChangesAsync();
+            }
+        }
+        public async Task<User?> GetByIdAsync(int id)
+{
+    return await _context.Users.FindAsync(id);
+}
+public async Task DeleteAsync(int userId)
+{
+    var user = await _context.Users.FindAsync(userId);
+    if (user != null)
+    {
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+    }
+}
+
+public async Task<IEnumerable<RefreshToken>> GetActiveSessionsAsync(int userId)
+{
+    return await _context.RefreshTokens
+        .Where(r => r.UserId == userId && !r.IsRevoked && r.ExpiresAt > DateTime.UtcNow)
+        .OrderByDescending(r => r.CreatedAt)
+        .ToListAsync();
+}
     }
 }

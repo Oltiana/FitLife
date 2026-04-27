@@ -42,17 +42,33 @@ namespace FitLifeAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
-        [HttpGet("verify-email")]
-        public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+[HttpPost("refresh-token")]  // ✚ shto
+        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
         {
-            var result = await _authService.VerifyEmailAsync(token);
-            if (!result)
-                return BadRequest("Invalid or expired token");
+            var result = await _authService.RefreshTokenAsync(refreshToken);
+            if (result == null)
+                return Unauthorized("Refresh token invalid ose skaduar.");
 
-            return Ok("Email verified successfully");
+            return Ok(result);
         }
 
+        [HttpPost("verify-email")]
+public async Task<IActionResult> VerifyEmail([FromBody] string token)
+{
+    var result = await _authService.VerifyEmailAsync(token);
+    if (!result)
+        return BadRequest("Invalid or expired token");
+    return Ok("Email verified successfully");
+}
+
+[HttpPost("reset-password")]
+public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+{
+    var result = await _authService.ResetPasswordAsync(request.Token, request.NewPassword);
+    if (!result)
+        return BadRequest("Invalid or expired token");
+    return Ok("Password reset successfully");
+}
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
         {
@@ -60,16 +76,5 @@ namespace FitLifeAPI.Controllers
             return Ok("If email exists, reset link has been sent");
         }
 
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(
-            [FromQuery] string token,
-            [FromBody] string newPassword)
-        {
-            var result = await _authService.ResetPasswordAsync(token, newPassword);
-            if (!result)
-                return BadRequest("Invalid or expired token");
-
-            return Ok("Password reset successfully");
-        }
     }
 }

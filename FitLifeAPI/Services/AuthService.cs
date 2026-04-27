@@ -15,21 +15,21 @@ namespace FitLifeAPI.Services
     {
         private readonly IAuthRepository _authRepository;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
-        public AuthService(IAuthRepository authRepository, IConfiguration configuration)
+        public AuthService(IAuthRepository authRepository, IConfiguration configuration, IEmailService emailService)
         {
             _authRepository = authRepository;
             _configuration = configuration;
+            _emailService = emailService;
         }
 
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
-            
             var existingUser = await _authRepository.GetByEmailAsync(request.Email);
             if (existingUser != null)
                 throw new Exception("Email already exists");
 
-            
             var user = new User
             {
                 FullName = request.FullName,
@@ -40,11 +40,22 @@ namespace FitLifeAPI.Services
 
             await _authRepository.AddAsync(user);
 
-     
+            await _emailService.SendEmailAsync(
+                user.Email,
+                "Verify your email - FitLife",
+                $@"
+                <h2>Welcome to FitLife!</h2>
+                
+                <p>If you did not create an account, ignore this email.</p>
+                "
+            );
+
+            var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
 
             return new AuthResponse
             {
                 Token = GenerateJwtToken(user),
+                RefreshToken = refreshToken,
                 FullName = user.FullName,
                 Email = user.Email,
                 IsVerified = user.IsVerified
@@ -60,12 +71,35 @@ namespace FitLifeAPI.Services
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 throw new Exception("Invalid password");
 
+            var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
+
             return new AuthResponse
             {
                 Token = GenerateJwtToken(user),
+                RefreshToken = refreshToken,
                 FullName = user.FullName,
                 Email = user.Email,
                 IsVerified = user.IsVerified
+            };
+        }
+
+        public async Task<AuthResponse?> RefreshTokenAsync(string refreshToken)
+        {
+            var existing = await _authRepository.GetRefreshTokenAsync(refreshToken);
+            if (existing == null)
+                return null;
+
+            await _authRepository.RevokeRefreshTokenAsync(refreshToken);
+
+            var newRefreshToken = await CreateAndSaveRefreshTokenAsync(existing.UserId);
+
+            return new AuthResponse
+            {
+                Token = GenerateJwtToken(existing.User),
+                RefreshToken = newRefreshToken,
+                FullName = existing.User.FullName,
+                Email = existing.User.Email,
+                IsVerified = existing.User.IsVerified
             };
         }
 
@@ -91,7 +125,15 @@ namespace FitLifeAPI.Services
             user.ResetTokenExpiry = DateTime.UtcNow.AddHours(1);
             await _authRepository.UpdateAsync(user);
 
-           
+            await _emailService.SendEmailAsync(
+                user.Email,
+                "Reset your password - FitLife",
+                $@"
+                <h2>Reset Password</h2>
+            
+                <p>If you did not request a password reset, ignore this email.</p>
+                "
+            );
 
             return true;
         }
@@ -136,6 +178,18 @@ namespace FitLifeAPI.Services
         private string GenerateToken()
         {
             return Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+        }
+
+        private async Task<string> CreateAndSaveRefreshTokenAsync(int userId)
+        {
+            var refreshToken = new RefreshToken
+            {
+                UserId = userId,
+                Token = GenerateToken(),
+                ExpiresAt = DateTime.UtcNow.AddDays(30)
+            };
+            await _authRepository.SaveRefreshTokenAsync(refreshToken);
+            return refreshToken.Token;
         }
     }
 }
