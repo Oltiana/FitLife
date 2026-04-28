@@ -13,5 +13,8 @@ namespace FitLifeAPI.Models.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<WorkoutPlan> WorkoutPlans { get; set; } = new List<WorkoutPlan>();
+    public ICollection<WorkoutSession> WorkoutSessions { get; set; } = new List<WorkoutSession>();
+    public ICollection<FavoriteExercise> FavoriteExercises { get; set; } = new List<FavoriteExercise>();
     }
 }
