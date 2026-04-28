@@ -12,10 +12,11 @@ namespace FitLifeAPI.Controllers
     public class FitnessController : ControllerBase
     {
         private readonly IFitnessService _fitnessService;
-
-        public FitnessController(IFitnessService fitnessService)
+        private readonly IExerciseApiService _exerciseApiService;
+        public FitnessController(IFitnessService fitnessService, IExerciseApiService exerciseApiService)
         {
             _fitnessService = fitnessService;
+            _exerciseApiService = exerciseApiService;
         }
 
         private int GetUserId()
@@ -158,5 +159,30 @@ namespace FitLifeAPI.Controllers
 
             return Ok(result);
         }
+        [HttpGet("exercises")]
+        public async Task<IActionResult> GetExercises([FromQuery] int offset = 0, [FromQuery] int limit = 10)
+        {
+            try
+            {
+                var result = await _exerciseApiService.GetExercisesAsync(offset, limit);
+                return Ok(result);
+            }
+                catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        } 
+        
+        [HttpGet("exercises/{id}")]
+        public async Task<IActionResult> GetExerciseById(string id)
+        {
+            var result = await _exerciseApiService.GetExerciseByIdAsync(id);
+
+            if (result == null)
+            return NotFound("Exercise not found");
+
+            return Ok(result);
+        }
+                
     }
 }

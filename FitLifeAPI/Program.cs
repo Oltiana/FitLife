@@ -55,6 +55,12 @@ builder.Services.AddOpenApiDocument(config =>
         new NSwag.Generation.Processors.Security.AspNetCoreOperationSecurityScopeProcessor("Bearer")
     );
 });
+builder.Services.AddHttpClient<IExerciseApiService, ExerciseApiService>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ExerciseApi:BaseUrl"]!);
+    client.DefaultRequestHeaders.Add("x-rapidapi-host", builder.Configuration["ExerciseApi:Host"]!);
+    client.DefaultRequestHeaders.Add("x-rapidapi-key", builder.Configuration["ExerciseApi:ApiKey"]!);
+});
 
 var app = builder.Build();
 
