@@ -1,4 +1,5 @@
 using FitLife.Api.Data;
+using FitLifeAPI.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +8,8 @@ var conn = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<PilatesFitLifeDbContext>(options =>
+    options.UseSqlServer(conn));
+builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(conn));
 
 builder.Services.AddControllers()

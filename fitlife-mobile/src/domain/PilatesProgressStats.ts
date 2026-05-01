@@ -1,7 +1,6 @@
 import type { PilatesLevel } from './PilatesDomainTypes';
 import type { WorkoutCompletion } from './PilatesDomainTypes';
 import { caloriesForCompletion } from './PilatesCaloriesEstimate';
-import { DEFAULT_LOCAL_USER_ID } from '../data/PilatesUserProgramRepository';
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -217,11 +216,7 @@ export function filterCompletionsForUser(
   entries: WorkoutCompletion[],
   userId: string,
 ): WorkoutCompletion[] {
-  return entries.filter(
-    (e) =>
-      e.userId === userId ||
-      (e.userId == null && userId === DEFAULT_LOCAL_USER_ID),
-  );
+  return entries.filter((e) => e.userId === userId);
 }
 
 export type ProgressPeriod = '7d' | '4w' | '30d' | 'all';

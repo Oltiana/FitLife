@@ -27,19 +27,7 @@ public class PilatesUsersController : ControllerBase
         var userId = string.IsNullOrWhiteSpace(body?.UserId)
             ? DefaultDemoUserId
             : body!.UserId.Trim();
-        var displayName = string.IsNullOrWhiteSpace(body?.DisplayName)
-            ? "Local user"
-            : body!.DisplayName!.Trim();
-
-        if (!await _db.Users.AnyAsync(u => u.Id == userId, ct))
-        {
-            _db.Users.Add(new PilatesAppUser
-            {
-                Id = userId,
-                DisplayName = displayName,
-            });
-            await _db.SaveChangesAsync(ct);
-        }
+        _ = userId;
 
         return NoContent();
     }
@@ -71,9 +59,6 @@ public class PilatesUsersController : ControllerBase
         [FromBody] CompletionCreateDto body,
         CancellationToken ct)
     {
-        if (!await _db.Users.AnyAsync(u => u.Id == userId, ct))
-            return NotFound("User not found. Call POST /api/pilates/users/bootstrap first.");
-
         var entity = new PilatesWorkoutCompletionEntity
         {
             Id = body.Id,
@@ -117,9 +102,6 @@ public class PilatesUsersController : ControllerBase
         [FromBody] PreferencesDto body,
         CancellationToken ct)
     {
-        if (!await _db.Users.AnyAsync(u => u.Id == userId, ct))
-            return NotFound("User not found.");
-
         var row = await _db.UserPreferences.FirstOrDefaultAsync(p => p.UserId == userId, ct);
         if (row == null)
         {
@@ -159,8 +141,6 @@ public class PilatesUsersController : ControllerBase
         [FromBody] EnrollmentPostBody body,
         CancellationToken ct)
     {
-        if (!await _db.Users.AnyAsync(u => u.Id == userId, ct))
-            return NotFound("User not found.");
         if (!await _db.Programs.AnyAsync(p => p.Id == body.ProgramId, ct))
             return BadRequest("Unknown program.");
 

@@ -18,15 +18,13 @@ import { buildPilatesProgramsFromCatalog } from './PilatesProgramSeed';
 const KEY_USERS = '@fitlife/users';
 const KEY_PROGRAMS = '@fitlife/pilates_programs';
 const KEY_USER_PROGRAMS = '@fitlife/user_programs';
-
-/** Eksportuar për filtrim progresi / analytics sipas përdoruesit. */
-export const DEFAULT_LOCAL_USER_ID = 'user-local-1';
+const LEGACY_LOCAL_USER_ID = 'user-local-1';
 
 function slugifyUserId(raw: string): string {
   const normalized = raw.trim().toLowerCase();
   const slug = normalized.replace(/[^a-z0-9._-]/g, '-').replace(/-+/g, '-');
   const clean = slug.replace(/^-+|-+$/g, '');
-  return clean.length > 0 ? clean.slice(0, 80) : DEFAULT_LOCAL_USER_ID;
+  return clean.length > 0 ? clean.slice(0, 80) : '';
 }
 
 async function resolveAuthBackedUser(): Promise<User | null> {
@@ -97,7 +95,9 @@ function isUserProgram(x: unknown): x is UserProgram {
 
 export async function ensureDefaultUser(): Promise<User> {
   const raw = await AsyncStorage.getItem(KEY_USERS);
-  const list = parseArray<unknown>(raw).filter(isUser);
+  const list = parseArray<unknown>(raw)
+    .filter(isUser)
+    .filter((u) => u.id !== LEGACY_LOCAL_USER_ID);
   const authUser = await resolveAuthBackedUser();
   if (authUser != null) {
     const existing = list.find((u) => u.id === authUser.id);
@@ -110,9 +110,7 @@ export async function ensureDefaultUser(): Promise<User> {
 
   if (list.length > 0) return list[0]!;
 
-  const user: User = { id: DEFAULT_LOCAL_USER_ID, displayName: 'Local user' };
-  await AsyncStorage.setItem(KEY_USERS, JSON.stringify([user]));
-  return user;
+  throw new Error('No authenticated user found. Please login first.');
 }
 
 export async function loadUsers(): Promise<User[]> {

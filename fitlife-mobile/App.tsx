@@ -21,7 +21,6 @@ import { ensureDefaultUser, loadPrograms } from './src/data/PilatesUserProgramRe
 import { hydratePilatesModelFromPrograms } from './src/models/PilatesModel';
 import { MainTabs } from './src/navigation/PilatesMainTabs';
 import type { MainTabParamList } from './src/navigation/PilatesNavigationTypes';
-import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { ThemeProvider, useTheme } from './src/theme/PilatesThemeContext';
 
 const ROBOTO_STACK =
@@ -79,6 +78,7 @@ function ThemedNavigation() {
       prefixes: ['http://localhost:8081', 'https://localhost:8081'],
       config: {
         screens: {
+          Home: '',
           Pilates: {
             path: 'pilates',
             screens: {
@@ -94,26 +94,6 @@ function ThemedNavigation() {
     }),
     [],
   );
-  const isWebWelcome =
-    Platform.OS === 'web' &&
-    typeof window !== 'undefined' &&
-    (window.location.pathname === '/' || window.location.pathname === '');
-
-  if (isWebWelcome) {
-    return (
-      <>
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        <WelcomeScreen
-          onOpenPilates={() => {
-            if (typeof window !== 'undefined') {
-              window.location.assign('/pilates');
-            }
-          }}
-        />
-      </>
-    );
-  }
-
   const theme = useMemo(
     () => ({
       ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),

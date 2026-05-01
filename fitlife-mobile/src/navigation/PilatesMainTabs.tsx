@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
+import { HomeScreen } from '../screens/HomeScreen';
 import { PilatesProgressScreen } from '../screens/pilates/PilatesProgressScreen';
 import { useTheme } from '../theme/PilatesThemeContext';
 import { PilatesStack } from './PilatesStack';
@@ -25,7 +26,17 @@ export function MainTabs() {
   );
 
   return (
-    <Tab.Navigator screenOptions={screenOptions}>
+    <Tab.Navigator screenOptions={screenOptions} initialRouteName="Home">
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="Pilates"
         component={PilatesStack}

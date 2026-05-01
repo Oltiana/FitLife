@@ -8,6 +8,7 @@ export type PilatesStackParamList = {
 };
 
 export type MainTabParamList = {
+  Home: undefined;
   Pilates: NavigatorScreenParams<PilatesStackParamList>;
   Progress: undefined;
 };

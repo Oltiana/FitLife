@@ -19,11 +19,22 @@ public class PilatesAdminProgressController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<AdminUserDto>>> GetUsers(CancellationToken ct)
     {
-        var users = await _db.Users
+        var completionUsers = _db.WorkoutCompletions
             .AsNoTracking()
-            .OrderBy(u => u.DisplayName)
-            .ThenBy(u => u.Id)
-            .Select(u => new AdminUserDto(u.Id, u.DisplayName))
+            .Select(c => c.UserId);
+        var preferenceUsers = _db.UserPreferences
+            .AsNoTracking()
+            .Select(p => p.UserId);
+        var enrollmentUsers = _db.UserEnrollments
+            .AsNoTracking()
+            .Select(e => e.UserId);
+
+        var users = await completionUsers
+            .Union(preferenceUsers)
+            .Union(enrollmentUsers)
+            .Distinct()
+            .OrderBy(id => id)
+            .Select(id => new AdminUserDto(id, id))
             .ToListAsync(ct);
 
         return Ok(users);
@@ -57,9 +68,6 @@ public class PilatesAdminProgressController : ControllerBase
         [FromBody] AdminCompletionWriteDto body,
         CancellationToken ct)
     {
-        if (!await _db.Users.AnyAsync(u => u.Id == userId, ct))
-            return NotFound("User not found.");
-
         var id = string.IsNullOrWhiteSpace(body.Id)
             ? $"cmp-{Guid.NewGuid():N}"
             : body.Id.Trim();
@@ -149,8 +157,6 @@ public class PilatesAdminProgressController : ControllerBase
         [FromBody] AdminEnrollmentCreateDto body,
         CancellationToken ct)
     {
-        if (!await _db.Users.AnyAsync(u => u.Id == userId, ct))
-            return NotFound("User not found.");
         if (!await _db.Programs.AnyAsync(p => p.Id == body.ProgramId, ct))
             return BadRequest("Unknown program.");
 

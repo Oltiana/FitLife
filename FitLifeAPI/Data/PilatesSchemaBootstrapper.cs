@@ -10,9 +10,29 @@ public static class PilatesSchemaBootstrapper
     {
         await db.Database.ExecuteSqlRawAsync(
             """
-            IF OBJECT_ID(N'[Programs]', N'U') IS NULL
+            IF OBJECT_ID(N'[Programs]', N'U') IS NOT NULL
+               AND OBJECT_ID(N'[PilatesPrograms]', N'U') IS NULL
             BEGIN
-                CREATE TABLE [Programs] (
+                EXEC sp_rename N'[Programs]', N'PilatesPrograms';
+            END
+            """,
+            ct);
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            IF OBJECT_ID(N'[UserEnrollments]', N'U') IS NOT NULL
+               AND OBJECT_ID(N'[UserPrograms]', N'U') IS NULL
+            BEGIN
+                EXEC sp_rename N'[UserEnrollments]', N'UserPrograms';
+            END
+            """,
+            ct);
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            IF OBJECT_ID(N'[PilatesPrograms]', N'U') IS NULL
+            BEGIN
+                CREATE TABLE [PilatesPrograms] (
                     [Id] nvarchar(450) NOT NULL PRIMARY KEY,
                     [Name] nvarchar(max) NOT NULL,
                     [DurationWeeks] int NOT NULL,
@@ -25,9 +45,24 @@ public static class PilatesSchemaBootstrapper
 
         await db.Database.ExecuteSqlRawAsync(
             """
-            IF OBJECT_ID(N'[UserEnrollments]', N'U') IS NULL
+            IF OBJECT_ID(N'[Programs]', N'U') IS NOT NULL
+               AND OBJECT_ID(N'[PilatesPrograms]', N'U') IS NOT NULL
             BEGIN
-                CREATE TABLE [UserEnrollments] (
+                INSERT INTO [PilatesPrograms] ([Id], [Name], [DurationWeeks], [Level], [ExercisesJson])
+                SELECT p.[Id], p.[Name], p.[DurationWeeks], p.[Level], p.[ExercisesJson]
+                FROM [Programs] p
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM [PilatesPrograms] pp WHERE pp.[Id] = p.[Id]
+                );
+            END
+            """,
+            ct);
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            IF OBJECT_ID(N'[UserPrograms]', N'U') IS NULL
+            BEGIN
+                CREATE TABLE [UserPrograms] (
                     [Id] nvarchar(450) NOT NULL PRIMARY KEY,
                     [UserId] nvarchar(450) NOT NULL,
                     [ProgramId] nvarchar(450) NOT NULL,
@@ -38,11 +73,26 @@ public static class PilatesSchemaBootstrapper
                 SELECT 1
                 FROM sys.indexes
                 WHERE name = N'IX_UserEnrollments_UserId_ProgramId'
-                  AND object_id = OBJECT_ID(N'[UserEnrollments]')
+                  AND object_id = OBJECT_ID(N'[UserPrograms]')
             )
             BEGIN
                 CREATE UNIQUE INDEX [IX_UserEnrollments_UserId_ProgramId]
-                    ON [UserEnrollments]([UserId], [ProgramId]);
+                    ON [UserPrograms]([UserId], [ProgramId]);
+            END
+            """,
+            ct);
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            IF OBJECT_ID(N'[UserEnrollments]', N'U') IS NOT NULL
+               AND OBJECT_ID(N'[UserPrograms]', N'U') IS NOT NULL
+            BEGIN
+                INSERT INTO [UserPrograms] ([Id], [UserId], [ProgramId], [EnrolledAt])
+                SELECT ue.[Id], ue.[UserId], ue.[ProgramId], ue.[EnrolledAt]
+                FROM [UserEnrollments] ue
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM [UserPrograms] up WHERE up.[Id] = ue.[Id]
+                );
             END
             """,
             ct);
@@ -63,11 +113,13 @@ public static class PilatesSchemaBootstrapper
 
         await db.Database.ExecuteSqlRawAsync(
             """
-            IF OBJECT_ID(N'[Users]', N'U') IS NULL
+            IF OBJECT_ID(N'[WeightEntries]', N'U') IS NULL
             BEGIN
-                CREATE TABLE [Users] (
+                CREATE TABLE [WeightEntries] (
                     [Id] nvarchar(450) NOT NULL PRIMARY KEY,
-                    [DisplayName] nvarchar(max) NOT NULL
+                    [UserId] nvarchar(450) NOT NULL,
+                    [LoggedAt] datetime2 NOT NULL,
+                    [Kg] decimal(6,2) NOT NULL
                 );
             END
             """,
