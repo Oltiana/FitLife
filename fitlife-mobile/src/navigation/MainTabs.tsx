@@ -1,5 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { tokenStorage } from "../storage/tokenStorage";
 
 const Tab = createBottomTabNavigator();
 
@@ -27,21 +28,44 @@ function PilatesScreen() {
   );
 }
 
-function ProfileScreen() {
+function ProfileScreen({ onLogout }: { onLogout: () => void }) {
+  const handleLogout = async () => {
+    await tokenStorage.clearAuth();
+    onLogout();
+  };
+
   return (
-    <View>
-      <Text>Profile Module</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Profile</Text>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
-export default function MainTabs() {
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 24 },
+  title: { fontSize: 24, fontWeight: "700", marginBottom: 20 },
+  logoutButton: {
+    backgroundColor: "#FF4444",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  logoutText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+});
+
+export default function MainTabs({ onLogout }: { onLogout: () => void }) {
   return (
     <Tab.Navigator>
       <Tab.Screen name="Fitness" component={FitnessScreen} />
       <Tab.Screen name="Yoga" component={YogaScreen} />
       <Tab.Screen name="Pilates" component={PilatesScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Profile">
+        {() => <ProfileScreen onLogout={onLogout} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }

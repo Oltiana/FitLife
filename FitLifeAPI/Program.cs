@@ -35,6 +35,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
     });
+    builder.Services.AddCors(options =>  
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 builder.Services.AddControllers();
 
@@ -72,7 +81,7 @@ if (app.Environment.IsDevelopment())
         config.DocumentTitle = "FitLife API";
     });
 }
-
+app.UseCors(); 
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
