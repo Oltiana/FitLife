@@ -5,25 +5,32 @@ import {
   Platform, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLoginViewModel } from '../../viewmodels/useLoginViewModel';
+import { useRegisterViewModel } from '../../viewmodels/useRegisterViewModel';
 
-export default function LoginScreen({
-  onLoginSuccess,
-  onNavigateToRegister,
+export default function RegisterScreen({
+  onRegisterSuccess,
+  onNavigateToLogin,
 }: {
-  onLoginSuccess: () => void;
-  onNavigateToRegister: () => void;
+  onRegisterSuccess: () => void;
+  onNavigateToLogin: () => void;
 }) {
   const {
+    firstName, setFirstName,
+    lastName, setLastName,
     email, setEmail,
     password, setPassword,
+    confirmPassword, setConfirmPassword,
     loading, errors,
     showPassword, setShowPassword,
-    handleLogin,
-  } = useLoginViewModel(onLoginSuccess);
+    showConfirmPassword, setShowConfirmPassword,
+    handleRegister,
+  } = useRegisterViewModel(onRegisterSuccess);
 
+  const [firstNameFocused, setFirstNameFocused] = useState(false);
+  const [lastNameFocused, setLastNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
   return (
     <KeyboardAvoidingView
@@ -37,9 +44,39 @@ export default function LoginScreen({
         </View>
 
         <Text style={styles.appName}>FitLife</Text>
-        <Text style={styles.welcome}>Welcome Back</Text>
+        <Text style={styles.title}>Create account</Text>
 
         {errors.general ? <Text style={styles.errorText}>{errors.general}</Text> : null}
+
+        <View style={styles.row}>
+          <View style={styles.halfField}>
+            <Text style={styles.label}>First Name</Text>
+            <TextInput
+              style={[styles.inputSimple, errors.firstName ? styles.inputError : firstNameFocused ? styles.inputFocused : null, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+              placeholder="First Name"
+              placeholderTextColor="#999"
+              value={firstName}
+              onChangeText={setFirstName}
+              onFocus={() => setFirstNameFocused(true)}
+              onBlur={() => setFirstNameFocused(false)}
+            />
+            {errors.firstName ? <Text style={styles.fieldError}>{errors.firstName}</Text> : null}
+          </View>
+
+          <View style={styles.halfField}>
+            <Text style={styles.label}>Last Name</Text>
+            <TextInput
+              style={[styles.inputSimple, errors.lastName ? styles.inputError : lastNameFocused ? styles.inputFocused : null, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+              placeholder="Last Name"
+              placeholderTextColor="#999"
+              value={lastName}
+              onChangeText={setLastName}
+              onFocus={() => setLastNameFocused(true)}
+              onBlur={() => setLastNameFocused(false)}
+            />
+            {errors.lastName ? <Text style={styles.fieldError}>{errors.lastName}</Text> : null}
+          </View>
+        </View>
 
         <Text style={styles.label}>Email</Text>
         <View style={[styles.inputWrapper, errors.email ? styles.inputError : emailFocused ? styles.inputFocused : null]}>
@@ -72,34 +109,45 @@ export default function LoginScreen({
             onBlur={() => setPasswordFocused(false)}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Ionicons
-              name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-              size={18}
-              color="#888"
-            />
+            <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color="#888" />
           </TouchableOpacity>
         </View>
         {errors.password ? <Text style={styles.fieldError}>{errors.password}</Text> : null}
 
-        <TouchableOpacity style={styles.forgotWrapper}>
-          <Text style={styles.forgotText}>Forgot Password?</Text>
-        </TouchableOpacity>
+        <Text style={styles.label}>Confirm Password</Text>
+        <View style={[styles.inputWrapper, errors.confirmPassword ? styles.inputError : confirmPasswordFocused ? styles.inputFocused : null]}>
+          <Ionicons name="lock-closed-outline" size={18} color="#888" style={styles.inputIcon} />
+          <TextInput
+            style={[styles.input, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+            placeholder="Confirm password"
+            placeholderTextColor="#999"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
+            onFocus={() => setConfirmPasswordFocused(true)}
+            onBlur={() => setConfirmPasswordFocused(false)}
+          />
+          <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+            <Ionicons name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color="#888" />
+          </TouchableOpacity>
+        </View>
+        {errors.confirmPassword ? <Text style={styles.fieldError}>{errors.confirmPassword}</Text> : null}
 
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
+          onPress={handleRegister}
           disabled={loading}
         >
           {loading
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.buttonText}>Sign In</Text>
+            : <Text style={styles.buttonText}>Create account</Text>
           }
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={onNavigateToRegister}>
-          <Text style={styles.registerText}>
-            Don't have an account?{' '}
-            <Text style={styles.registerLink}>Sign Up</Text>
+        <TouchableOpacity onPress={onNavigateToLogin}>
+          <Text style={styles.loginText}>
+            Already have an account?{' '}
+            <Text style={styles.loginLink}>Sign In</Text>
           </Text>
         </TouchableOpacity>
 
@@ -123,9 +171,23 @@ const styles = StyleSheet.create({
   },
 
   appName: { fontSize: 24, fontWeight: '700', textAlign: 'center', color: '#1A1A1A' },
-  welcome: { fontSize: 16, textAlign: 'center', color: '#555', marginBottom: 32, marginTop: 4 },
+  title: { fontSize: 16, textAlign: 'center', color: '#555', marginBottom: 24, marginTop: 4 },
 
-  label: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 6, marginTop: 14 },
+  row: { flexDirection: 'row', gap: 12, marginBottom: 4 },
+  halfField: { flex: 1 },
+
+  label: { fontSize: 13, fontWeight: '600', color: '#5A8A5A', marginBottom: 6, marginTop: 12 },
+
+  inputSimple: {
+    backgroundColor: '#F2F2F2',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 50,
+    color: '#1A1A1A',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
 
   inputWrapper: {
     flexDirection: 'row',
@@ -151,9 +213,6 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 8 },
   input: { flex: 1, color: '#1A1A1A', fontSize: 14 },
 
-  forgotWrapper: { alignItems: 'flex-end', marginTop: 8 },
-  forgotText: { color: '#7DBF7A', fontSize: 13, fontWeight: '600' },
-
   button: {
     backgroundColor: '#7DBF7A',
     borderRadius: 12,
@@ -168,6 +227,6 @@ const styles = StyleSheet.create({
   errorText: { color: '#E53935', fontSize: 13, textAlign: 'center', marginBottom: 8 },
   fieldError: { color: '#E53935', fontSize: 11, marginTop: 4 },
 
-  registerText: { textAlign: 'center', color: '#555', marginTop: 20, fontSize: 13 },
-  registerLink: { color: '#7DBF7A', fontWeight: '700' },
+  loginText: { textAlign: 'center', color: '#555', marginTop: 20, fontSize: 13 },
+  loginLink: { color: '#7DBF7A', fontWeight: '700' },
 });

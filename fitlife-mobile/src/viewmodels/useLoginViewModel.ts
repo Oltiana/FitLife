@@ -6,18 +6,40 @@ export const useLoginViewModel = (onSuccess: () => void) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  const [errors, setErrors] = useState({
+    email: '',
+    password: '',
+    general: '',
+  });
+
+  const validateEmail = (val: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
+    const newErrors = { email: '', password: '', general: '' };
+    let hasError = false;
+
+    if (!email) {
+      newErrors.email = 'Email is required.';
+      hasError = true;
+    } else if (!validateEmail(email)) {
+      newErrors.email = 'Invalid email address.';
+      hasError = true;
     }
+
+    if (!password) {
+      newErrors.password = 'Password is required.';
+      hasError = true;
+    }
+
+    setErrors(newErrors);
+    if (hasError) return;
 
     try {
       setLoading(true);
-      setError(null);
+      setErrors({ email: '', password: '', general: '' });
 
       const response = await authApi.login(email, password);
 
@@ -32,11 +54,11 @@ export const useLoginViewModel = (onSuccess: () => void) => {
       const message = err.message || '';
 
       if (message.includes('User not found')) {
-        setError('No account found with this email.');
+        setErrors(prev => ({ ...prev, email: 'No account found with this email.' }));
       } else if (message.includes('Invalid password')) {
-        setError('Wrong password. Please try again.');
+        setErrors(prev => ({ ...prev, password: 'Wrong password. Please try again.' }));
       } else {
-        setError('Login failed. Please try again.');
+        setErrors(prev => ({ ...prev, general: 'Login failed. Please try again.' }));
       }
     } finally {
       setLoading(false);
@@ -46,7 +68,7 @@ export const useLoginViewModel = (onSuccess: () => void) => {
   return {
     email, setEmail,
     password, setPassword,
-    loading, error,
+    loading, errors,
     showPassword, setShowPassword,
     handleLogin,
   };
