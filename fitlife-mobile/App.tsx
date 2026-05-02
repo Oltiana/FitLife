@@ -79,16 +79,25 @@ function ThemedNavigation() {
       config: {
         screens: {
           Home: '',
-          Pilates: {
+          Search: {
             path: 'pilates',
             screens: {
-              PilatesList: '',
+              DiscoverHub: '',
+              PilatesList: 'gallery',
               WorkoutDetail: 'workout/:workoutId',
               ActiveWorkout: 'active/:workoutId',
               ProgramSchedule: 'schedule/:workoutId',
             },
           },
+          Calendar: {
+            path: 'calendar',
+            screens: {
+              CalendarHub: '',
+              ProgramSchedule: 'schedule/:workoutId',
+            },
+          },
           Progress: 'progress',
+          Profile: 'profile',
         },
       },
     }),
@@ -125,14 +134,23 @@ export default function App() {
 
   useEffect(() => {
     void (async () => {
-      const theme = await loadThemePreference();
-      setInitialTheme(theme);
-      await ensureDefaultUser();
-      await bootstrapRemoteApiIfConfigured();
-      const programs = await loadPrograms();
-      hydratePilatesModelFromPrograms(programs);
-      await ensurePreferencesForLegacyInstall();
-      setBootReady(true);
+      try {
+        const theme = await loadThemePreference();
+        setInitialTheme(theme);
+        try {
+          await ensureDefaultUser();
+        } catch {
+          /* Guest: catalog/cache until login */
+        }
+        await bootstrapRemoteApiIfConfigured();
+        const programs = await loadPrograms();
+        hydratePilatesModelFromPrograms(programs);
+        await ensurePreferencesForLegacyInstall();
+      } catch (e) {
+        console.warn('[FitLife] boot hydrate failed', e);
+      } finally {
+        setBootReady(true);
+      }
     })();
   }, []);
 

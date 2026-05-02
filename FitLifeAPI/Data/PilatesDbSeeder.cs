@@ -18,6 +18,7 @@ public static class PilatesDbSeeder
             {
                 Id = "core-fundamentals",
                 Name = "Core Fundamentals",
+                DisplayOrder = 1,
                 DurationWeeks = 2,
                 Level = "beginner",
                 ExercisesJson =
@@ -36,6 +37,7 @@ public static class PilatesDbSeeder
             {
                 Id = "deep-stretch",
                 Name = "Deep Stretch & Restore",
+                DisplayOrder = 3,
                 DurationWeeks = 2,
                 Level = "advanced",
                 ExercisesJson =

@@ -13,9 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ImageBanner } from '../../components/PilatesImageBanner';
+import { PilatesModel } from '../../models/PilatesModel';
 import { usePilatesWorkoutViewModel } from '../../viewmodels/PilatesViewModel';
 import { appendCompletion } from '../../data/PilatesProgressRepository';
-import { ensureDefaultUser } from '../../data/PilatesUserProgramRepository';
 import { estimatePilatesCalories } from '../../domain/PilatesCaloriesEstimate';
 import type { PilatesStackParamList } from '../../navigation/PilatesNavigationTypes';
 import type { AppColors } from '../../theme/PilatesColors';
@@ -57,26 +57,26 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
   }, [route.params.workoutId]);
 
   const completeWorkout = useCallback(async () => {
-    if (!workout || finishingRef.current) return;
+    const w =
+      workout ?? PilatesModel.getWorkoutById(route.params.workoutId);
+    if (!w || finishingRef.current) return;
     finishingRef.current = true;
     setFinished(true);
     const totalMin = Math.max(
       1,
       Math.round(
-        workout.exercises.reduce((a, e) => a + e.durationSec, 0) / 60,
+        w.exercises.reduce((a, e) => a + e.durationSec, 0) / 60,
       ),
     );
-    const caloriesBurned = estimatePilatesCalories(totalMin, workout.level);
+    const caloriesBurned = estimatePilatesCalories(totalMin, w.level);
     setCompletionCalories(caloriesBurned);
     try {
-      const user = await ensureDefaultUser();
       await appendCompletion({
-        id: `${Date.now()}-${workout.id}`,
-        workoutId: workout.id,
-        workoutTitle: workout.title,
+        id: `${Date.now()}-${w.id}`,
+        workoutId: w.id,
+        workoutTitle: w.title,
         completedAt: new Date().toISOString(),
         durationMinutes: totalMin,
-        userId: user.id,
         caloriesBurned,
       });
     } catch (e) {
@@ -93,7 +93,7 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
         [{ text: 'OK', onPress: dismissCompletionAlert }],
       );
     }
-  }, [dismissCompletionAlert, navigation, workout]);
+  }, [dismissCompletionAlert, navigation, route.params.workoutId, workout]);
 
   useEffect(() => {
     if (!workout) return;

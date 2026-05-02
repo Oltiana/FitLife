@@ -50,4 +50,6 @@ export type WorkoutCompletion = {
   userId?: string;
   /** Vlerësim i kalorive të djegura për këtë seancë (kcal). */
   caloriesBurned?: number;
+  /** Radhë e qëndrueshme nga serveri (1, 2, …); opsionale për hyrje vetëm lokale. */
+  displayOrder?: number;
 };

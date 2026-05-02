@@ -67,7 +67,7 @@ export function startPilatesSession(programId: string): void {
     console.warn('[FitLife] Navigation not ready; startPilatesSession skipped.');
     return;
   }
-  navigationRef.navigate('Pilates', {
+  navigationRef.navigate('Search', {
     screen: 'ActiveWorkout',
     params: { workoutId: programId },
   });
@@ -80,7 +80,10 @@ export async function getProgressData(
 ): Promise<ProgressDataPayload> {
   const all = await loadCompletions();
   const userEntries = filterCompletionsForUser(all, userId);
-  const inRange = filterCompletionsByPeriod(userEntries, period, now);
+  const inRange = filterCompletionsByPeriod(userEntries, period, now).sort(
+    (a, b) =>
+      new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime(),
+  );
   const today = todayActivityTotals(userEntries, now);
 
   return {

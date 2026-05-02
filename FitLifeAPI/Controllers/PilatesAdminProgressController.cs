@@ -48,7 +48,8 @@ public class PilatesAdminProgressController : ControllerBase
         var list = await _db.WorkoutCompletions
             .AsNoTracking()
             .Where(c => c.UserId == userId)
-            .OrderByDescending(c => c.CompletedAt)
+            .OrderBy(c => c.CompletedAt)
+            .ThenBy(c => c.Id)
             .Select(c => new AdminCompletionDto(
                 c.Id,
                 c.UserId,
@@ -56,7 +57,8 @@ public class PilatesAdminProgressController : ControllerBase
                 c.WorkoutTitle,
                 c.CompletedAt,
                 c.DurationMinutes,
-                c.CaloriesBurned))
+                c.CaloriesBurned,
+                c.DisplayOrder))
             .ToListAsync(ct);
 
         return Ok(list);
@@ -75,6 +77,11 @@ public class PilatesAdminProgressController : ControllerBase
         if (await _db.WorkoutCompletions.AnyAsync(c => c.Id == id, ct))
             return Conflict($"Completion with id '{id}' already exists.");
 
+        var nextOrder =
+            (await _db.WorkoutCompletions
+                .Where(c => c.UserId == userId)
+                .MaxAsync(c => (int?)c.DisplayOrder, ct)) ?? 0;
+
         var entity = new PilatesWorkoutCompletionEntity
         {
             Id = id,
@@ -84,6 +91,7 @@ public class PilatesAdminProgressController : ControllerBase
             CompletedAt = body.CompletedAt,
             DurationMinutes = body.DurationMinutes,
             CaloriesBurned = body.CaloriesBurned,
+            DisplayOrder = nextOrder + 1,
         };
 
         _db.WorkoutCompletions.Add(entity);
@@ -99,7 +107,8 @@ public class PilatesAdminProgressController : ControllerBase
                 entity.WorkoutTitle,
                 entity.CompletedAt,
                 entity.DurationMinutes,
-                entity.CaloriesBurned));
+                entity.CaloriesBurned,
+                entity.DisplayOrder));
     }
 
     [HttpDelete("{userId}/completions/{completionId}")]
@@ -202,15 +211,16 @@ public record AdminCompletionDto(
     string UserId,
     string WorkoutId,
     string WorkoutTitle,
-    DateTime CompletedAt,
+    DateTimeOffset CompletedAt,
     int DurationMinutes,
-    int? CaloriesBurned);
+    int? CaloriesBurned,
+    int DisplayOrder);
 
 public record AdminCompletionWriteDto(
     string? Id,
     string WorkoutId,
     string WorkoutTitle,
-    DateTime CompletedAt,
+    DateTimeOffset CompletedAt,
     int DurationMinutes,
     int? CaloriesBurned);
 

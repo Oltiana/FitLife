@@ -1,8 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,7 +22,7 @@ import {
 } from '../../data/PilatesUserProgramRepository';
 import { useEnrolledProgramIds } from '../../hooks/usePilatesEnrolledProgramIds';
 import { usePilatesWorkoutViewModel } from '../../viewmodels/PilatesViewModel';
-import type { PilatesStackParamList } from '../../navigation/PilatesNavigationTypes';
+import type { MainTabParamList, PilatesStackParamList } from '../../navigation/PilatesNavigationTypes';
 import type { AppColors } from '../../theme/PilatesColors';
 import { useTheme } from '../../theme/PilatesThemeContext';
 
@@ -247,6 +250,32 @@ export function WorkoutDetailScreen({ route, navigation }: Props) {
   const { userId, enrolledIds, refresh } = useEnrolledProgramIds();
   const [programRow, setProgramRow] = useState<PilatesProgram | null>(null);
   const [enrollBusy, setEnrollBusy] = useState(false);
+
+  useLayoutEffect(() => {
+    const goBackOrHome = () => {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+      const tabNav = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
+      tabNav?.navigate('Home');
+    };
+
+    navigation.setOptions({
+      headerBackVisible: false,
+      headerLeft: () => (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          onPress={goBackOrHome}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
+          style={{ marginLeft: Platform.OS === 'ios' ? 4 : 0, paddingVertical: 6, paddingRight: 10 }}
+        >
+          <Ionicons name="chevron-back" size={28} color={colors.primary} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, colors.primary]);
 
   useFocusEffect(
     useCallback(() => {

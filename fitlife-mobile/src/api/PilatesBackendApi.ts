@@ -11,6 +11,7 @@ type CompletionDto = {
   durationMinutes: number;
   userId?: string | null;
   caloriesBurned?: number | null;
+  displayOrder?: number | null;
 };
 
 type ProgramDto = {
@@ -19,6 +20,7 @@ type ProgramDto = {
   durationWeeks: number;
   level: string;
   exercisesJson: string;
+  displayOrder?: number;
 };
 
 type EnrollmentDto = {
@@ -46,17 +48,28 @@ type WeightEntryDto = {
   kg: number;
 };
 
-function mapCompletion(row: CompletionDto): WorkoutCompletion {
+function mapCompletion(
+  row: CompletionDto,
+  fallbackUserId?: string,
+): WorkoutCompletion {
+  const resolved =
+    row.userId != null && String(row.userId).trim() !== ''
+      ? String(row.userId).trim()
+      : fallbackUserId?.trim() || undefined;
   return {
     id: row.id,
     workoutId: row.workoutId,
     workoutTitle: row.workoutTitle,
     completedAt: row.completedAt,
     durationMinutes: row.durationMinutes,
-    userId: row.userId ?? undefined,
+    userId: resolved,
     caloriesBurned:
       row.caloriesBurned != null && !Number.isNaN(row.caloriesBurned)
         ? row.caloriesBurned
+        : undefined,
+    displayOrder:
+      row.displayOrder != null && !Number.isNaN(row.displayOrder)
+        ? row.displayOrder
         : undefined,
   };
 }
@@ -109,22 +122,23 @@ export async function bootstrapFitLifeBackend(
 export async function fetchCompletionsRemote(
   baseUrl: string,
   userId: string,
+  _bootstrapUser?: PilatesBootstrapUser,
 ): Promise<WorkoutCompletion[]> {
-  await bootstrapFitLifeBackend(baseUrl);
+  /* Mos e lidh POST bootstrap me completions — nëse bootstrap dështon, SQL nuk merr kurrë INSERT. Seed bëhet në startup të API-së. */
   const { body } = await request<CompletionDto[]>(
     `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/completions`,
     { method: 'GET' },
   );
   if (!body || !Array.isArray(body)) return [];
-  return body.map(mapCompletion);
+  return body.map((row) => mapCompletion(row, userId));
 }
 
 export async function postCompletionRemote(
   baseUrl: string,
   userId: string,
   entry: WorkoutCompletion,
+  _bootstrapUser?: PilatesBootstrapUser,
 ): Promise<WorkoutCompletion> {
-  await bootstrapFitLifeBackend(baseUrl);
   const payload = {
     id: entry.id,
     workoutId: entry.workoutId,
@@ -141,7 +155,7 @@ export async function postCompletionRemote(
     },
   );
   if (!body) throw new Error('FitLife API: empty body after POST completion');
-  return mapCompletion(body);
+  return mapCompletion(body, userId);
 }
 
 export async function fetchPreferencesRemote(
@@ -194,6 +208,10 @@ export function mapProgramDtoToPilatesProgram(p: ProgramDto): PilatesProgram {
     duration_weeks: p.durationWeeks,
     level: p.level as PilatesLevel,
     exercises_json: p.exercisesJson,
+    display_order:
+      p.displayOrder != null && !Number.isNaN(p.displayOrder)
+        ? p.displayOrder
+        : undefined,
   };
 }
 
@@ -275,11 +293,22 @@ export async function fetchWeightEntriesRemote(
     { method: 'GET' },
   );
   if (!body || !Array.isArray(body)) return [];
-  return body.map((w) => ({
-    id: w.id,
-    date: w.loggedAt,
-    kg: w.kg,
-  }));
+  return body.map((w) => {
+    const kgRaw = w.kg as unknown;
+    const kg =
+      typeof kgRaw === 'number' && Number.isFinite(kgRaw)
+        ? kgRaw
+        : Number(kgRaw);
+    const date =
+      typeof w.loggedAt === 'string'
+        ? w.loggedAt
+        : String(w.loggedAt ?? '');
+    return {
+      id: String(w.id),
+      date,
+      kg,
+    };
+  });
 }
 
 export async function postWeightEntryRemote(

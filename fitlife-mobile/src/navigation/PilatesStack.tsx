@@ -1,5 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Platform } from 'react-native';
+import { BrowseModalityDetailScreen } from '../screens/discover/BrowseModalityDetailScreen';
+import { DiscoverHubScreen } from '../screens/discover/DiscoverHubScreen';
 import { ActiveWorkoutScreen } from '../screens/pilates/PilatesActiveWorkoutScreen';
 import { PilatesListScreen } from '../screens/pilates/PilatesListScreen';
 import { PilatesProgramScheduleScreen } from '../screens/pilates/PilatesProgramScheduleScreen';
@@ -13,6 +15,7 @@ export function PilatesStack() {
   const { colors } = useTheme();
   return (
     <Stack.Navigator
+      initialRouteName="DiscoverHub"
       screenOptions={{
         headerTintColor: colors.primary,
         headerTitleStyle: { color: colors.text },
@@ -21,6 +24,16 @@ export function PilatesStack() {
         headerBackTitle: 'Back',
       }}
     >
+      <Stack.Screen
+        name="DiscoverHub"
+        component={DiscoverHubScreen}
+        options={{ headerShown: false, title: 'Search' }}
+      />
+      <Stack.Screen
+        name="BrowseModalityDetail"
+        component={BrowseModalityDetailScreen}
+        options={{ title: 'Session' }}
+      />
       <Stack.Screen
         name="PilatesList"
         component={PilatesListScreen}

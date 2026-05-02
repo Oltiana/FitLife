@@ -56,6 +56,12 @@ function createListStyles(colors: AppColors) {
       fontSize: 15,
       color: colors.textSecondary,
     },
+    signedInHint: {
+      marginTop: 8,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
     searchWrap: {
       marginTop: 14,
       marginBottom: 8,
@@ -194,7 +200,7 @@ export function PilatesListScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createListStyles(colors), [colors]);
   const { workouts, loading } = usePilatesListViewModel();
-  const { enrolledIds, refresh } = useEnrolledProgramIds();
+  const { enrolledIds, displayName, refresh } = useEnrolledProgramIds();
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState<PilatesLevel | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<PilatesCategory | null>(null);
@@ -281,6 +287,9 @@ export function PilatesListScreen({ navigation }: Props) {
             <Text style={styles.screenSubtitle}>
               Search and filter sessions, then start your flow.
             </Text>
+            {displayName ? (
+              <Text style={styles.signedInHint}>Signed in as {displayName}</Text>
+            ) : null}
             <View style={styles.searchWrap}>
               <TextInput
                 style={styles.input}

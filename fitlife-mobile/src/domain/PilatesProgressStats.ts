@@ -212,11 +212,28 @@ export function caloriesPerWeekLast4Windows(
   return result;
 }
 
+/** Përdoret kur nuk ka login — përputhet me completions lokale pa `userId`. */
+export const GUEST_PROGRESS_USER_ID = '__fitlife_guest_progress__';
+
 export function filterCompletionsForUser(
   entries: WorkoutCompletion[],
   userId: string,
 ): WorkoutCompletion[] {
-  return entries.filter((e) => e.userId === userId);
+  if (userId === GUEST_PROGRESS_USER_ID) {
+    return entries.filter((e) => e.userId == null || e.userId === '');
+  }
+  return entries.filter((e) => {
+    const eu = e.userId?.trim() ?? '';
+    if (eu === userId) return true;
+    // Legacy: local fallback saved completions without userId; analytics uses pilates-anon-*.
+    if (
+      eu === '' &&
+      userId.startsWith('pilates-anon-')
+    ) {
+      return true;
+    }
+    return false;
+  });
 }
 
 export type ProgressPeriod = '7d' | '4w' | '30d' | 'all';

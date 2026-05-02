@@ -26,7 +26,8 @@ public class PilatesProgramsController : ControllerBase
     {
         var programs = await _db.Programs
             .AsNoTracking()
-            .OrderBy(p => p.Name)
+            .OrderBy(p => p.DisplayOrder)
+            .ThenBy(p => p.Name)
             .ToListAsync(ct);
 
         var list = programs.Select(ToProgramDto).ToList();
@@ -60,6 +61,12 @@ public class PilatesProgramsController : ControllerBase
         if (exists)
             return Conflict($"Program with id '{id}' already exists.");
 
+        var maxOrder = await _db.Programs.MaxAsync(p => (int?)p.DisplayOrder, ct) ?? 0;
+        var displayOrder =
+            body.DisplayOrder is >= 0 and var requestedOrder
+                ? requestedOrder
+                : maxOrder + 1;
+
         var entity = new Models.PilatesProgramEntity
         {
             Id = id,
@@ -67,6 +74,7 @@ public class PilatesProgramsController : ControllerBase
             DurationWeeks = body.DurationWeeks,
             Level = body.Level.Trim().ToLowerInvariant(),
             ExercisesJson = body.ExercisesJson.Trim(),
+            DisplayOrder = displayOrder,
         };
 
         _db.Programs.Add(entity);
@@ -78,7 +86,8 @@ public class PilatesProgramsController : ControllerBase
             entity.DurationWeeks,
             entity.Level,
             entity.ExercisesJson,
-            ParseSteps(entity.ExercisesJson));
+            ParseSteps(entity.ExercisesJson),
+            entity.DisplayOrder);
 
         return CreatedAtAction(nameof(GetById), new { id = entity.Id }, dto);
     }
@@ -100,6 +109,8 @@ public class PilatesProgramsController : ControllerBase
         entity.DurationWeeks = body.DurationWeeks;
         entity.Level = body.Level.Trim().ToLowerInvariant();
         entity.ExercisesJson = body.ExercisesJson.Trim();
+        if (body.DisplayOrder is >= 0 and var d)
+            entity.DisplayOrder = d;
 
         await _db.SaveChangesAsync(ct);
         return NoContent();
@@ -176,7 +187,8 @@ public class PilatesProgramsController : ControllerBase
             entity.DurationWeeks,
             entity.Level,
             entity.ExercisesJson,
-            ParseSteps(entity.ExercisesJson)));
+            ParseSteps(entity.ExercisesJson),
+            entity.DisplayOrder));
     }
 
     [HttpGet("{id}/steps")]
@@ -342,6 +354,12 @@ public class PilatesProgramsController : ControllerBase
             return false;
         }
 
+        if (body.DisplayOrder is < 0)
+        {
+            validationError = "DisplayOrder must be null or a non-negative integer.";
+            return false;
+        }
+
         if (string.IsNullOrWhiteSpace(body.ExercisesJson))
         {
             validationError = "ExercisesJson is required.";
@@ -359,7 +377,8 @@ public class PilatesProgramsController : ControllerBase
             p.DurationWeeks,
             p.Level,
             p.ExercisesJson,
-            ParseSteps(p.ExercisesJson));
+            ParseSteps(p.ExercisesJson),
+            p.DisplayOrder);
 
     private static IReadOnlyList<ProgramStepDto> ParseSteps(string exercisesJson)
     {
@@ -439,7 +458,8 @@ public record ProgramDto(
     int DurationWeeks,
     string Level,
     string ExercisesJson,
-    IReadOnlyList<ProgramStepDto> Steps
+    IReadOnlyList<ProgramStepDto> Steps,
+    int DisplayOrder
 );
 
 public record UpsertProgramRequest(
@@ -447,8 +467,8 @@ public record UpsertProgramRequest(
     string Name,
     int DurationWeeks,
     string Level,
-    string ExercisesJson
-);
+    string ExercisesJson,
+    int? DisplayOrder = null);
 
 public record AddProgramStepRequest(
     string? Id,

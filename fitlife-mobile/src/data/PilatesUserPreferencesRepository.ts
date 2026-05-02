@@ -5,7 +5,7 @@ import {
 } from '../api/PilatesBackendApi';
 import { getApiBaseUrl } from '../config/PilatesApiConfig';
 import type { UserPreferences } from '../domain/PilatesUserPreferences';
-import { ensureDefaultUser } from './PilatesUserProgramRepository';
+import { resolvePilatesApiUserId } from './PilatesUserProgramRepository';
 import { loadCompletions } from './PilatesProgressRepository';
 
 export type { UserPreferences } from '../domain/PilatesUserPreferences';
@@ -60,8 +60,8 @@ export async function loadUserPreferences(): Promise<UserPreferences> {
   const base = getApiBaseUrl();
   if (base) {
     try {
-      const user = await ensureDefaultUser();
-      const remote = await fetchPreferencesRemote(base, user.id);
+      const userId = await resolvePilatesApiUserId();
+      const remote = await fetchPreferencesRemote(base, userId);
       await AsyncStorage.setItem(KEY, JSON.stringify(remote));
       return remote;
     } catch (e) {
@@ -77,10 +77,10 @@ export async function saveUserPreferences(
 ): Promise<UserPreferences> {
   const base = getApiBaseUrl();
   if (base) {
-    const user = await ensureDefaultUser();
-    const prev = await fetchPreferencesRemote(base, user.id);
+    const userId = await resolvePilatesApiUserId();
+    const prev = await fetchPreferencesRemote(base, userId);
     const next: UserPreferences = { ...prev, ...patch };
-    await putPreferencesRemote(base, user.id, next);
+    await putPreferencesRemote(base, userId, next);
     await AsyncStorage.setItem(KEY, JSON.stringify(next));
     return next;
   }

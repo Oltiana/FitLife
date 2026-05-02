@@ -5,9 +5,41 @@ import {
 } from '../api/PilatesBackendApi';
 import { getApiBaseUrl } from '../config/PilatesApiConfig';
 import type { WorkoutCompletion } from '../domain/PilatesDomainTypes';
-import { ensureDefaultUser } from './PilatesUserProgramRepository';
+import {
+  resolvePilatesApiUserId,
+  resolvePilatesBootstrapUser,
+} from './PilatesUserProgramRepository';
 
 const STORAGE_KEY = '@fitlife/workout_completions';
+
+/** Më e vjetra → më e reja (rreshti i fundit = seanca më e fundit). */
+function sortCompletionsChronological(
+  entries: WorkoutCompletion[],
+): WorkoutCompletion[] {
+  return [...entries].sort((a, b) => {
+    const ta = new Date(a.completedAt).getTime();
+    const tb = new Date(b.completedAt).getTime();
+    if (ta !== tb) return ta - tb;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+/** Remote GET mund të kthejë [] kur SQL është bosh; nuk duhet të humbasim completions lokale. */
+function mergeCompletionsById(
+  remote: WorkoutCompletion[],
+  local: WorkoutCompletion[],
+): WorkoutCompletion[] {
+  const byId = new Map<string, WorkoutCompletion>();
+  for (const r of remote) {
+    byId.set(r.id, r);
+  }
+  for (const l of local) {
+    if (!byId.has(l.id)) {
+      byId.set(l.id, l);
+    }
+  }
+  return sortCompletionsChronological([...byId.values()]);
+}
 
 function parseList(raw: string | null): WorkoutCompletion[] {
   if (!raw) return [];
@@ -31,17 +63,22 @@ function parseList(raw: string | null): WorkoutCompletion[] {
  * Përndryshe përdoret ruajtja lokale (AsyncStorage).
  */
 export async function loadCompletions(): Promise<WorkoutCompletion[]> {
+  const local = await loadLocalCompletionsOnly();
   const base = getApiBaseUrl();
-  if (base) {
-    try {
-      const user = await ensureDefaultUser();
-      return fetchCompletionsRemote(base, user.id);
-    } catch (e) {
-      console.warn('[FitLife] loadCompletions remote failed; using local fallback', e);
-    }
+  if (!base) {
+    return sortCompletionsChronological(local);
   }
-  const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  return parseList(raw);
+  try {
+    const userId = await resolvePilatesApiUserId();
+    const boot = await resolvePilatesBootstrapUser();
+    const remote = await fetchCompletionsRemote(base, userId, boot);
+    const merged = mergeCompletionsById(remote, local);
+    await saveCompletions(merged);
+    return merged;
+  } catch (e) {
+    console.warn('[FitLife] loadCompletions remote failed; using local fallback', e);
+    return sortCompletionsChronological(local);
+  }
 }
 
 export async function saveCompletions(entries: WorkoutCompletion[]): Promise<void> {
@@ -54,21 +91,34 @@ export async function saveCompletions(entries: WorkoutCompletion[]): Promise<voi
 export async function appendCompletion(
   entry: WorkoutCompletion,
 ): Promise<WorkoutCompletion[]> {
+  /** Gjithmonë ID kanonik nga login (jo `entry.userId` të vjetër `pilates-anon-*`). */
+  const userId = await resolvePilatesApiUserId();
+  const enriched: WorkoutCompletion = { ...entry, userId };
   const base = getApiBaseUrl();
   if (base) {
     try {
-      const user = await ensureDefaultUser();
-      const userId = entry.userId ?? user.id;
-      await postCompletionRemote(base, userId, { ...entry, userId });
-      return fetchCompletionsRemote(base, userId);
+      const boot = await resolvePilatesBootstrapUser();
+      await postCompletionRemote(base, userId, enriched, boot);
+      const remote = await fetchCompletionsRemote(base, userId, boot);
+      const local = await loadLocalCompletionsOnly();
+      /* GET mund të jetë bosh — gjithmonë përfshi completion-in që sapo u dërgua. */
+      const merged = mergeCompletionsById(
+        mergeCompletionsById(remote, local),
+        [enriched],
+      );
+      await saveCompletions(merged);
+      return merged;
     } catch (e) {
       // If remote save fails/unreachable, keep workout data locally
       // so the completion flow never gets stuck.
-      console.warn('[FitLife] appendCompletion remote failed; using local fallback', e);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn(
+        `[FitLife] appendCompletion remote failed (${base}) — SQL nuk përditësohet. Fallback lokal. Shkaku: ${msg}`,
+      );
     }
   }
   const current = await loadLocalCompletionsOnly();
-  const next = [entry, ...current];
+  const next = sortCompletionsChronological([...current, enriched]);
   await saveCompletions(next);
   return next;
 }
@@ -76,5 +126,5 @@ export async function appendCompletion(
 /** Vetëm lokale — për degën lokale të `appendCompletion`. */
 async function loadLocalCompletionsOnly(): Promise<WorkoutCompletion[]> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  return parseList(raw);
+  return sortCompletionsChronological(parseList(raw));
 }

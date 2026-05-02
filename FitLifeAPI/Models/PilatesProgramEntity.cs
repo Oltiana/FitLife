@@ -7,4 +7,7 @@ public class PilatesProgramEntity
     public int DurationWeeks { get; set; }
     public string Level { get; set; } = string.Empty;
     public string ExercisesJson { get; set; } = string.Empty;
+
+    /** Renditja në lista (1 = i pari); jo alfabetik. */
+    public int DisplayOrder { get; set; }
 }

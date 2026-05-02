@@ -15,10 +15,76 @@ import type {
 import { tokenStorage } from '../storage/tokenStorage';
 import { buildPilatesProgramsFromCatalog } from './PilatesProgramSeed';
 
+function sortProgramsByDisplayOrder(programs: PilatesProgram[]): PilatesProgram[] {
+  return [...programs].sort((a, b) => {
+    const ao = a.display_order ?? 9999;
+    const bo = b.display_order ?? 9999;
+    if (ao !== bo) return ao - bo;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 const KEY_USERS = '@fitlife/users';
 const KEY_PROGRAMS = '@fitlife/pilates_programs';
 const KEY_USER_PROGRAMS = '@fitlife/user_programs';
+const KEY_ANON_PILATES_DB = '@fitlife/pilates_anon_db_user_id';
 const LEGACY_LOCAL_USER_ID = 'user-local-1';
+
+/** ID i qëndrueshëm për një pajisje pa login — përdoret vetëm për API Pilates → SQL. */
+export async function getOrCreateAnonymousPilatesDbUserId(): Promise<string> {
+  const existing = await AsyncStorage.getItem(KEY_ANON_PILATES_DB);
+  if (existing != null && existing.trim().length > 0) return existing.trim();
+  const uuid =
+    typeof globalThis.crypto !== 'undefined' &&
+    typeof globalThis.crypto.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  const id = `pilates-anon-${uuid}`;
+  await AsyncStorage.setItem(KEY_ANON_PILATES_DB, id);
+  return id;
+}
+
+/** User ID për të gjitha thirrjet Pilates ↔ backend (slug nga email i loguar, ose anon). */
+export async function resolvePilatesApiUserId(): Promise<string> {
+  const authUser = await resolveAuthBackedUser();
+  if (authUser != null) {
+    try {
+      await ensureDefaultUser();
+    } catch {
+      /* Token i vlefshëm — slug-u nga email mbetet i saktë për URL/SQL edhe pa sync KEY_USERS. */
+    }
+    return authUser.id;
+  }
+  try {
+    return (await ensureDefaultUser()).id;
+  } catch {
+    return getOrCreateAnonymousPilatesDbUserId();
+  }
+}
+
+export async function resolvePilatesBootstrapUser(): Promise<{
+  userId: string;
+  displayName?: string;
+}> {
+  const authUser = await resolveAuthBackedUser();
+  if (authUser != null) {
+    try {
+      await ensureDefaultUser();
+    } catch {
+      /* see resolvePilatesApiUserId */
+    }
+    return { userId: authUser.id, displayName: authUser.displayName };
+  }
+  try {
+    const u = await ensureDefaultUser();
+    return { userId: u.id, displayName: u.displayName };
+  } catch {
+    return {
+      userId: await getOrCreateAnonymousPilatesDbUserId(),
+      displayName: undefined,
+    };
+  }
+}
 
 function slugifyUserId(raw: string): string {
   const normalized = raw.trim().toLowerCase();
@@ -46,8 +112,11 @@ async function resolveAuthBackedUser(): Promise<User | null> {
       ? (authUser as { fullName: string }).fullName
       : undefined;
 
+  const id = slugifyUserId(rawId);
+  if (!id) return null;
+
   return {
-    id: slugifyUserId(rawId),
+    id,
     displayName: displayName?.trim() || undefined,
   };
 }
@@ -101,11 +170,17 @@ export async function ensureDefaultUser(): Promise<User> {
   const authUser = await resolveAuthBackedUser();
   if (authUser != null) {
     const existing = list.find((u) => u.id === authUser.id);
-    const user = existing ?? authUser;
-    if (!existing) {
-      await AsyncStorage.setItem(KEY_USERS, JSON.stringify([user, ...list]));
-    }
-    return user;
+    const merged: User = existing
+      ? {
+          ...existing,
+          displayName: authUser.displayName ?? existing.displayName,
+        }
+      : authUser;
+    const nextList = existing
+      ? list.map((u) => (u.id === merged.id ? merged : u))
+      : [merged, ...list.filter((u) => u.id !== merged.id)];
+    await AsyncStorage.setItem(KEY_USERS, JSON.stringify(nextList));
+    return merged;
   }
 
   if (list.length > 0) return list[0]!;
@@ -126,10 +201,10 @@ export async function loadPrograms(): Promise<PilatesProgram[]> {
   const base = getApiBaseUrl();
   if (base) {
     try {
-      const user = await ensureDefaultUser();
+      const boot = await resolvePilatesBootstrapUser();
       await bootstrapFitLifeBackend(base, {
-        userId: user.id,
-        displayName: user.displayName,
+        userId: boot.userId,
+        displayName: boot.displayName,
       });
       const list = await fetchProgramsRemote(base);
       await AsyncStorage.setItem(KEY_PROGRAMS, JSON.stringify(list));
@@ -140,7 +215,7 @@ export async function loadPrograms(): Promise<PilatesProgram[]> {
   }
 
   const raw = await AsyncStorage.getItem(KEY_PROGRAMS);
-  let list = parseArray<unknown>(raw).filter(isPilatesProgram);
+  let list = sortProgramsByDisplayOrder(parseArray<unknown>(raw).filter(isPilatesProgram));
   if (list.length === 0) {
     list = buildPilatesProgramsFromCatalog();
     await AsyncStorage.setItem(KEY_PROGRAMS, JSON.stringify(list));
@@ -160,10 +235,10 @@ export async function loadUserPrograms(userId: string): Promise<UserProgram[]> {
   const base = getApiBaseUrl();
   if (base) {
     try {
-      const user = await ensureDefaultUser();
+      const boot = await resolvePilatesBootstrapUser();
       await bootstrapFitLifeBackend(base, {
-        userId: user.id,
-        displayName: user.displayName,
+        userId: boot.userId,
+        displayName: boot.displayName,
       });
       return await fetchEnrollmentsRemote(base, userId);
     } catch (e) {

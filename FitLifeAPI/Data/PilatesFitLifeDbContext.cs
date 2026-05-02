@@ -17,13 +17,19 @@ public class PilatesFitLifeDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<PilatesProgramEntity>().ToTable("PilatesPrograms");
-        modelBuilder.Entity<PilatesWorkoutCompletionEntity>().ToTable("WorkoutCompletions");
-        modelBuilder.Entity<PilatesUserEnrollmentEntity>().ToTable("UserPrograms");
-        modelBuilder.Entity<PilatesUserPreferenceEntity>().ToTable("UserPreferences");
-        modelBuilder.Entity<PilatesWeightEntryEntity>().ToTable("WeightEntries");
+        modelBuilder.Entity<PilatesWorkoutCompletionEntity>().ToTable("PilatesWorkoutCompletions");
+        modelBuilder.Entity<PilatesUserEnrollmentEntity>().ToTable("PilatesUserPrograms");
+        modelBuilder.Entity<PilatesUserPreferenceEntity>().ToTable("PilatesUserPreferences");
+        modelBuilder.Entity<PilatesWeightEntryEntity>().ToTable("PilatesWeightEntries");
 
         modelBuilder.Entity<PilatesProgramEntity>().HasKey(x => x.Id);
+        modelBuilder.Entity<PilatesProgramEntity>()
+            .Property(x => x.DisplayOrder)
+            .HasDefaultValue(0);
         modelBuilder.Entity<PilatesWorkoutCompletionEntity>().HasKey(x => x.Id);
+        modelBuilder.Entity<PilatesWorkoutCompletionEntity>()
+            .Property(x => x.CompletedAt)
+            .HasColumnType("datetimeoffset");
         modelBuilder.Entity<PilatesUserEnrollmentEntity>().HasKey(x => x.Id);
         modelBuilder.Entity<PilatesUserPreferenceEntity>().HasKey(x => x.UserId);
         modelBuilder.Entity<PilatesWeightEntryEntity>().HasKey(x => x.Id);

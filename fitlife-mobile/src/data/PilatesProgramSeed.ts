@@ -27,5 +27,8 @@ export function workoutToPilatesProgram(workout: PilatesWorkout): PilatesProgram
 }
 
 export function buildPilatesProgramsFromCatalog(): PilatesProgram[] {
-  return pilatesCatalog.map(workoutToPilatesProgram);
+  return pilatesCatalog.map((workout, index) => ({
+    ...workoutToPilatesProgram(workout),
+    display_order: index + 1,
+  }));
 }

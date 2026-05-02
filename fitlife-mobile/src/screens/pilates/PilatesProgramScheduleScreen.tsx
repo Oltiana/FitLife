@@ -12,19 +12,27 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { loadProgramMarkedSlots, toggleProgramDaySlot } from '../../data/PilatesProgramProgressRepository';
-import { ensureDefaultUser, getProgramById } from '../../data/PilatesUserProgramRepository';
+import {
+  getProgramById,
+  resolvePilatesApiUserId,
+} from '../../data/PilatesUserProgramRepository';
 import {
   countMarkedInWeek,
   isProgramCompleted,
   isProgramWeekUnlocked,
   programSlotKey,
 } from '../../domain/PilatesProgramSchedule';
-import type { PilatesStackParamList } from '../../navigation/PilatesNavigationTypes';
+import type {
+  CalendarStackParamList,
+  PilatesStackParamList,
+} from '../../navigation/PilatesNavigationTypes';
 import type { AppColors } from '../../theme/PilatesColors';
 import { useTheme } from '../../theme/PilatesThemeContext';
 import { cardShadowThemed } from '../../theme/PilatesShadows';
 
-type Props = NativeStackScreenProps<PilatesStackParamList, 'ProgramSchedule'>;
+type Props =
+  | NativeStackScreenProps<PilatesStackParamList, 'ProgramSchedule'>
+  | NativeStackScreenProps<CalendarStackParamList, 'ProgramSchedule'>;
 
 const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -138,14 +146,14 @@ export function PilatesProgramScheduleScreen({ route }: Props) {
   const [userId, setUserId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const user = await ensureDefaultUser();
-    setUserId(user.id);
+    const uid = await resolvePilatesApiUserId();
+    setUserId(uid);
     const prog = await getProgramById(workoutId);
     if (prog) {
       setTotalWeeks(Math.max(1, Math.min(8, prog.duration_weeks)));
       setProgramName(prog.name);
     }
-    const slots = await loadProgramMarkedSlots(user.id, workoutId);
+    const slots = await loadProgramMarkedSlots(uid, workoutId);
     setMarked(slots);
   }, [workoutId]);
 
@@ -196,7 +204,7 @@ export function PilatesProgramScheduleScreen({ route }: Props) {
           {programName ? `${programName} · ` : ''}
           {completed
             ? 'Program completed. Great consistency - keep maintaining your rhythm.'
-            : 'Tap a day when you complete your planned Pilates for that day. Next week unlocks after at least 2 days marked in the current week.'}
+            : 'Tap a day when you finish your planned session (Pilates, yoga, or any enrolled program). Next week unlocks after at least 2 days marked in the current week.'}
         </Text>
         {completed ? (
           <View style={styles.completedBanner}>

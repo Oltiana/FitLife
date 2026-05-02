@@ -5,7 +5,7 @@ import {
   loadUserPreferences,
   saveUserPreferences,
 } from '../data/PilatesUserPreferencesRepository';
-import { ensureDefaultUser } from '../data/PilatesUserProgramRepository';
+import { resolvePilatesApiUserId } from '../data/PilatesUserProgramRepository';
 import type { WorkoutCompletion } from '../domain/PilatesDomainTypes';
 
 /**
@@ -41,12 +41,12 @@ export function usePilatesAnalyticsViewModel() {
   );
 
   const refresh = useCallback(async () => {
-    const user = await ensureDefaultUser();
+    const progressUserId = await resolvePilatesApiUserId();
     const prefs = await loadUserPreferences();
     setDailyCalorieTarget(prefs.dailyCalorieTarget);
     setDailyMinutesTarget(prefs.dailyMinutesTarget);
 
-    const a = await generateAnalytics(user.id);
+    const a = await generateAnalytics(progressUserId);
     setCompletions(a.progress.entries);
     setLineData(a.progress.lineData);
     setBarData(a.progress.barData);

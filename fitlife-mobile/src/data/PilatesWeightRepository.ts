@@ -6,7 +6,7 @@ import {
 } from '../api/PilatesBackendApi';
 import { getApiBaseUrl } from '../config/PilatesApiConfig';
 import type { WeightEntry } from '../domain/PilatesWeightStats';
-import { ensureDefaultUser } from './PilatesUserProgramRepository';
+import { resolvePilatesApiUserId } from './PilatesUserProgramRepository';
 
 const KEY = '@fitlife/weight_entries_v1';
 
@@ -25,8 +25,8 @@ export async function loadWeightEntries(): Promise<WeightEntry[]> {
   const base = getApiBaseUrl();
   if (base) {
     try {
-      const user = await ensureDefaultUser();
-      const remote = await fetchWeightEntriesRemote(base, user.id);
+      const userId = await resolvePilatesApiUserId();
+      const remote = await fetchWeightEntriesRemote(base, userId);
       await AsyncStorage.setItem(KEY, JSON.stringify(remote));
       return remote.filter(isEntry);
     } catch (e) {
@@ -57,8 +57,8 @@ export async function appendWeightEntry(kg: number, dateIso?: string): Promise<W
 
   if (base) {
     try {
-      const user = await ensureDefaultUser();
-      await postWeightEntryRemote(base, user.id, { id, date, kg: rounded });
+      const userId = await resolvePilatesApiUserId();
+      await postWeightEntryRemote(base, userId, { id, date, kg: rounded });
       return await loadWeightEntries();
     } catch (e) {
       console.warn('[FitLife] append weight: remote failed, using cache', e);
@@ -80,9 +80,9 @@ export async function clearWeightEntries(): Promise<void> {
   const base = getApiBaseUrl();
   if (base) {
     try {
-      const user = await ensureDefaultUser();
-      const entries = await fetchWeightEntriesRemote(base, user.id);
-      await Promise.all(entries.map((e) => deleteWeightEntryRemote(base, user.id, e.id)));
+      const userId = await resolvePilatesApiUserId();
+      const entries = await fetchWeightEntriesRemote(base, userId);
+      await Promise.all(entries.map((e) => deleteWeightEntryRemote(base, userId, e.id)));
     } catch (e) {
       console.warn('[FitLife] clear weight: remote delete failed, clearing local cache', e);
     }

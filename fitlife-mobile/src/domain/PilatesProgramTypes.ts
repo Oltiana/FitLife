@@ -16,6 +16,8 @@ export type PilatesProgram = {
   duration_weeks: number;
   level: PilatesLevel;
   exercises_json: string;
+  /** Renditja nga API / DB (më i vogël = më lart në listë). */
+  display_order?: number;
 };
 
 export type PilatesProgramExerciseRef = {
