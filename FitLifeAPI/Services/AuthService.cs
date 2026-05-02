@@ -35,20 +35,24 @@ namespace FitLifeAPI.Services
                 FullName = request.FullName,
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                VerificationToken = GenerateToken()
+                VerificationToken = new Random().Next(100000, 999999).ToString()
             };
 
             await _authRepository.AddAsync(user);
 
-            await _emailService.SendEmailAsync(
-                user.Email,
-                "Verify your email - FitLife",
-                $@"
-                <h2>Welcome to FitLife!</h2>
-                
-                <p>If you did not create an account, ignore this email.</p>
-                "
-            );
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    user.Email,
+                    "Verify your email - FitLife",
+                    $@"<h2>Welcome to FitLife, {user.FullName}!</h2>
+                       <p>Your verification code is:</p>
+                       <h1 style='letter-spacing: 8px;'>{user.VerificationToken}</h1>
+                       <p>This code expires in 24 hours.</p>
+                       <p>If you did not create an account, ignore this email.</p>"
+                );
+            }
+            catch { }
 
             var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
 
@@ -121,19 +125,23 @@ namespace FitLifeAPI.Services
             if (user == null)
                 return false;
 
-            user.ResetPasswordToken = GenerateToken();
+            user.ResetPasswordToken = new Random().Next(100000, 999999).ToString();
             user.ResetTokenExpiry = DateTime.UtcNow.AddHours(1);
             await _authRepository.UpdateAsync(user);
 
-            await _emailService.SendEmailAsync(
-                user.Email,
-                "Reset your password - FitLife",
-                $@"
-                <h2>Reset Password</h2>
-            
-                <p>If you did not request a password reset, ignore this email.</p>
-                "
-            );
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    user.Email,
+                    "Reset your password - FitLife",
+                    $@"<h2>Reset Password</h2>
+                       <p>Your password reset code is:</p>
+                       <h1 style='letter-spacing: 8px;'>{user.ResetPasswordToken}</h1>
+                       <p>This code expires in 1 hour.</p>
+                       <p>If you did not request a password reset, ignore this email.</p>"
+                );
+            }
+            catch { }
 
             return true;
         }

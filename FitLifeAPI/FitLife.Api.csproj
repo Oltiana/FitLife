@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>FitLifeAPI</AssemblyName>
     <UserSecretsId>FitLifeApi-7c3f4e2a-9b1d-4e8c-a6f5-2d8e9b4c1a0f</UserSecretsId>
   </PropertyGroup>
 

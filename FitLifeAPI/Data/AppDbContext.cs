@@ -13,6 +13,10 @@ namespace FitLifeAPI.Data
         public DbSet<WorkoutExercise> WorkoutExercises { get; set; }
         public DbSet<WorkoutSession> WorkoutSessions { get; set; }
         public DbSet<FavoriteExercise> FavoriteExercises { get; set; }
+        public DbSet<PilatesProgram> PilatesPrograms { get; set; }
+        public DbSet<PilatesWorkout> PilatesWorkouts { get; set; }
+        public DbSet<UserPilatesEnrollment> UserPilatesEnrollments { get; set; }
+        public DbSet<UserPilatesProgress> UserPilatesProgresses { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)  
@@ -51,6 +55,36 @@ namespace FitLifeAPI.Data
                 .HasOne(fe => fe.User)
                 .WithMany(u => u.FavoriteExercises)
                 .HasForeignKey(fe => fe.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PilatesWorkout>()
+                .HasOne(w => w.Program)
+                .WithMany(p => p.Workouts)
+                .HasForeignKey(w => w.PilatesProgramId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserPilatesEnrollment>()
+                .HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserPilatesEnrollment>()
+                .HasOne(e => e.Program)
+                .WithMany(p => p.Enrollments)
+                .HasForeignKey(e => e.PilatesProgramId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserPilatesProgress>()
+                .HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserPilatesProgress>()
+                .HasOne(p => p.Workout)
+                .WithMany(w => w.Progresses)
+                .HasForeignKey(p => p.PilatesWorkoutId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
 

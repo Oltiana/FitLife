@@ -1,5 +1,4 @@
 using System.Text;
-using FitLife.Api.Data;
 using FitLifeAPI.Data;
 using FitLifeAPI.Repositories;
 using FitLifeAPI.Repositories.Interfaces;
@@ -7,7 +6,6 @@ using FitLifeAPI.Services;
 using FitLifeAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -16,8 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 var conn = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-builder.Services.AddDbContext<PilatesFitLifeDbContext>(options =>
-    options.UseSqlServer(conn));
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(conn));
 
@@ -27,6 +23,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFitnessRepository, FitnessRepository>();
 builder.Services.AddScoped<IFitnessService, FitnessService>();
+builder.Services.AddScoped<IPilatesRepository, PilatesRepository>();
+builder.Services.AddScoped<IPilatesService, PilatesService>();
 builder.Services.AddHttpClient<IExerciseApiService, ExerciseApiService>((sp, client) =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
@@ -126,38 +124,5 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<PilatesFitLifeDbContext>();
-    var log = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("FitLife.Startup");
-    await db.Database.EnsureCreatedAsync();
-    await PilatesSchemaBootstrapper.EnsureSchemaAsync(db);
-    await PilatesDbSeeder.SeedProgramsAsync(db);
-
-    await db.Database.OpenConnectionAsync();
-    try
-    {
-        await using var cmd = db.Database.GetDbConnection().CreateCommand();
-        cmd.CommandText = """
-            SELECT CAST(DB_NAME() AS nvarchar(128)),
-                   CASE WHEN OBJECT_ID(N'dbo.PilatesWorkoutCompletions', N'U') IS NULL THEN -1
-                        ELSE (SELECT COUNT(*) FROM dbo.PilatesWorkoutCompletions)
-                   END
-            """;
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-        {
-            log.LogInformation(
-                "Pilates context: database={Database}, dbo.PilatesWorkoutCompletions rows={Count} (-1 = table missing)",
-                reader.GetString(0),
-                reader.GetInt32(1));
-        }
-    }
-    finally
-    {
-        await db.Database.CloseConnectionAsync();
-    }
-}
 
 await app.RunAsync();
