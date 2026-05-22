@@ -14,40 +14,23 @@ import { WebAppRoot } from './src/components/PilatesWebAppRoot';
 import { bootstrapRemoteApiIfConfigured } from './src/api/PilatesBackendApi';
 import { loadThemePreference } from './src/data/PilatesThemePreferenceRepository';
 import type { ColorSchemePreference } from './src/data/PilatesThemePreferenceRepository';
-import {
-  ensurePreferencesForLegacyInstall,
-} from './src/data/PilatesUserPreferencesRepository';
+import { ensurePreferencesForLegacyInstall } from './src/data/PilatesUserPreferencesRepository';
 import { ensureDefaultUser, loadPrograms } from './src/data/PilatesUserProgramRepository';
 import { hydratePilatesModelFromPrograms } from './src/models/PilatesModel';
-import { MainTabs } from './src/navigation/PilatesMainTabs';
+import { MainTabs } from './src/navigation/MainTabs';
 import type { MainTabParamList } from './src/navigation/PilatesNavigationTypes';
 import { ThemeProvider, useTheme } from './src/theme/PilatesThemeContext';
+import { tokenStorage } from './src/storage/tokenStorage';
+import LoginScreen from './src/screens/auth/LoginScreen';
+import RegisterScreen from './src/screens/auth/RegisterScreen';
 
 const ROBOTO_STACK =
   Platform.OS === 'web' ? 'Roboto, Arial, sans-serif' : 'Roboto';
 
-const defaultTextProps = Text.defaultProps ?? {};
-Text.defaultProps = {
-  ...defaultTextProps,
-  style: [defaultTextProps.style, { fontFamily: ROBOTO_STACK }],
-};
-
-const defaultTextInputProps = TextInput.defaultProps ?? {};
-TextInput.defaultProps = {
-  ...defaultTextInputProps,
-  style: [defaultTextInputProps.style, { fontFamily: ROBOTO_STACK }],
-};
-
 function Root({ children }: { children: React.ReactNode }) {
   if (Platform.OS === 'web') {
     return (
-      <View
-        style={{
-          flex: 1,
-          width: '100%',
-          minHeight: '100vh' as unknown as number,
-        }}
-      >
+      <View style={{ flex: 1, width: '100%', minHeight: '100vh' as unknown as number }}>
         {children}
       </View>
     );
@@ -58,14 +41,7 @@ function Root({ children }: { children: React.ReactNode }) {
 function BootSpinner() {
   const { colors } = useTheme();
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: colors.background,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
       <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
@@ -73,6 +49,13 @@ function BootSpinner() {
 
 function ThemedNavigation() {
   const { colors, colorScheme } = useTheme();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [showRegister, setShowRegister] = useState(false);
+
+  useEffect(() => {
+    tokenStorage.getToken().then(t => setIsLoggedIn(!!t));
+  }, []);
+
   const linking = useMemo<LinkingOptions<MainTabParamList>>(
     () => ({
       prefixes: ['http://localhost:8081', 'https://localhost:8081'],
@@ -103,6 +86,7 @@ function ThemedNavigation() {
     }),
     [],
   );
+
   const theme = useMemo(
     () => ({
       ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
@@ -119,18 +103,33 @@ function ThemedNavigation() {
     [colorScheme, colors],
   );
 
+  if (isLoggedIn === null) return null;
+
+  if (!isLoggedIn) {
+    return showRegister ? (
+      <RegisterScreen
+        onRegisterSuccess={() => setShowRegister(false)}
+        onNavigateToLogin={() => setShowRegister(false)}
+      />
+    ) : (
+      <LoginScreen
+        onLoginSuccess={() => setIsLoggedIn(true)}
+        onNavigateToRegister={() => setShowRegister(true)}
+      />
+    );
+  }
+
   return (
     <NavigationContainer theme={theme} ref={navigationRef} linking={linking}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <MainTabs />
+      <MainTabs onLogout={() => setIsLoggedIn(false)} />
     </NavigationContainer>
   );
 }
 
 export default function App() {
   const [bootReady, setBootReady] = useState(false);
-  const [initialTheme, setInitialTheme] =
-    useState<ColorSchemePreference>('light');
+  const [initialTheme, setInitialTheme] = useState<ColorSchemePreference>('light');
 
   useEffect(() => {
     void (async () => {
@@ -139,9 +138,7 @@ export default function App() {
         setInitialTheme(theme);
         try {
           await ensureDefaultUser();
-        } catch {
-          /* Guest: catalog/cache until login */
-        }
+        } catch {}
         await bootstrapRemoteApiIfConfigured();
         const programs = await loadPrograms();
         hydratePilatesModelFromPrograms(programs);

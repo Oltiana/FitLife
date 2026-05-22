@@ -1,7 +1,3 @@
-/**
- * API funksionale e modulit Pilates + Analytics.
- */
-
 import { loadCompletions } from '../data/PilatesProgressRepository';
 import { loadPrograms } from '../data/PilatesUserProgramRepository';
 import {
@@ -33,14 +29,11 @@ export type ProgressDataPayload = {
   barData: { value: number; label: string }[];
   caloriesLineData: { value: number; label: string }[];
   caloriesBarData: { value: number; label: string }[];
-  /** Sot (lokal): counter ditor. */
   todayMinutes: number;
   todayCalories: number;
-  /** Rekord personal ditë radhazi. */
   bestStreakEver: number;
   sessionCount: number;
   totalMinutes: number;
-  /** Vlerësim i përafërt kcal (MET) për periudhën e filtruar. */
   totalCaloriesEstimate: number;
 };
 

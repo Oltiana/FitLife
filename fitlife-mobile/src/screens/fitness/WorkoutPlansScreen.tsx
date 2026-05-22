@@ -1,9 +1,9 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export function ExerciseDetailScreen() {
+export function WorkoutPlansScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Exercise Details</Text>
+      <Text style={styles.title}>Workout Plans</Text>
     </View>
   );
 }

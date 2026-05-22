@@ -8,9 +8,6 @@ import {
 import { resolvePilatesApiUserId } from '../data/PilatesUserProgramRepository';
 import type { WorkoutCompletion } from '../domain/PilatesDomainTypes';
 
-/**
- * ViewModel: përdor `generateAnalytics(userId)` nga API-ja e modulit.
- */
 export function usePilatesAnalyticsViewModel() {
   const [loading, setLoading] = useState(true);
   const [completions, setCompletions] = useState<WorkoutCompletion[]>([]);

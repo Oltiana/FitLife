@@ -1,9 +1,21 @@
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from 'react-native';
 
-export default function WorkoutSessionScreen() {
+export function WorkoutSessionScreen() {
   return (
-    <View>
-      <Text>Workout Session Screen</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Workout Session</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+});

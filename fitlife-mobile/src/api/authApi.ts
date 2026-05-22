@@ -1,4 +1,7 @@
-const BASE_URL = 'http://192.168.200.119:5265/api';
+import { API_BASE_URL } from '../constants/apiConfig';
+
+const BASE_URL = API_BASE_URL;
+console.log('API URL:', BASE_URL);
 
 export const authApi = {
   login: async (email: string, password: string) => {
@@ -50,5 +53,14 @@ export const authApi = {
 
     if (!res.ok) throw new Error('Refresh failed');
     return await res.json();
+  },
+  logout: async (refreshToken: string) => {
+    const res = await fetch(`${BASE_URL}/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(refreshToken),
+    });
+
+    if (!res.ok) throw new Error('Logout failed');
   },
 };

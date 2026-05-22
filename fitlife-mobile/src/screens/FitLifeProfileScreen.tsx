@@ -1,11 +1,11 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { tokenStorage } from '../storage/tokenStorage';
 import { useTheme } from '../theme/PilatesThemeContext';
 
-export function FitLifeProfileScreen() {
+export function FitLifeProfileScreen({ onLogout }: { onLogout: () => void }) {
   const { colors } = useTheme();
   const [subtitle, setSubtitle] = useState<string>('Guest / device profile');
 
@@ -25,7 +25,6 @@ export function FitLifeProfileScreen() {
         return;
       }
     } catch {
-      /* ignore */
     }
     setSubtitle('Guest — FitLife data on this device uses an anonymous id until you sign in');
   }, []);
@@ -36,10 +35,14 @@ export function FitLifeProfileScreen() {
     }, [refreshUser]),
   );
 
-  const onLogout = async () => {
-    await tokenStorage.clearAuth();
-    await refreshUser();
-    Alert.alert('Logged out', 'Your session was cleared on this device.');
+  const handleLogout = async () => {
+    try {
+      await tokenStorage.clearAuth();
+    } catch (e) {
+      console.warn('Logout error:', e);
+    } finally {
+      onLogout();
+    }
   };
 
   return (
@@ -53,7 +56,7 @@ export function FitLifeProfileScreen() {
             styles.logout,
             { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 },
           ]}
-          onPress={() => void onLogout()}
+          onPress={() => void handleLogout()}
         >
           <Text style={styles.logoutText}>Log out</Text>
         </Pressable>

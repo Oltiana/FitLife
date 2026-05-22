@@ -159,6 +159,7 @@ namespace FitLifeAPI.Controllers
 
             return Ok(result);
         }
+        [AllowAnonymous]
         [HttpGet("exercises")]
         public async Task<IActionResult> GetExercises([FromQuery] int offset = 0, [FromQuery] int limit = 10)
         {
@@ -172,7 +173,7 @@ namespace FitLifeAPI.Controllers
                 return BadRequest(ex.Message);
             }
         } 
-        
+        [AllowAnonymous]
         [HttpGet("exercises/{id}")]
         public async Task<IActionResult> GetExerciseById(string id)
         {

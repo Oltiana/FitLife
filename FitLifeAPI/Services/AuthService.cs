@@ -158,6 +158,10 @@ namespace FitLifeAPI.Services
             await _authRepository.UpdateAsync(user);
             return true;
         }
+        public async Task LogoutAsync(string refreshToken)
+{
+    await _authRepository.RevokeRefreshTokenAsync(refreshToken);
+}
 
         private string GenerateJwtToken(User user)
         {

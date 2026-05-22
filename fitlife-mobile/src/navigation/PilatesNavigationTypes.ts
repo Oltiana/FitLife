@@ -15,7 +15,6 @@ export type PilatesStackParamList = {
   ProgramSchedule: { workoutId: string };
 };
 
-/** Kalendari javor për programet ku je regjistruar (Pilates, yoga, etj.) — sipas përdoruesit. */
 export type CalendarStackParamList = {
   CalendarHub: undefined;
   ProgramSchedule: { workoutId: string };
@@ -23,6 +22,7 @@ export type CalendarStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
+  Fitness: undefined;
   Search: NavigatorScreenParams<PilatesStackParamList>;
   Calendar: NavigatorScreenParams<CalendarStackParamList>;
   Progress: undefined;

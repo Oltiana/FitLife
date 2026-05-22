@@ -102,7 +102,6 @@ async function request<T>(
   };
 }
 
-/** Thirr POST /api/pilates/users/bootstrap — idempotent. */
 export async function bootstrapFitLifeBackend(
   baseUrl: string,
   user?: PilatesBootstrapUser,
@@ -124,7 +123,6 @@ export async function fetchCompletionsRemote(
   userId: string,
   _bootstrapUser?: PilatesBootstrapUser,
 ): Promise<WorkoutCompletion[]> {
-  /* Mos e lidh POST bootstrap me completions — nëse bootstrap dështon, SQL nuk merr kurrë INSERT. Seed bëhet në startup të API-së. */
   const { body } = await request<CompletionDto[]>(
     `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/completions`,
     { method: 'GET' },
@@ -347,10 +345,6 @@ export async function deleteWeightEntryRemote(
   throw new Error(`FitLife API ${res.status}: ${text.slice(0, 300)}`);
 }
 
-
-/**
- * Nëse është konfiguruar API, bën bootstrap në hapjen e aplikacionit.
- */
 export async function bootstrapRemoteApiIfConfigured(): Promise<void> {
   const base = getApiBaseUrl();
   if (!base) return;

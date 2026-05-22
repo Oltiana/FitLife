@@ -76,5 +76,12 @@ namespace FitLifeAPI.Controllers
                 return BadRequest("Invalid or expired code.");
             return Ok("Password reset successfully.");
         }
+        [HttpPost("logout")]
+
+        public async Task<IActionResult> Logout([FromBody] string refreshToken)
+        {
+            await _authService.LogoutAsync(refreshToken);
+            return Ok("Logged out successfully.");
+        }
     }
 }

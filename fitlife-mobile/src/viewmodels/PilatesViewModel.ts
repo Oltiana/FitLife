@@ -3,11 +3,6 @@ import { PilatesModel } from '../models/PilatesModel';
 import type { PilatesWorkout } from '../domain/PilatesDomainTypes';
 
 const LIST_LOAD_MS = 420;
-
-/**
- * ViewModel: pamja e listës së seancave (read-only nga Model).
- * Ngarkimi asinkron + kohë minimale për skeleton (SRS).
- */
 export function usePilatesListViewModel(): {
   workouts: PilatesWorkout[];
   loading: boolean;
@@ -33,9 +28,6 @@ export function usePilatesListViewModel(): {
   return { workouts, loading };
 }
 
-/**
- * ViewModel: një seancë sipas id (detaj + sesion aktiv).
- */
 export function usePilatesWorkoutViewModel(
   workoutId: string | undefined,
 ): { workout: PilatesWorkout | undefined } {

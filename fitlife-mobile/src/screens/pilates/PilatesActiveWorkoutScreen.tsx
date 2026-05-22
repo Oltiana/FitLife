@@ -40,7 +40,6 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
   const [paused, setPaused] = useState(false);
   const [finished, setFinished] = useState(false);
   const [completionReady, setCompletionReady] = useState(false);
-  /** kcal vlerësim për modalin web pas përfundimit */
   const [completionCalories, setCompletionCalories] = useState<number | null>(
     null,
   );
@@ -82,8 +81,6 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
     } catch (e) {
       console.warn('[FitLife] completion save failed', e);
     }
-
-    // RN Web's Alert often doesn't show or doesn't fire onPress; use an iOS-style modal instead.
     if (Platform.OS === 'web') {
       setCompletionReady(true);
     } else {
