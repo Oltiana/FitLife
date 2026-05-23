@@ -150,7 +150,7 @@ export function PilatesProgramScheduleScreen({ route }: Props) {
     setUserId(uid);
     const prog = await getProgramById(workoutId);
     if (prog) {
-      setTotalWeeks(Math.max(1, Math.min(8, prog.duration_weeks)));
+      setTotalWeeks(Math.max(1, Math.min(8, prog.durationWeeks)));
       setProgramName(prog.name);
     }
     const slots = await loadProgramMarkedSlots(uid, workoutId);

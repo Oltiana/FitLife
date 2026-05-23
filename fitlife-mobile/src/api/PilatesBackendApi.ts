@@ -1,86 +1,56 @@
 import { getApiBaseUrl } from '../config/PilatesApiConfig';
+import { tokenStorage } from '../storage/tokenStorage';
+import { PilatesApiRoutes } from './pilatesApiRoutes';
+import type {
+  CompletePilatesWorkoutRequest,
+  CreatePilatesProgramRequest,
+  CreatePilatesWorkoutRequest,
+  EnrollPilatesProgramRequest,
+  PilatesProgramResponse,
+  PilatesWorkoutResponse,
+  UserPilatesProgressResponse,
+  UserPilatesWorkoutProgressResponse,
+} from './pilatesApiTypes';
 import type { PilatesProgram, UserProgram } from '../domain/PilatesProgramTypes';
 import type { UserPreferences } from '../domain/PilatesUserPreferences';
-import type { PilatesLevel, WorkoutCompletion } from '../domain/PilatesDomainTypes';
-
-type CompletionDto = {
-  id: string;
-  workoutId: string;
-  workoutTitle: string;
-  completedAt: string;
-  durationMinutes: number;
-  userId?: string | null;
-  caloriesBurned?: number | null;
-  displayOrder?: number | null;
-};
-
-type ProgramDto = {
-  id: string;
-  name: string;
-  durationWeeks: number;
-  level: string;
-  exercisesJson: string;
-  displayOrder?: number;
-};
-
-type EnrollmentDto = {
-  id: string;
-  userId: string;
-  programId: string;
-  enrolledAt: string;
-};
-
-type PreferencesDto = {
-  onboardingComplete: boolean;
-  dailyCalorieTarget: number | null;
-  dailyMinutesTarget: number | null;
-};
+import {
+  normalizePilatesLevel,
+  type PilatesLevel,
+  type WorkoutCompletion,
+} from '../domain/PilatesDomainTypes';
 
 export type PilatesBootstrapUser = {
   userId: string;
   displayName?: string;
 };
 
-type WeightEntryDto = {
-  id: string;
-  userId: string;
-  loggedAt: string;
-  kg: number;
-};
+function apiUrl(path: string): string {
+  return `${getApiBaseUrl()}${path}`;
+}
 
-function mapCompletion(
-  row: CompletionDto,
-  fallbackUserId?: string,
-): WorkoutCompletion {
-  const resolved =
-    row.userId != null && String(row.userId).trim() !== ''
-      ? String(row.userId).trim()
-      : fallbackUserId?.trim() || undefined;
-  return {
-    id: row.id,
-    workoutId: row.workoutId,
-    workoutTitle: row.workoutTitle,
-    completedAt: row.completedAt,
-    durationMinutes: row.durationMinutes,
-    userId: resolved,
-    caloriesBurned:
-      row.caloriesBurned != null && !Number.isNaN(row.caloriesBurned)
-        ? row.caloriesBurned
-        : undefined,
-    displayOrder:
-      row.displayOrder != null && !Number.isNaN(row.displayOrder)
-        ? row.displayOrder
-        : undefined,
-  };
+async function bearerAuthHeaders(requireToken = false): Promise<Record<string, string>> {
+  const t = await tokenStorage.getToken();
+  if (t == null || String(t).trim() === '') {
+    if (requireToken) {
+      throw new Error(
+        'Duhet të hysh me login që të ruhen të dhënat në databazë (JWT mungon).',
+      );
+    }
+    return {};
+  }
+  return { Authorization: `Bearer ${String(t).trim()}` };
 }
 
 async function request<T>(
   url: string,
   init?: RequestInit,
+  requireAuth = false,
 ): Promise<{ ok: boolean; status: number; body: T | null }> {
+  const auth = await bearerAuthHeaders(requireAuth);
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+    ...auth,
   };
   const res = await fetch(url, {
     ...init,
@@ -102,255 +72,300 @@ async function request<T>(
   };
 }
 
-export async function bootstrapFitLifeBackend(
-  baseUrl: string,
-  user?: PilatesBootstrapUser,
-): Promise<void> {
-  await request(`${baseUrl}/api/pilates/users/bootstrap`, {
-    method: 'POST',
-    body:
-      user != null
-        ? JSON.stringify({
-            userId: user.userId,
-            displayName: user.displayName ?? null,
-          })
-        : undefined,
-  });
+function mapApiProgramToDomain(p: PilatesProgramResponse): PilatesProgram {
+  return {
+    id: String(p.id),
+    name: p.name,
+    description: p.description ?? '',
+    durationWeeks: p.durationWeeks,
+    level: normalizePilatesLevel(p.level),
+    displayOrder: p.displayOrder,
+    workouts: (p.workouts ?? []).map((w) => ({
+      id: w.id,
+      pilatesProgramId: w.pilatesProgramId ?? p.id,
+      name: w.name,
+      description: w.description ?? '',
+      durationMinutes: w.durationMinutes,
+      orderIndex: w.orderIndex,
+      isCompleted: w.isCompleted,
+    })),
+  };
 }
 
-export async function fetchCompletionsRemote(
-  baseUrl: string,
+function mapProgressToUserProgram(
+  row: UserPilatesProgressResponse,
   userId: string,
-  _bootstrapUser?: PilatesBootstrapUser,
-): Promise<WorkoutCompletion[]> {
-  const { body } = await request<CompletionDto[]>(
-    `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/completions`,
+): UserProgram {
+  const pilatesProgramId = String(row.pilatesProgramId);
+  const enrolledAt =
+    typeof row.enrolledAt === 'string'
+      ? row.enrolledAt
+      : new Date(row.enrolledAt).toISOString();
+  return {
+    id: `remote-enroll-${userId}-${pilatesProgramId}`,
+    userId,
+    pilatesProgramId,
+    enrolledAt,
+    completedAt: row.completedAt,
+  };
+}
+
+function mapWorkoutProgressToCompletion(
+  row: UserPilatesWorkoutProgressResponse,
+  userId: string,
+): WorkoutCompletion {
+  const completedAt =
+    row.completedAt != null
+      ? typeof row.completedAt === 'string'
+        ? row.completedAt
+        : new Date(row.completedAt).toISOString()
+      : new Date().toISOString();
+  return {
+    id: `progress-${row.id}`,
+    workoutId: String(row.pilatesWorkoutId),
+    pilatesWorkoutId: row.pilatesWorkoutId,
+    workoutTitle: row.workoutName,
+    completedAt,
+    durationMinutes: row.durationMinutes,
+    userId,
+  };
+}
+
+
+export async function getPrograms(): Promise<PilatesProgram[]> {
+  const { body } = await request<PilatesProgramResponse[]>(
+    apiUrl(PilatesApiRoutes.programs),
     { method: 'GET' },
+    true,
   );
   if (!body || !Array.isArray(body)) return [];
-  return body.map((row) => mapCompletion(row, userId));
+  return body.map(mapApiProgramToDomain);
 }
 
-export async function postCompletionRemote(
-  baseUrl: string,
+
+export async function getProgramById(
+  pilatesProgramId: number,
+): Promise<PilatesProgram | null> {
+  const { body } = await request<PilatesProgramResponse>(
+    apiUrl(PilatesApiRoutes.programById(pilatesProgramId)),
+    { method: 'GET' },
+    true,
+  );
+  return body ? mapApiProgramToDomain(body) : null;
+}
+
+
+export async function createProgram(
+  payload: CreatePilatesProgramRequest,
+): Promise<PilatesProgram> {
+  const { body } = await request<PilatesProgramResponse>(
+    apiUrl(PilatesApiRoutes.programs),
+    { method: 'POST', body: JSON.stringify(payload) },
+    true,
+  );
+  if (!body) throw new Error('createProgram: empty response');
+  return mapApiProgramToDomain(body);
+}
+
+
+export async function createWorkout(
+  payload: CreatePilatesWorkoutRequest,
+): Promise<PilatesWorkoutResponse> {
+  const { body } = await request<PilatesWorkoutResponse>(
+    apiUrl(PilatesApiRoutes.workouts),
+    { method: 'POST', body: JSON.stringify(payload) },
+    true,
+  );
+  if (!body) throw new Error('createWorkout: empty response');
+  return body;
+}
+
+
+export async function enroll(
+  pilatesProgramId: number,
+): Promise<UserPilatesProgressResponse> {
+  const payload: EnrollPilatesProgramRequest = { pilatesProgramId };
+  const { body } = await request<UserPilatesProgressResponse>(
+    apiUrl(PilatesApiRoutes.enroll),
+    { method: 'POST', body: JSON.stringify(payload) },
+    true,
+  );
+  if (!body) throw new Error('enroll: empty response');
+  return body;
+}
+
+
+export async function getMyEnrollments(userId: string): Promise<UserProgram[]> {
+  const { body } = await request<UserPilatesProgressResponse[]>(
+    apiUrl(PilatesApiRoutes.myEnrollments),
+    { method: 'GET' },
+    true,
+  );
+  if (!body || !Array.isArray(body)) return [];
+  return body.map((row) => mapProgressToUserProgram(row, userId));
+}
+
+
+export async function deleteMyEnrollment(
+  pilatesProgramId: number,
+): Promise<void> {
+  const auth = await bearerAuthHeaders(true);
+  const res = await fetch(
+    apiUrl(PilatesApiRoutes.myEnrollmentByProgramId(pilatesProgramId)),
+    { method: 'DELETE', headers: { Accept: 'application/json', ...auth } },
+  );
+  if (res.ok || res.status === 204 || res.status === 404) return;
+  const text = await res.text();
+  throw new Error(`FitLife API ${res.status}: ${text.slice(0, 300)}`);
+}
+
+
+export async function getMyWorkoutProgress(
   userId: string,
+): Promise<WorkoutCompletion[]> {
+  const { body } = await request<UserPilatesWorkoutProgressResponse[]>(
+    apiUrl(PilatesApiRoutes.myWorkoutProgress),
+    { method: 'GET' },
+    true,
+  );
+  if (!body || !Array.isArray(body)) return [];
+  return body.map((row) => mapWorkoutProgressToCompletion(row, userId));
+}
+
+
+export async function completeWorkout(
+  pilatesWorkoutId: number,
   entry: WorkoutCompletion,
-  _bootstrapUser?: PilatesBootstrapUser,
+  userId: string,
 ): Promise<WorkoutCompletion> {
-  const payload = {
-    id: entry.id,
-    workoutId: entry.workoutId,
-    workoutTitle: entry.workoutTitle,
-    completedAt: entry.completedAt,
-    durationMinutes: entry.durationMinutes,
-    caloriesBurned: entry.caloriesBurned ?? null,
-  };
-  const { body } = await request<CompletionDto>(
-    `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/completions`,
+  const payload: CompletePilatesWorkoutRequest = { pilatesWorkoutId };
+  const { body } = await request<UserPilatesProgressResponse>(
+    apiUrl(PilatesApiRoutes.completeWorkout),
     {
       method: 'POST',
       body: JSON.stringify(payload),
     },
+    true,
   );
-  if (!body) throw new Error('FitLife API: empty body after POST completion');
-  return mapCompletion(body, userId);
+  return {
+    ...entry,
+    userId,
+    workoutId: String(pilatesWorkoutId),
+    pilatesWorkoutId,
+    workoutTitle: body?.programName ?? entry.workoutTitle,
+  };
+}
+
+
+
+export async function fetchProgramsRemote(
+  _baseUrl: string,
+): Promise<PilatesProgram[]> {
+  return getPrograms();
+}
+
+export async function fetchEnrollmentsRemote(
+  _baseUrl: string,
+  userId: string,
+): Promise<UserProgram[]> {
+  return getMyEnrollments(userId);
+}
+
+export async function postEnrollmentRemote(
+  _baseUrl: string,
+  _userId: string,
+  pilatesProgramId: string,
+): Promise<void> {
+  const trimmed = pilatesProgramId.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error(
+      `pilatesProgramId duhet numerik nga GET programs (tani: "${pilatesProgramId}").`,
+    );
+  }
+  await enroll(parseInt(trimmed, 10));
+}
+
+export async function deleteEnrollmentRemote(
+  _baseUrl: string,
+  _userId: string,
+  pilatesProgramId: string,
+): Promise<void> {
+  const trimmed = pilatesProgramId.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error(
+      `pilatesProgramId duhet numerik (tani: "${pilatesProgramId}").`,
+    );
+  }
+  await deleteMyEnrollment(parseInt(trimmed, 10));
+}
+
+export async function fetchCompletionsRemote(
+  _baseUrl: string,
+  userId: string,
+  _bootstrapUser?: PilatesBootstrapUser,
+): Promise<WorkoutCompletion[]> {
+  return getMyWorkoutProgress(userId);
+}
+
+export async function postCompletionRemote(
+  _baseUrl: string,
+  userId: string,
+  entry: WorkoutCompletion,
+  pilatesWorkoutId: number,
+  _bootstrapUser?: PilatesBootstrapUser,
+): Promise<WorkoutCompletion> {
+  return completeWorkout(pilatesWorkoutId, entry, userId);
+}
+
+export async function bootstrapFitLifeBackend(
+  _baseUrl: string,
+  _user?: PilatesBootstrapUser,
+): Promise<void> {
+  return;
+}
+
+export async function bootstrapRemoteApiIfConfigured(): Promise<void> {
+  return;
 }
 
 export async function fetchPreferencesRemote(
-  baseUrl: string,
-  userId: string,
+  _baseUrl: string,
+  _userId: string,
 ): Promise<UserPreferences> {
-  await bootstrapFitLifeBackend(baseUrl);
-  const url = `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/preferences`;
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
-  if (res.status === 404) {
-    return {
-      onboardingComplete: false,
-      dailyCalorieTarget: null,
-      dailyMinutesTarget: null,
-    };
-  }
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`FitLife API ${res.status}: ${t.slice(0, 300)}`);
-  }
-  const j = (await res.json()) as PreferencesDto;
   return {
-    onboardingComplete: j.onboardingComplete,
-    dailyCalorieTarget: j.dailyCalorieTarget,
-    dailyMinutesTarget: j.dailyMinutesTarget,
+    onboardingComplete: false,
+    dailyCalorieTarget: null,
+    dailyMinutesTarget: null,
   };
 }
 
 export async function putPreferencesRemote(
-  baseUrl: string,
-  userId: string,
-  prefs: UserPreferences,
+  _baseUrl: string,
+  _userId: string,
+  _prefs: UserPreferences,
 ): Promise<void> {
-  await bootstrapFitLifeBackend(baseUrl);
-  const payload = {
-    onboardingComplete: prefs.onboardingComplete,
-    dailyCalorieTarget: prefs.dailyCalorieTarget,
-    dailyMinutesTarget: prefs.dailyMinutesTarget,
-  };
-  await request(`${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/preferences`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  });
-}
-
-export function mapProgramDtoToPilatesProgram(p: ProgramDto): PilatesProgram {
-  return {
-    id: p.id,
-    name: p.name,
-    duration_weeks: p.durationWeeks,
-    level: p.level as PilatesLevel,
-    exercises_json: p.exercisesJson,
-    display_order:
-      p.displayOrder != null && !Number.isNaN(p.displayOrder)
-        ? p.displayOrder
-        : undefined,
-  };
-}
-
-export async function fetchProgramsRemote(
-  baseUrl: string,
-): Promise<PilatesProgram[]> {
-  await bootstrapFitLifeBackend(baseUrl);
-  const { body } = await request<ProgramDto[]>(
-    `${baseUrl}/api/pilates/programs`,
-    { method: 'GET' },
-  );
-  if (!body || !Array.isArray(body)) return [];
-  return body.map(mapProgramDtoToPilatesProgram);
-}
-
-function mapEnrollmentDto(row: EnrollmentDto): UserProgram {
-  return {
-    id: row.id,
-    userId: row.userId,
-    programId: row.programId,
-    enrolledAt: row.enrolledAt,
-  };
-}
-
-export async function fetchEnrollmentsRemote(
-  baseUrl: string,
-  userId: string,
-): Promise<UserProgram[]> {
-  await bootstrapFitLifeBackend(baseUrl);
-  const { body } = await request<EnrollmentDto[]>(
-    `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/enrollments`,
-    { method: 'GET' },
-  );
-  if (!body || !Array.isArray(body)) return [];
-  return body.map(mapEnrollmentDto);
-}
-
-export async function postEnrollmentRemote(
-  baseUrl: string,
-  userId: string,
-  programId: string,
-): Promise<void> {
-  await bootstrapFitLifeBackend(baseUrl);
-  const res = await fetch(
-    `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/enrollments`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ programId }),
-    },
-  );
-  if (res.ok || res.status === 200) return;
-  const text = await res.text();
-  throw new Error(`FitLife API ${res.status}: ${text.slice(0, 300)}`);
-}
-
-export async function deleteEnrollmentRemote(
-  baseUrl: string,
-  userId: string,
-  programId: string,
-): Promise<void> {
-  await bootstrapFitLifeBackend(baseUrl);
-  const res = await fetch(
-    `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/enrollments/${encodeURIComponent(programId)}`,
-    { method: 'DELETE' },
-  );
-  if (res.ok || res.status === 204 || res.status === 404) return;
-  const text = await res.text();
-  throw new Error(`FitLife API ${res.status}: ${text.slice(0, 300)}`);
+  return;
 }
 
 export async function fetchWeightEntriesRemote(
-  baseUrl: string,
-  userId: string,
+  _baseUrl: string,
+  _userId: string,
 ): Promise<{ id: string; date: string; kg: number }[]> {
-  await bootstrapFitLifeBackend(baseUrl);
-  const { body } = await request<WeightEntryDto[]>(
-    `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/weights`,
-    { method: 'GET' },
-  );
-  if (!body || !Array.isArray(body)) return [];
-  return body.map((w) => {
-    const kgRaw = w.kg as unknown;
-    const kg =
-      typeof kgRaw === 'number' && Number.isFinite(kgRaw)
-        ? kgRaw
-        : Number(kgRaw);
-    const date =
-      typeof w.loggedAt === 'string'
-        ? w.loggedAt
-        : String(w.loggedAt ?? '');
-    return {
-      id: String(w.id),
-      date,
-      kg,
-    };
-  });
+  return [];
 }
 
 export async function postWeightEntryRemote(
-  baseUrl: string,
-  userId: string,
+  _baseUrl: string,
+  _userId: string,
   entry: { id?: string; date: string; kg: number },
 ): Promise<{ id: string; date: string; kg: number }> {
-  await bootstrapFitLifeBackend(baseUrl);
-  const { body } = await request<WeightEntryDto>(
-    `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/weights`,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        id: entry.id ?? null,
-        loggedAt: entry.date,
-        kg: entry.kg,
-      }),
-    },
-  );
-  if (!body) throw new Error('FitLife API: empty body after POST weight');
-  return { id: body.id, date: body.loggedAt, kg: body.kg };
+  return { id: entry.id ?? 'local', date: entry.date, kg: entry.kg };
 }
 
 export async function deleteWeightEntryRemote(
-  baseUrl: string,
-  userId: string,
-  weightId: string,
+  _baseUrl: string,
+  _userId: string,
+  _weightId: string,
 ): Promise<void> {
-  await bootstrapFitLifeBackend(baseUrl);
-  const res = await fetch(
-    `${baseUrl}/api/pilates/users/${encodeURIComponent(userId)}/weights/${encodeURIComponent(weightId)}`,
-    { method: 'DELETE' },
-  );
-  if (res.ok || res.status === 204 || res.status === 404) return;
-  const text = await res.text();
-  throw new Error(`FitLife API ${res.status}: ${text.slice(0, 300)}`);
-}
-
-export async function bootstrapRemoteApiIfConfigured(): Promise<void> {
-  const base = getApiBaseUrl();
-  if (!base) return;
-  try {
-    await bootstrapFitLifeBackend(base);
-  } catch (e) {
-    console.warn('[FitLife] Remote API bootstrap failed:', e);
-  }
+  return;
 }

@@ -17,9 +17,9 @@ type Props = {
   children?: ReactNode;
   style?: ViewStyle;
   bottomInset?: number;
-  /** Crop anchor for hero images when using `cover`. */
+
   imageCropPosition?: ImageCropPosition;
-  /** `contain` fits the full image in frame (letterboxing if needed). */
+
   imageResizeMode?: 'cover' | 'contain';
 };
 

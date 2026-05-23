@@ -1,6 +1,4 @@
-/**
- * Mesazhe të thjeshta motivuese sipas kontekstit të progresit.
- */
+
 const GENERAL = [
   'Every mindful minute adds up — keep showing up for yourself.',
   'Small steps today build stronger habits tomorrow.',

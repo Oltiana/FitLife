@@ -2,7 +2,7 @@ import { localCalendarDayKey } from './PilatesProgressStats';
 
 export type WeightEntry = {
   id: string;
-  /** ISO ose YYYY-MM-DD; përdoret dita lokale. */
+  
   date: string;
   kg: number;
 };
@@ -13,14 +13,14 @@ function dayKeyFromEntry(e: WeightEntry): string {
   return localCalendarDayKey(d);
 }
 
-/** Renditur nga e vjetra te e reja. */
+
 export function sortWeightEntries(entries: WeightEntry[]): WeightEntry[] {
   return [...entries].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 }
 
-/** 30 ditët e fundit: vlera e fundit e njohur deri në atë ditë (për grafik të vazhdueshëm). */
+
 export function weightLast30DaysSeries(
   entries: WeightEntry[],
   now: Date = new Date(),
@@ -61,13 +61,13 @@ export function weightChartMax(series: { value: number }[]): number {
   return Math.ceil(max + pad);
 }
 
-/** Rekordi më i ulët (për motivim humbje peshe); null nëse pa të dhëna. */
+
 export function lowestWeightKg(entries: WeightEntry[]): number | null {
   if (entries.length === 0) return null;
   return Math.min(...entries.map((e) => e.kg));
 }
 
-/** Ndryshimi nga hyrja e parë te e fundit (negativ = ulje). */
+
 export function weightDeltaFromFirst(entries: WeightEntry[]): number | null {
   const s = sortWeightEntries(entries);
   if (s.length < 2) return null;

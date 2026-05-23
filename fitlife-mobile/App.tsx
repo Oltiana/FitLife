@@ -15,7 +15,9 @@ import { bootstrapRemoteApiIfConfigured } from './src/api/PilatesBackendApi';
 import { loadThemePreference } from './src/data/PilatesThemePreferenceRepository';
 import type { ColorSchemePreference } from './src/data/PilatesThemePreferenceRepository';
 import { ensurePreferencesForLegacyInstall } from './src/data/PilatesUserPreferencesRepository';
-import { ensureDefaultUser, loadPrograms } from './src/data/PilatesUserProgramRepository';
+import { syncPilatesAfterAuth } from './src/api/pilatesBootSync';
+import { hasAuthToken } from './src/api/pilatesApiSession';
+import { loadPrograms } from './src/data/PilatesUserProgramRepository';
 import { hydratePilatesModelFromPrograms } from './src/models/PilatesModel';
 import { MainTabs } from './src/navigation/MainTabs';
 import type { MainTabParamList } from './src/navigation/PilatesNavigationTypes';
@@ -65,8 +67,14 @@ function ThemedNavigation() {
           Search: {
             path: 'pilates',
             screens: {
-              DiscoverHub: '',
-              PilatesList: 'gallery',
+              DiscoverHub: 'discover',
+              PilatesHome: {
+                path: '',
+                screens: {
+                  PilatesWorkouts: '',
+                  Progress: 'progress',
+                },
+              },
               WorkoutDetail: 'workout/:workoutId',
               ActiveWorkout: 'active/:workoutId',
               ProgramSchedule: 'schedule/:workoutId',
@@ -79,7 +87,6 @@ function ThemedNavigation() {
               ProgramSchedule: 'schedule/:workoutId',
             },
           },
-          Progress: 'progress',
           Profile: 'profile',
         },
       },
@@ -108,12 +115,19 @@ function ThemedNavigation() {
   if (!isLoggedIn) {
     return showRegister ? (
       <RegisterScreen
-        onRegisterSuccess={() => setShowRegister(false)}
+        onRegisterSuccess={() => {
+          void syncPilatesAfterAuth().finally(() => {
+            setShowRegister(false);
+            setIsLoggedIn(true);
+          });
+        }}
         onNavigateToLogin={() => setShowRegister(false)}
       />
     ) : (
       <LoginScreen
-        onLoginSuccess={() => setIsLoggedIn(true)}
+        onLoginSuccess={() => {
+          void syncPilatesAfterAuth().finally(() => setIsLoggedIn(true));
+        }}
         onNavigateToRegister={() => setShowRegister(true)}
       />
     );
@@ -136,12 +150,18 @@ export default function App() {
       try {
         const theme = await loadThemePreference();
         setInitialTheme(theme);
-        try {
-          await ensureDefaultUser();
-        } catch {}
         await bootstrapRemoteApiIfConfigured();
-        const programs = await loadPrograms();
-        hydratePilatesModelFromPrograms(programs);
+        if (await hasAuthToken()) {
+          try {
+            await syncPilatesAfterAuth();
+          } catch {
+            const programs = await loadPrograms();
+            hydratePilatesModelFromPrograms(programs);
+          }
+        } else {
+          const programs = await loadPrograms();
+          hydratePilatesModelFromPrograms(programs);
+        }
         await ensurePreferencesForLegacyInstall();
       } catch (e) {
         console.warn('[FitLife] boot hydrate failed', e);

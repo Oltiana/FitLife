@@ -1,3 +1,4 @@
+import { CommonActions } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -46,8 +47,20 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
   const finishingRef = useRef(false);
 
   const dismissCompletionAlert = useCallback(() => {
-    navigation.getParent()?.navigate('Progress');
-    navigation.popToTop();
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'PilatesHome',
+            state: {
+              routes: [{ name: 'Progress' }],
+              index: 0,
+            },
+          },
+        ],
+      }),
+    );
   }, [navigation]);
 
   useEffect(() => {
@@ -69,28 +82,53 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
     );
     const caloriesBurned = estimatePilatesCalories(totalMin, w.level);
     setCompletionCalories(caloriesBurned);
+    const pilatesProgramId =
+      route.params.pilatesProgramId != null
+        ? String(route.params.pilatesProgramId)
+        : /^\d+$/.test(w.pilatesProgramId)
+          ? w.pilatesProgramId
+          : '';
     try {
-      await appendCompletion({
-        id: `${Date.now()}-${w.id}`,
-        workoutId: w.id,
-        workoutTitle: w.title,
-        completedAt: new Date().toISOString(),
-        durationMinutes: totalMin,
-        caloriesBurned,
-      });
+      const { syncedToDatabase, syncError } = await appendCompletion({
+          id: `session-${Date.now()}-${pilatesProgramId || w.id}`,
+          workoutId: pilatesProgramId || w.id,
+          pilatesProgramId: pilatesProgramId || undefined,
+          workoutTitle: w.title,
+          completedAt: new Date().toISOString(),
+          durationMinutes: totalMin,
+          caloriesBurned,
+        });
+      if (!syncedToDatabase) {
+        Alert.alert(
+          'Could not save',
+          syncError ?? 'Your progress could not be updated. Please sign in and try again.',
+          [{ text: 'OK', onPress: dismissCompletionAlert }],
+        );
+      } else if (Platform.OS === 'web') {
+        setCompletionReady(true);
+      } else {
+        Alert.alert(
+          'Workout complete',
+          `Your progress has been updated.\n\nEstimated energy: ~${caloriesBurned} kcal (approximate).`,
+          [{ text: 'OK', onPress: dismissCompletionAlert }],
+        );
+      }
     } catch (e) {
+      finishingRef.current = false;
+      setFinished(false);
+      const ex = w.exercises[exerciseIndex];
+      if (ex) setRemaining(ex.durationSec);
+      const msg = e instanceof Error ? e.message : String(e);
       console.warn('[FitLife] completion save failed', e);
+      Alert.alert('Could not save', msg);
     }
-    if (Platform.OS === 'web') {
-      setCompletionReady(true);
-    } else {
-      Alert.alert(
-        'Workout complete',
-        `Your progress has been saved.\n\nEstimated energy: ~${caloriesBurned} kcal (approximate).`,
-        [{ text: 'OK', onPress: dismissCompletionAlert }],
-      );
-    }
-  }, [dismissCompletionAlert, navigation, route.params.workoutId, workout]);
+  }, [
+    dismissCompletionAlert,
+    exerciseIndex,
+    route.params.pilatesProgramId,
+    route.params.workoutId,
+    workout,
+  ]);
 
   useEffect(() => {
     if (!workout) return;
@@ -179,7 +217,7 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
               >
                 <Text style={styles.iosAlertTitle}>Workout complete</Text>
                 <Text style={styles.iosAlertMessage}>
-                  Your progress has been saved.
+                  Your progress has been updated.
                   {completionCalories != null ? (
                     <>
                       {'\n\n'}

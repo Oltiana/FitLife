@@ -1,13 +1,16 @@
-import { getWorkoutById, pilatesCatalog } from '../data/pilatesCatalog';
 import { pilatesImageAssets } from '../data/pilatesImageAssets';
-import type { PilatesWorkout } from '../domain/PilatesDomainTypes';
+import { findCatalogByProgram } from '../data/pilatesCatalogLookup';
+import {
+  normalizePilatesLevel,
+  type PilatesWorkout,
+} from '../domain/PilatesDomainTypes';
 import type { PilatesCategory, PilatesExercise } from '../domain/PilatesDomainTypes';
 import {
-  parseProgramExercisesJson,
+  programToExerciseRefs,
   type PilatesProgram,
 } from '../domain/PilatesProgramTypes';
 
-let runtimeWorkouts: PilatesWorkout[] = pilatesCatalog;
+let runtimeWorkouts: PilatesWorkout[] = [];
 
 function guessCategory(program: PilatesProgram): PilatesCategory {
   const slug = `${program.id} ${program.name}`.toLowerCase();
@@ -27,13 +30,13 @@ function fallbackExerciseImage(idx: number) {
 }
 
 function mapProgramToWorkout(program: PilatesProgram): PilatesWorkout {
-  const staticMatch = getWorkoutById(program.id);
-  const refs = parseProgramExercisesJson(program.exercises_json);
+  const catalogMatch = findCatalogByProgram(program);
+  const refs = programToExerciseRefs(program);
 
   const exercises: PilatesExercise[] =
     refs.length > 0
       ? refs.map((r, idx) => {
-          const staticExercise = staticMatch?.exercises.find((ex) => ex.id === r.id);
+          const staticExercise = catalogMatch?.exercises[idx];
           return {
             id: r.id,
             name: r.name,
@@ -45,37 +48,44 @@ function mapProgramToWorkout(program: PilatesProgram): PilatesWorkout {
             imageBannerFlex: staticExercise?.imageBannerFlex,
           };
         })
-      : (staticMatch?.exercises ?? []);
+      : (catalogMatch?.exercises ?? []);
 
   const totalSec = exercises.reduce((sum, ex) => sum + ex.durationSec, 0);
   const estimatedMinutes = Math.max(
     1,
-    totalSec > 0 ? Math.round(totalSec / 60) : staticMatch?.estimatedMinutes ?? 10,
+    totalSec > 0
+      ? Math.round(totalSec / 60)
+      : catalogMatch?.estimatedMinutes ?? 10,
   );
+
+  const sortedWorkouts = [...(program.workouts ?? [])].sort(
+    (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
+  );
+  const nextWorkout =
+    sortedWorkouts.find((w) => !w.isCompleted) ?? sortedWorkouts[0];
 
   return {
     id: program.id,
+    pilatesProgramId: program.id,
+    pilatesWorkoutId: nextWorkout?.id,
+    pilatesWorkoutIds: sortedWorkouts.map((w) => w.id),
     title: program.name,
-    level: program.level,
-    category: staticMatch?.category ?? guessCategory(program),
+    level: normalizePilatesLevel(program.level),
+    category: catalogMatch?.category ?? guessCategory(program),
     estimatedMinutes,
-    description:
-      staticMatch?.description ??
-      `Structured ${program.duration_weeks}-week ${program.level} Pilates program.`,
-    coverImage: staticMatch?.coverImage ?? fallbackExerciseImage(0),
+    description: program.description || catalogMatch?.description || program.name,
+    coverImage: catalogMatch?.coverImage ?? fallbackExerciseImage(0),
     exercises,
   };
 }
 
+
 export function hydratePilatesModelFromPrograms(programs: PilatesProgram[]): void {
-  const mapped = programs.map(mapProgramToWorkout).filter((w) => w.exercises.length > 0);
-  runtimeWorkouts = mapped.length > 0 ? mapped : pilatesCatalog;
+  runtimeWorkouts = programs
+    .map(mapProgramToWorkout)
+    .filter((w) => w.exercises.length > 0);
 }
 
-/**
- * Model: të dhëna statike të katalogut Pilates (pa logjikë UI).
- * Shtresa e Model-it për diagram/ SRS (MVVM).
- */
 export const PilatesModel = {
   listWorkouts(): PilatesWorkout[] {
     return runtimeWorkouts;

@@ -5,7 +5,6 @@ import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FitLifeProfileScreen } from '../screens/FitLifeProfileScreen';
 import { HomeScreen } from '../screens/HomeScreen';
-import { PilatesProgressScreen } from '../screens/pilates/PilatesProgressScreen';
 import { useTheme } from '../theme/PilatesThemeContext';
 import { PilatesCalendarStack } from './PilatesCalendarStack';
 import { PilatesStack } from './PilatesStack';
@@ -73,9 +72,9 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
         name="Search"
         component={PilatesStack}
         options={{
-          title: 'Search',
+          title: 'Pilates',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" size={size + 2} color={color} />
+            <Ionicons name="accessibility-outline" size={size + 2} color={color} />
           ),
         }}
       />
@@ -86,16 +85,6 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
           title: 'Schedule',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar-outline" size={size + 2} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Progress"
-        component={PilatesProgressScreen}
-        options={{
-          title: 'Progress',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="reorder-three-outline" size={size + 2} color={color} />
           ),
         }}
       />

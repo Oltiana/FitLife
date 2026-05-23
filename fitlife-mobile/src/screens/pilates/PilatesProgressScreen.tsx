@@ -70,7 +70,7 @@ export function PilatesProgressScreen() {
   } = usePilatesAnalyticsViewModel();
 
   const chartWidth = Math.min(Math.max(260, screenWidth - 96), 340);
-  // Weight chart lives inside a padded card (16px left + 16px right).
+
   const weightChartWidth = Math.max(240, chartWidth - 24);
 
   const [calInput, setCalInput] = useState('');
@@ -192,7 +192,12 @@ export function PilatesProgressScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Progress</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Progress</Text>
+          <Text style={styles.subtitle}>
+            Track sessions, streaks, and daily goals.
+          </Text>
+        </View>
 
         <View style={styles.weekCompareCard}>
           <Text style={styles.todayLabel}>This week vs last week</Text>
@@ -568,12 +573,20 @@ function createProgressStyles(colors: AppColors) {
   muted: {
     color: colors.textSecondary,
   },
+  header: {
+    marginBottom: 18,
+  },
   title: {
     fontSize: 32,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 18,
     letterSpacing: -0.8,
+  },
+  subtitle: {
+    marginTop: 4,
+    fontSize: 15,
+    color: colors.textSecondary,
+    lineHeight: 22,
   },
   todayCard: {
     backgroundColor: colors.surface,

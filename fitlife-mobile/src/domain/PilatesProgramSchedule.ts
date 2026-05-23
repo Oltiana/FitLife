@@ -1,4 +1,4 @@
-/** Çelës për një qelizë në kalendarin e programit: java 0..n-1, ditë 0=Hënë .. 6=Diel. */
+
 export function programSlotKey(weekIndex: number, dayIndex: number): string {
   return `w${weekIndex}-d${dayIndex}`;
 }
@@ -22,9 +22,7 @@ export function countMarkedInWeek(
   return n;
 }
 
-/**
- * Java 0 gjithmonë e hapur; java w>0 pas hapjes kur java w-1 ka të paktën 2 ditë të shënuara.
- */
+
 export function isProgramWeekUnlocked(
   weekIndex: number,
   marked: Set<string>,
@@ -48,10 +46,7 @@ export function canToggleSlot(
   return isProgramWeekUnlocked(weekIndex, marked, totalWeeks);
 }
 
-/**
- * Programi konsiderohet i përfunduar kur java e fundit ka
- * të paktën 2 ditë të shënuara (duke nënkuptuar progres në javët paraprake).
- */
+
 export function isProgramCompleted(
   marked: Set<string>,
   totalWeeks: number,

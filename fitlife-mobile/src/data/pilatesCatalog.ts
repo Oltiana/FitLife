@@ -4,6 +4,7 @@ import { pilatesImageAssets as P } from './pilatesImageAssets';
 export const pilatesCatalog: PilatesWorkout[] = [
   {
     id: 'core-fundamentals',
+    pilatesProgramId: 'core-fundamentals',
     title: 'Core Fundamentals',
     level: 'beginner',
     category: 'core',
@@ -61,6 +62,7 @@ export const pilatesCatalog: PilatesWorkout[] = [
   },
   {
     id: 'power-flow',
+    pilatesProgramId: 'power-flow',
     title: 'Power Flow',
     level: 'intermediate',
     category: 'strength',
@@ -127,6 +129,7 @@ export const pilatesCatalog: PilatesWorkout[] = [
   },
   {
     id: 'deep-stretch',
+    pilatesProgramId: 'deep-stretch',
     title: 'Deep Stretch & Restore',
     level: 'advanced',
     category: 'mobility',

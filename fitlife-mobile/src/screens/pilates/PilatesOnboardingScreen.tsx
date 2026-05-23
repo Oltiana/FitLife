@@ -47,7 +47,7 @@ const SLIDES: Slide[] = [
     key: '3',
     icon: 'flag-outline',
     title: 'Set your pace',
-    body: 'Optional daily targets help you stay consistent — adjust anytime on the Progress tab.',
+    body: 'Optional daily targets help you stay consistent — adjust anytime under Pilates → Progress.',
   },
 ];
 

@@ -2,7 +2,6 @@ import type { PilatesProgram } from '../domain/PilatesProgramTypes';
 import type { PilatesWorkout } from '../domain/PilatesDomainTypes';
 import { pilatesCatalog } from './pilatesCatalog';
 
-/** Kohëzgjatje shembull për dokument / ERD (katalogu statik nuk e përmban). */
 const DURATION_WEEKS_BY_WORKOUT_ID: Record<string, number> = {
   'core-fundamentals': 2,
   'power-flow': 4,
@@ -10,25 +9,28 @@ const DURATION_WEEKS_BY_WORKOUT_ID: Record<string, number> = {
 };
 
 export function workoutToPilatesProgram(workout: PilatesWorkout): PilatesProgram {
-  const refs = workout.exercises.map((e) => ({
-    id: e.id,
+  const workouts = workout.exercises.map((e, idx) => ({
+    id: idx + 1,
     name: e.name,
-    durationSec: e.durationSec,
     description: e.description,
+    durationMinutes: Math.max(1, Math.round(e.durationSec / 60)),
+    orderIndex: idx + 1,
+    isCompleted: false,
   }));
   return {
     id: workout.id,
     name: workout.title,
-    duration_weeks:
-      DURATION_WEEKS_BY_WORKOUT_ID[workout.id] ?? 4,
+    description: workout.description,
+    durationWeeks: DURATION_WEEKS_BY_WORKOUT_ID[workout.id] ?? 4,
     level: workout.level,
-    exercises_json: JSON.stringify(refs),
+    displayOrder: 0,
+    workouts,
   };
 }
 
 export function buildPilatesProgramsFromCatalog(): PilatesProgram[] {
   return pilatesCatalog.map((workout, index) => ({
     ...workoutToPilatesProgram(workout),
-    display_order: index + 1,
+    displayOrder: index + 1,
   }));
 }

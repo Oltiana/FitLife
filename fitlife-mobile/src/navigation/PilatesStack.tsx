@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { BrowseModalityDetailScreen } from '../screens/discover/BrowseModalityDetailScreen';
 import { DiscoverHubScreen } from '../screens/discover/DiscoverHubScreen';
 import { ActiveWorkoutScreen } from '../screens/pilates/PilatesActiveWorkoutScreen';
-import { PilatesListScreen } from '../screens/pilates/PilatesListScreen';
+import { PilatesSectionTabs } from './PilatesSectionTabs';
 import { PilatesProgramScheduleScreen } from '../screens/pilates/PilatesProgramScheduleScreen';
 import { WorkoutDetailScreen } from '../screens/pilates/PilatesWorkoutDetailScreen';
 import { useTheme } from '../theme/PilatesThemeContext';
@@ -15,7 +15,7 @@ export function PilatesStack() {
   const { colors } = useTheme();
   return (
     <Stack.Navigator
-      initialRouteName="DiscoverHub"
+      initialRouteName="PilatesHome"
       screenOptions={{
         headerTintColor: colors.primary,
         headerTitleStyle: { color: colors.text },
@@ -35,8 +35,8 @@ export function PilatesStack() {
         options={{ title: 'Session' }}
       />
       <Stack.Screen
-        name="PilatesList"
-        component={PilatesListScreen}
+        name="PilatesHome"
+        component={PilatesSectionTabs}
         options={{ headerShown: false, title: 'Pilates' }}
       />
       <Stack.Screen

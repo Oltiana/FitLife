@@ -52,10 +52,6 @@ async function loadUserPreferencesLocal(): Promise<UserPreferences> {
   }
 }
 
-/**
- * Preferencat: me `EXPO_PUBLIC_API_URL` lexohen/ruhen në SQL Server përmes API-së;
- * përndryshe vetëm AsyncStorage.
- */
 export async function loadUserPreferences(): Promise<UserPreferences> {
   const base = getApiBaseUrl();
   if (base) {
@@ -90,9 +86,6 @@ export async function saveUserPreferences(
   return next;
 }
 
-/**
- * Në përditësime nga versione pa prefs: nëse ka seanca, mos e detyro onboarding-un.
- */
 export async function ensurePreferencesForLegacyInstall(): Promise<void> {
   const base = getApiBaseUrl();
   if (base) {
@@ -103,7 +96,7 @@ export async function ensurePreferencesForLegacyInstall(): Promise<void> {
       if (prefs.onboardingComplete) return;
       await saveUserPreferences({ onboardingComplete: true });
     } catch {
-      /* offline / API down */
+
     }
     return;
   }

@@ -5,7 +5,7 @@ import {
   resolvePilatesBootstrapUser,
 } from '../data/PilatesUserProgramRepository';
 
-/** Lidh `User` + `UserProgram` me UI (set i programId të regjistruara). */
+
 export function useEnrolledProgramIds() {
   const [userId, setUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function useEnrolledProgramIds() {
       const links = await loadUserPrograms(boot.userId);
       setUserId(boot.userId);
       setDisplayName(boot.displayName?.trim() || null);
-      setEnrolledIds(new Set(links.map((l) => l.programId)));
+      setEnrolledIds(new Set(links.map((l) => l.pilatesProgramId)));
     } catch {
       setUserId(null);
       setDisplayName(null);

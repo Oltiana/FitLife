@@ -1,7 +1,14 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
+export type PilatesSectionTabParamList = {
+  PilatesWorkouts: undefined;
+  Progress: undefined;
+};
+
 export type PilatesStackParamList = {
   DiscoverHub: { initialModality?: 'all' | 'pilates' | 'fitness' | 'yoga' } | undefined;
+  PilatesHome: NavigatorScreenParams<PilatesSectionTabParamList> | undefined;
+  
   PilatesList: undefined;
   BrowseModalityDetail: {
     id: string;
@@ -11,7 +18,12 @@ export type PilatesStackParamList = {
     minutes: number;
   };
   WorkoutDetail: { workoutId: string };
-  ActiveWorkout: { workoutId: string };
+  ActiveWorkout: {
+    workoutId: string;
+    pilatesWorkoutId?: number;
+    pilatesProgramId?: number;
+    pilatesWorkoutIds?: number[];
+  };
   ProgramSchedule: { workoutId: string };
 };
 
@@ -25,6 +37,5 @@ export type MainTabParamList = {
   Fitness: undefined;
   Search: NavigatorScreenParams<PilatesStackParamList>;
   Calendar: NavigatorScreenParams<CalendarStackParamList>;
-  Progress: undefined;
   Profile: undefined;
 };

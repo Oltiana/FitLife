@@ -12,7 +12,7 @@ export type AppColors = {
   chartBar: string;
   caloriesLine: string;
   caloriesBar: string;
-  /** Gradient middle stop for ImageBanner fadeToSurface */
+
   imageFadeMid: string;
   shadow: string;
 };
@@ -53,5 +53,4 @@ export const darkColors: AppColors = {
   shadow: '#000000',
 };
 
-/** @deprecated Përdor `useTheme().colors` */
 export const colors = lightColors;

@@ -1,6 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
 
-/** Maps to expo-image `contentPosition` when using `cover`. */
 export type ImageCropPosition =
   | 'center'
   | 'top'
@@ -18,19 +17,46 @@ export type PilatesExercise = {
   description: string;
   durationSec: number;
   image: ImageSourcePropType;
-  /** `contain` = full image + letterbox; active workout defaults to `cover` (fills frame). */
+
   imageResizeMode?: 'cover' | 'contain';
-  /** Where to anchor the crop for `cover` (full-body shots often need `top` or `bottom`). */
+
   imageCropPosition?: ImageCropPosition;
-  /** Vertical share of the active-workout screen for the image banner vs panel (default 1). */
+
   imageBannerFlex?: number;
 };
 
 export type PilatesLevel = 'beginner' | 'intermediate' | 'advanced';
 export type PilatesCategory = 'core' | 'strength' | 'mobility';
 
+const LEVEL_LABELS: Record<PilatesLevel, string> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
+
+export function normalizePilatesLevel(raw: string | undefined | null): PilatesLevel {
+  const l = String(raw ?? '')
+    .trim()
+    .toLowerCase();
+  if (l === 'beginner' || l === 'intermediate' || l === 'advanced') {
+    return l;
+  }
+  return 'beginner';
+}
+
+export function formatPilatesLevelLabel(
+  raw: string | undefined | null,
+): string {
+  return LEVEL_LABELS[normalizePilatesLevel(raw)];
+}
+
 export type PilatesWorkout = {
   id: string;
+  pilatesProgramId: string;
+
+  pilatesWorkoutId?: number;
+
+  pilatesWorkoutIds?: number[];
   title: string;
   level: PilatesLevel;
   category: PilatesCategory;
@@ -42,14 +68,19 @@ export type PilatesWorkout = {
 
 export type WorkoutCompletion = {
   id: string;
+
   workoutId: string;
+
+  pilatesWorkoutId?: number;
+
+  pilatesProgramId?: string;
   workoutTitle: string;
   completedAt: string;
   durationMinutes: number;
-  /** Lidhur me `User.id` (MVP: përdorues lokal). */
+
   userId?: string;
-  /** Vlerësim i kalorive të djegura për këtë seancë (kcal). */
+
   caloriesBurned?: number;
-  /** Radhë e qëndrueshme nga serveri (1, 2, …); opsionale për hyrje vetëm lokale. */
+
   displayOrder?: number;
 };

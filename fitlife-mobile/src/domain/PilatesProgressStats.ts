@@ -8,7 +8,7 @@ function startOfDay(d: Date): Date {
   return x;
 }
 
-/** Çelës kalendari lokal `YYYY-MM-DD` (për kalendar / përputhje ditësh). */
+
 export function localCalendarDayKey(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -23,7 +23,7 @@ function dayKeyToStart(key: string): Date {
   return startOfDay(new Date(y, mo - 1, da));
 }
 
-/** Minuta + kcal (vlerësim) vetëm për ditën e sotme (timezone lokale). */
+
 export function todayActivityTotals(
   entries: WorkoutCompletion[],
   now: Date,
@@ -42,7 +42,7 @@ export function todayActivityTotals(
   return { minutes, calories };
 }
 
-/** Seri 30 ditët e fundit (më e vjetra → sot); etiketa të holla për grafik. */
+
 export function minutesLast30DaysByDay(
   entries: WorkoutCompletion[],
   now: Date,
@@ -93,7 +93,7 @@ export function caloriesLast30DaysByDay(
   return result;
 }
 
-/** Minutes summed per calendar day for the last 7 days (oldest → newest). */
+
 export function minutesLast7DaysByDay(
   entries: WorkoutCompletion[],
   now: Date,
@@ -122,7 +122,7 @@ export function minutesLast7DaysByDay(
   return result;
 }
 
-/** Total minutes in four consecutive 7-day windows ending at the current day (oldest → newest). */
+
 export function minutesPerWeekLast4Windows(
   entries: WorkoutCompletion[],
   now: Date,
@@ -159,7 +159,7 @@ export function totalCaloriesBurned(entries: WorkoutCompletion[]): number {
   return entries.reduce((acc, e) => acc + caloriesForCompletion(e), 0);
 }
 
-/** kcal të vlerësuara për ditë (7 ditët e fundit), njësoj si minutat. */
+
 export function caloriesLast7DaysByDay(
   entries: WorkoutCompletion[],
   now: Date,
@@ -212,7 +212,7 @@ export function caloriesPerWeekLast4Windows(
   return result;
 }
 
-/** Përdoret kur nuk ka login — përputhet me completions lokale pa `userId`. */
+
 export const GUEST_PROGRESS_USER_ID = '__fitlife_guest_progress__';
 
 export function filterCompletionsForUser(
@@ -225,7 +225,7 @@ export function filterCompletionsForUser(
   return entries.filter((e) => {
     const eu = e.userId?.trim() ?? '';
     if (eu === userId) return true;
-    // Legacy: local fallback saved completions without userId; analytics uses pilates-anon-*.
+
     if (
       eu === '' &&
       userId.startsWith('pilates-anon-')
@@ -254,7 +254,7 @@ export function filterCompletionsByPeriod(
   });
 }
 
-/** Rekord: sekuenca më e gjatë ditësh me të paktën një seancë (të gjithë historia). */
+
 export function longestStreakEver(
   entries: WorkoutCompletion[],
   userId: string,
@@ -283,10 +283,7 @@ export function longestStreakEver(
   return best;
 }
 
-/**
- * Ditë radhazi me të paktën një seancë (lokal timezone).
- * Nëse sot nuk ka aktivitet, numërimi mund të vazhdojë nga dje.
- */
+
 export function calculateStreak(
   entries: WorkoutCompletion[],
   userId: string,
@@ -312,7 +309,7 @@ export function calculateStreak(
   return streak;
 }
 
-/** Filtrim i programeve Pilates sipas nivelit (për `getPilatesPrograms`). */
+
 export function filterWorkoutsByLevel<T extends { level: PilatesLevel }>(
   items: T[],
   level?: PilatesLevel,

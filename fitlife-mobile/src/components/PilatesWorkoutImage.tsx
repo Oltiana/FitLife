@@ -22,11 +22,9 @@ const cropToExpo: Record<ImageCropPosition, ImageContentPositionString> = {
 type Props = {
   source: ImageSourcePropType;
   style?: StyleProp<ImageStyle>;
-  /**
-   * `cover` fills the frame; `contain` fits the whole image (letterboxing if needed).
-   */
+
   resizeMode?: 'cover' | 'contain';
-  /** Crop anchor when `resizeMode` is `cover`. */
+
   cropPosition?: ImageCropPosition;
 };
 

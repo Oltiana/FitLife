@@ -55,14 +55,14 @@ export function getPilatesWorkoutsFromCatalog(level?: PilatesLevel) {
   return filterWorkoutsByLevel(PilatesModel.listWorkouts(), level);
 }
 
-export function startPilatesSession(programId: string): void {
+export function startPilatesSession(pilatesProgramId: string): void {
   if (!navigationRef.isReady()) {
     console.warn('[FitLife] Navigation not ready; startPilatesSession skipped.');
     return;
   }
   navigationRef.navigate('Search', {
     screen: 'ActiveWorkout',
-    params: { workoutId: programId },
+    params: { workoutId: pilatesProgramId },
   });
 }
 

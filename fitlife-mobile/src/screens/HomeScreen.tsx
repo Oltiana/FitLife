@@ -195,7 +195,14 @@ export function HomeScreen({ navigation }: Props) {
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Your Stats</Text>
-        <Pressable onPress={() => navigation.navigate('Progress')}>
+        <Pressable
+          onPress={() =>
+            navigation.navigate('Search', {
+              screen: 'PilatesHome',
+              params: { screen: 'Progress' },
+            })
+          }
+        >
           {({ pressed }) => (
             <Text style={[styles.sectionLink, pressed && styles.linkPressed]}>View all</Text>
           )}
@@ -301,7 +308,12 @@ export function HomeScreen({ navigation }: Props) {
       </Pressable>
       <Pressable
         style={({ pressed }) => [styles.shortcutRow, pressed && styles.shortcutRowPressed]}
-        onPress={() => navigation.navigate('Progress')}
+        onPress={() =>
+          navigation.navigate('Search', {
+            screen: 'PilatesHome',
+            params: { screen: 'Progress' },
+          })
+        }
       >
         <View style={styles.shortcutIconWrap}>
           <Ionicons name="reorder-three-outline" size={22} color="#4e7a53" />

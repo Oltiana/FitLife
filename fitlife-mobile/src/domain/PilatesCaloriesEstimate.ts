@@ -1,10 +1,6 @@
 import type { WorkoutCompletion } from './PilatesDomainTypes';
 import type { PilatesLevel } from './PilatesDomainTypes';
 
-/**
- * Vlerësim i përafërt (pa HR/peshë të përdoruesit).
- * MET ~3 (Pilates mesatare), masa referuese 65 kg: kcal ≈ MET × kg × (min/60).
- */
 const REFERENCE_WEIGHT_KG = 65;
 const BASE_PILATES_MET = 3;
 const LEVEL_MET_BONUS: Record<PilatesLevel, number> = {
@@ -22,7 +18,6 @@ export function estimatePilatesCalories(
   return Math.round(met * REFERENCE_WEIGHT_KG * hours);
 }
 
-/** Përdor vlerën e ruajtur ose vlerësimin nga minutat. */
 export function caloriesForCompletion(entry: WorkoutCompletion): number {
   if (
     entry.caloriesBurned != null &&

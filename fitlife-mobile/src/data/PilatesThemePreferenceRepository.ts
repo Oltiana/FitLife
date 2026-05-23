@@ -9,7 +9,7 @@ export async function loadThemePreference(): Promise<ColorSchemePreference> {
     const raw = await AsyncStorage.getItem(KEY);
     if (raw === 'dark' || raw === 'light') return raw;
   } catch {
-    /* ignore */
+    
   }
   return 'light';
 }

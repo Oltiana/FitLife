@@ -1,10 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
 
-/**
- * Pilates photos live under `images/pilates-images/` (shared `images/` tree).
- * Other modules may use e.g. `images/other/` or their own folders.
- * Indices P[0]…P[10] map to usage order in `pilatesCatalog`.
- */
 export const pilatesImageAssets: ImageSourcePropType[] = [
   require('../../images/pilates-images/1dd9cb26fd86fff0f8bc38878c2bb92f.jpg'),
   require('../../images/pilates-images/2aa35f5ad90464621f3fd3218d9662b9.jpg'),

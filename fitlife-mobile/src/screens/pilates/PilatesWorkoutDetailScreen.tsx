@@ -297,7 +297,7 @@ export function WorkoutDetailScreen({ route, navigation }: Props) {
   }
 
   const isEnrolled = enrolledIds.has(workout.id);
-  const planWeeks = programRow?.duration_weeks;
+  const planWeeks = programRow?.durationWeeks;
 
   const onToggleProgram = async () => {
     if (!userId || enrollBusy) return;
@@ -412,7 +412,13 @@ export function WorkoutDetailScreen({ route, navigation }: Props) {
       <Pressable
         style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
         onPress={() =>
-          navigation.navigate('ActiveWorkout', { workoutId: workout.id })
+          navigation.navigate('ActiveWorkout', {
+            workoutId: workout.id,
+            pilatesWorkoutId: workout.pilatesWorkoutId,
+            pilatesProgramId: /^\d+$/.test(workout.pilatesProgramId)
+              ? parseInt(workout.pilatesProgramId, 10)
+              : undefined,
+          })
         }
       >
         <Text style={styles.ctaText}>Start workout</Text>

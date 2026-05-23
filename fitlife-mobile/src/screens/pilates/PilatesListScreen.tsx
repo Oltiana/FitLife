@@ -1,4 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -15,12 +17,23 @@ import { ImageBanner } from '../../components/PilatesImageBanner';
 import { PilatesListSkeleton } from '../../components/PilatesListSkeleton';
 import { useEnrolledProgramIds } from '../../hooks/usePilatesEnrolledProgramIds';
 import { usePilatesListViewModel } from '../../viewmodels/PilatesViewModel';
-import type { PilatesStackParamList } from '../../navigation/PilatesNavigationTypes';
-import type { PilatesCategory, PilatesLevel, PilatesWorkout } from '../../domain/PilatesDomainTypes';
+import type {
+  PilatesSectionTabParamList,
+  PilatesStackParamList,
+} from '../../navigation/PilatesNavigationTypes';
+import {
+  formatPilatesLevelLabel,
+  type PilatesCategory,
+  type PilatesLevel,
+  type PilatesWorkout,
+} from '../../domain/PilatesDomainTypes';
 import type { AppColors } from '../../theme/PilatesColors';
 import { useTheme } from '../../theme/PilatesThemeContext';
 
-type Props = NativeStackScreenProps<PilatesStackParamList, 'PilatesList'>;
+type Props = CompositeScreenProps<
+  BottomTabScreenProps<PilatesSectionTabParamList, 'PilatesWorkouts'>,
+  NativeStackScreenProps<PilatesStackParamList>
+>;
 
 const levelLabel: Record<PilatesLevel, string> = {
   beginner: 'Beginner',
@@ -204,7 +217,6 @@ export function PilatesListScreen({ navigation }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState<PilatesLevel | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<PilatesCategory | null>(null);
-
   useFocusEffect(
     useCallback(() => {
       void refresh();
@@ -243,7 +255,7 @@ export function PilatesListScreen({ navigation }: Props) {
           <View style={styles.cardMeta}>
             <View style={styles.chip}>
               <Text style={styles.chipText}>
-                {levelLabel[item.level].toUpperCase()}
+                {formatPilatesLevelLabel(item.level).toUpperCase()}
               </Text>
             </View>
             <View style={styles.cardMetaRight}>
@@ -285,7 +297,7 @@ export function PilatesListScreen({ navigation }: Props) {
           <View style={styles.header}>
             <Text style={styles.screenTitle}>Pilates</Text>
             <Text style={styles.screenSubtitle}>
-              Search and filter sessions, then start your flow.
+              Select a workout to get started.
             </Text>
             {displayName ? (
               <Text style={styles.signedInHint}>Signed in as {displayName}</Text>
@@ -390,7 +402,9 @@ export function PilatesListScreen({ navigation }: Props) {
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyText}>
-              No sessions match your search/filter. Try removing one filter.
+              {workouts.length === 0
+                ? 'Nuk ka programe. Rinis API-n (dotnet run) që të ngarkohen nga databaza, pastaj login dhe rifresko.'
+                : 'No sessions match your search/filter. Try removing one filter.'}
             </Text>
           </View>
         }

@@ -1,6 +1,5 @@
 import { Platform, type ViewStyle } from 'react-native';
 
-/** Soft card shadow (iOS + Android). */
 export const cardShadow: ViewStyle =
   Platform.OS === 'ios'
     ? {

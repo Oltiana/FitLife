@@ -10,6 +10,8 @@ namespace FitLifeAPI.Repositories.Interfaces
         Task<UserPilatesEnrollment?> GetEnrollmentAsync(int userId, int programId);
         Task<IEnumerable<UserPilatesEnrollment>> GetUserEnrollmentsAsync(int userId);
         Task AddEnrollmentAsync(UserPilatesEnrollment enrollment);
+        Task<bool> DeleteEnrollmentAsync(int userId, int programId);
+        Task<IEnumerable<UserPilatesProgress>> GetUserCompletedProgressAsync(int userId);
         Task<UserPilatesProgress?> GetProgressAsync(int userId, int workoutId);
         Task<IEnumerable<UserPilatesProgress>> GetUserProgressAsync(int userId, int programId);
         Task AddProgressAsync(UserPilatesProgress progress);

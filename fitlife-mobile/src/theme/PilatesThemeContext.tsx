@@ -27,7 +27,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 type Props = {
   children: ReactNode;
-  /** Vendoset pas boot-it që të përputhet me ruajtjen lokale. */
+  
   initialScheme?: ColorSchemePreference;
 };
 
@@ -68,7 +68,7 @@ export function useTheme(): ThemeContextValue {
   return ctx;
 }
 
-/** Për teste ose përdorim jashtë provider (fallback light). */
+
 export function useThemeOptional(): ThemeContextValue | null {
   return useContext(ThemeContext);
 }

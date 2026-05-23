@@ -57,6 +57,21 @@ namespace FitLifeAPI.Controllers
             return Ok(result);
         }
 
+        [HttpDelete("my-enrollments/{pilatesProgramId:int}")]
+        public async Task<IActionResult> Unenroll(int pilatesProgramId)
+        {
+            var ok = await _pilatesService.UnenrollAsync(GetUserId(), pilatesProgramId);
+            if (!ok) return NotFound("Enrollment not found");
+            return NoContent();
+        }
+
+        [HttpGet("my-workout-progress")]
+        public async Task<IActionResult> GetMyCompletedWorkouts()
+        {
+            var list = await _pilatesService.GetMyCompletedWorkoutsAsync(GetUserId());
+            return Ok(list);
+        }
+
         [HttpPost("complete-workout")]
         public async Task<IActionResult> CompleteWorkout([FromBody] CompletePilatesWorkoutRequest request)
         {

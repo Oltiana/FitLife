@@ -56,6 +56,24 @@ namespace FitLifeAPI.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task<bool> DeleteEnrollmentAsync(int userId, int programId)
+        {
+            var e = await GetEnrollmentAsync(userId, programId);
+            if (e == null) return false;
+            _context.UserPilatesEnrollments.Remove(e);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<IEnumerable<UserPilatesProgress>> GetUserCompletedProgressAsync(int userId)
+        {
+            return await _context.UserPilatesProgresses
+                .Include(p => p.Workout)
+                .Where(p => p.UserId == userId && p.IsCompleted)
+                .OrderByDescending(p => p.CompletedAt)
+                .ToListAsync();
+        }
+
         public async Task<UserPilatesProgress?> GetProgressAsync(int userId, int workoutId)
         {
             return await _context.UserPilatesProgresses

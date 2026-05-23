@@ -9,9 +9,6 @@ type Props = {
   children: ReactNode;
 };
 
-/**
- * Web: one column with max width. Avoid nested flex:1 chains that collapse to 0 height.
- */
 export function WebAppRoot({ children }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(

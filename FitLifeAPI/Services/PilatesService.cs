@@ -43,6 +43,7 @@ namespace FitLifeAPI.Services
                 Workouts = program.Workouts.Select(w => new PilatesWorkoutResponse
                 {
                     Id = w.Id,
+                    PilatesProgramId = w.PilatesProgramId,
                     Name = w.Name,
                     Description = w.Description,
                     DurationMinutes = w.DurationMinutes,
@@ -77,6 +78,11 @@ namespace FitLifeAPI.Services
                 ProgressPercent = 0,
                 EnrolledAt = enrollment.EnrolledAt
             };
+        }
+
+        public async Task<bool> UnenrollAsync(int userId, int programId)
+        {
+            return await _pilatesRepository.DeleteEnrollmentAsync(userId, programId);
         }
 
         public async Task<IEnumerable<UserPilatesProgressResponse>> GetMyEnrollmentsAsync(int userId)
@@ -187,6 +193,7 @@ namespace FitLifeAPI.Services
             return new PilatesWorkoutResponse
             {
                 Id = workout.Id,
+                PilatesProgramId = workout.PilatesProgramId,
                 Name = workout.Name,
                 Description = workout.Description,
                 DurationMinutes = workout.DurationMinutes,
@@ -198,6 +205,21 @@ namespace FitLifeAPI.Services
         public async Task<PilatesWorkout?> GetWorkoutByIdAsync(int id)
         {
             return await _pilatesRepository.GetWorkoutByIdAsync(id);
+        }
+
+        public async Task<IReadOnlyList<UserPilatesWorkoutProgressResponse>> GetMyCompletedWorkoutsAsync(int userId)
+        {
+            var rows = await _pilatesRepository.GetUserCompletedProgressAsync(userId);
+            return rows.Select(p => new UserPilatesWorkoutProgressResponse
+            {
+                Id = p.Id,
+                PilatesWorkoutId = p.PilatesWorkoutId,
+                PilatesProgramId = p.Workout.PilatesProgramId,
+                WorkoutName = p.Workout.Name,
+                IsCompleted = p.IsCompleted,
+                CompletedAt = p.CompletedAt,
+                DurationMinutes = p.Workout.DurationMinutes,
+            }).ToList();
         }
 
         private static PilatesProgramResponse MapToResponse(PilatesProgram p, int userId, HashSet<int> enrolledIds)
@@ -213,6 +235,7 @@ namespace FitLifeAPI.Services
                 Workouts = p.Workouts.Select(w => new PilatesWorkoutResponse
                 {
                     Id = w.Id,
+                    PilatesProgramId = w.PilatesProgramId,
                     Name = w.Name,
                     Description = w.Description,
                     DurationMinutes = w.DurationMinutes,
