@@ -25,6 +25,9 @@ builder.Services.AddScoped<IFitnessRepository, FitnessRepository>();
 builder.Services.AddScoped<IFitnessService, FitnessService>();
 builder.Services.AddScoped<IPilatesRepository, PilatesRepository>();
 builder.Services.AddScoped<IPilatesService, PilatesService>();
+builder.Services.AddScoped<IYogaRepository, YogaRepository>();
+builder.Services.AddScoped<IYogaService, YogaService>();
+
 builder.Services.AddHttpClient<IExerciseApiService, ExerciseApiService>((sp, client) =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
@@ -109,6 +112,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.WebHost.UseUrls("http://0.0.0.0:5071");
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -120,6 +125,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseStaticFiles();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
