@@ -21,5 +21,6 @@ namespace FitLifeAPI.DTOs.Responses
 
         [JsonPropertyName("gifUrl")]
         public string? GifUrl { get; set; }
+        public string? Level { get; set; }
     }
 }

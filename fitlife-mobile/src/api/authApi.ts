@@ -1,7 +1,6 @@
 import { API_BASE_URL } from '../constants/apiConfig';
 
 const BASE_URL = API_BASE_URL;
-console.log('API URL:', BASE_URL);
 
 export const authApi = {
   login: async (email: string, password: string) => {

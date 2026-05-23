@@ -9,7 +9,7 @@ import { WorkoutHistoryScreen } from '../screens/fitness/WorkoutHistoryScreen';
 
 export type FitnessStackParamList = {
     ExerciseList: undefined;
-    ExerciseDetails: { exerciseId: string };
+    ExerciseDetails: { exercise: any };
     WorkoutPlans: undefined;
     CreateWorkoutPlan: undefined;
     WorkoutSession: { workoutPlanId: number };
