@@ -29,6 +29,21 @@ function sortCompletionsChronological(
   });
 }
 
+function completionKey(entry: WorkoutCompletion): string {
+  if (entry.id?.trim()) return entry.id.trim();
+  return `${entry.completedAt}|${entry.workoutId}|${entry.pilatesWorkoutId ?? ''}`;
+}
+
+function mergeCompletions(
+  local: WorkoutCompletion[],
+  remote: WorkoutCompletion[],
+): WorkoutCompletion[] {
+  const byKey = new Map<string, WorkoutCompletion>();
+  for (const e of local) byKey.set(completionKey(e), e);
+  for (const e of remote) byKey.set(completionKey(e), e);
+  return sortCompletionsChronological([...byKey.values()]);
+}
+
 function parseList(raw: string | null): WorkoutCompletion[] {
   if (!raw) return [];
   try {
@@ -52,9 +67,11 @@ export async function loadCompletions(): Promise<WorkoutCompletion[]> {
   }
   try {
     const userId = await resolvePilatesApiUserId();
+    const local = await loadLocalCompletionsOnly();
     const remote = await getMyWorkoutProgress(userId);
-    await saveCompletions(remote);
-    return sortCompletionsChronological(remote);
+    const merged = mergeCompletions(local, remote);
+    await saveCompletions(merged);
+    return merged;
   } catch (e) {
     console.warn('[FitLife] loadCompletions remote failed; using local fallback', e);
     return loadLocalCompletionsOnly();
@@ -75,18 +92,21 @@ export type AppendCompletionResult = {
 export async function appendCompletion(
   entry: WorkoutCompletion,
 ): Promise<AppendCompletionResult> {
+  const userId = await resolvePilatesApiUserId();
+  const enriched: WorkoutCompletion = { ...entry, userId };
+
   if (!(await hasAuthToken())) {
     const syncError = 'Sign in required to save progress to the server.';
     await setLastPilatesSyncError(syncError);
+    const local = await loadLocalCompletionsOnly();
+    const next = mergeCompletions(local, [enriched]);
+    await saveCompletions(next);
     return {
-      entries: await loadLocalCompletionsOnly(),
+      entries: next,
       syncedToDatabase: false,
       syncError,
     };
   }
-
-  const userId = await resolvePilatesApiUserId();
-  const enriched: WorkoutCompletion = { ...entry, userId };
 
   const pilatesProgramId =
     enriched.pilatesProgramId?.trim() ||
@@ -96,8 +116,11 @@ export async function appendCompletion(
     const syncError =
       'Missing program. Pull to refresh on the Pilates list after login.';
     await setLastPilatesSyncError(syncError);
+    const local = await loadLocalCompletionsOnly();
+    const next = sortCompletionsChronological([...local, enriched]);
+    await saveCompletions(next);
     return {
-      entries: await loadLocalCompletionsOnly(),
+      entries: next,
       syncedToDatabase: false,
       syncError,
     };
@@ -136,26 +159,19 @@ export async function appendCompletion(
       },
     );
 
-    const remote = await getMyWorkoutProgress(userId);
-    const hasServerRow = remote.some(
-      (r) =>
-        r.id.startsWith('progress-') &&
-        (r.pilatesProgramId === resolvedProgramId ||
-          r.workoutTitle.trim().toLowerCase() ===
-            enriched.workoutTitle.trim().toLowerCase()),
-    );
-    if (!hasServerRow) {
-      throw new Error(
-        `Server did not return progress for "${enriched.workoutTitle}". ` +
-          `Add PilatesWorkouts for program id ${resolvedProgramId}, then try again. ` +
-          `API: ${getApiOrigin()}`,
-      );
+    let remote: WorkoutCompletion[] = [];
+    try {
+      remote = await getMyWorkoutProgress(userId);
+    } catch (fetchErr) {
+      console.warn('[FitLife] refresh progress after save failed', fetchErr);
     }
 
-    await saveCompletions(remote);
+    const local = await loadLocalCompletionsOnly();
+    const merged = mergeCompletions(mergeCompletions(local, remote), [enriched]);
+    await saveCompletions(merged);
     await setLastPilatesSyncError(null);
     return {
-      entries: remote,
+      entries: merged,
       syncedToDatabase: true,
       savedWorkoutCount: savedCount,
     };
@@ -163,8 +179,14 @@ export async function appendCompletion(
     const syncError = e instanceof Error ? e.message : String(e);
     await setLastPilatesSyncError(syncError);
     console.warn('[FitLife] appendCompletion: save to SQL failed', e);
+    const local = await loadLocalCompletionsOnly();
+    const alreadySaved = local.some((c) => c.id === enriched.id);
+    const next = alreadySaved
+      ? local
+      : sortCompletionsChronological([...local, enriched]);
+    if (!alreadySaved) await saveCompletions(next);
     return {
-      entries: await loadLocalCompletionsOnly(),
+      entries: next,
       syncedToDatabase: false,
       syncError,
     };

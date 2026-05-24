@@ -91,6 +91,13 @@ namespace FitLifeAPI.Data
                 .WithMany(w => w.Progresses)
                 .HasForeignKey(p => p.PilatesWorkoutId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserPilatesProgress>(e =>
+            {
+                e.Property(p => p.ProgramName).HasMaxLength(200);
+                e.Property(p => p.WorkoutName).HasMaxLength(200);
+                e.Property(p => p.ExercisesCompleted).HasMaxLength(2000);
+            });
         }
 
     }

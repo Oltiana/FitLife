@@ -1,133 +1,169 @@
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ensureDefaultUser, loadCompletions, loadPrograms } from '../data/pilates';
+import Svg, { Circle } from 'react-native-svg';
+import {
+  ensureDefaultUser,
+  generateAnalytics,
+  loadCompletions,
+  resolvePilatesApiUserId,
+} from '../data/pilates';
+import {
+  filterCompletionsByPeriod,
+  filterCompletionsForUser,
+  totalCaloriesBurned,
+  totalCompletedSessions,
+  totalMinutes,
+} from '../domain/PilatesProgressStats';
 import { tokenStorage } from '../storage/tokenStorage';
-import type { WorkoutCompletion } from '../domain/PilatesDomainTypes';
-import type { PilatesProgram } from '../domain/PilatesProgramTypes';
 import type { MainTabParamList } from '../navigation/PilatesNavigationTypes';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'Home'>;
 
-type HomeStats = {
+type HomeMetrics = {
+  streak: number;
   caloriesThisWeek: number;
   workoutsThisWeek: number;
   activeMinutesThisWeek: number;
+  todayMinutes: number;
 };
 
-type RecommendedSlot = { title: string; workoutId: string };
+const CHALLENGE_MINUTES = 20;
 
-const DEFAULT_RECOMMENDED: readonly RecommendedSlot[] = [
-  { title: 'Core Fundamentals', workoutId: 'core-fundamentals' },
-  { title: 'Power Flow', workoutId: 'power-flow' },
-  { title: 'Deep Stretch & Restore', workoutId: 'deep-stretch' },
-];
-
-const RECO_CARD_ACCENTS = ['#4e7a53', '#c9782e', '#c94444'] as const;
-
-function buildRecommendedSlots(programs: PilatesProgram[]): RecommendedSlot[] {
-  const fromApi = programs.slice(0, 3).map((p) => ({ title: p.name, workoutId: p.id }));
-  if (fromApi.length >= 3) return fromApi.slice(0, 3);
-  const used = new Set(fromApi.map((s) => s.workoutId));
-  const pad = DEFAULT_RECOMMENDED.filter((d) => !used.has(d.workoutId));
-  return [...fromApi, ...pad].slice(0, 3);
-}
-
-function startOfWeek(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay(); // 0 = Sunday
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diffToMonday);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function calculateHomeStats(completions: WorkoutCompletion[]): HomeStats {
-  const weekStart = startOfWeek(new Date());
-  const weekItems = completions.filter((entry) => {
-    const doneAt = new Date(entry.completedAt);
-    return !Number.isNaN(doneAt.getTime()) && doneAt >= weekStart;
-  });
-
-  const activeMinutesThisWeek = weekItems.reduce(
-    (sum, item) => sum + Math.max(0, item.durationMinutes ?? 0),
-    0,
-  );
-
-  const caloriesThisWeek = weekItems.reduce((sum, item) => {
-    if (typeof item.caloriesBurned === 'number' && Number.isFinite(item.caloriesBurned)) {
-      return sum + Math.max(0, item.caloriesBurned);
-    }
-    return sum + Math.round(Math.max(0, item.durationMinutes ?? 0) * 5);
-  }, 0);
-
-  return {
-    caloriesThisWeek,
-    workoutsThisWeek: weekItems.length,
-    activeMinutesThisWeek,
-  };
-}
-
-function formatMinutes(totalMinutes: number): string {
+function formatMinutesShort(totalMinutes: number): string {
   if (totalMinutes < 60) return `${totalMinutes}m`;
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
 }
 
+function RingProgress({
+  percent,
+  size = 56,
+  color = '#3d6b42',
+}: {
+  percent: number;
+  size?: number;
+  color?: string;
+}) {
+  const stroke = 5;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(100, percent));
+  const offset = c * (1 - clamped / 100);
+  const center = size / 2;
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size}>
+        <Circle
+          cx={center}
+          cy={center}
+          r={r}
+          stroke="#e8eee8"
+          strokeWidth={stroke}
+          fill="none"
+        />
+        <Circle
+          cx={center}
+          cy={center}
+          r={r}
+          stroke={color}
+          strokeWidth={stroke}
+          fill="none"
+          strokeDasharray={`${c} ${c}`}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          rotation="-90"
+          origin={`${center}, ${center}`}
+        />
+      </Svg>
+      <Text style={ringStyles.label}>{Math.round(clamped)}%</Text>
+    </View>
+  );
+}
+
+const ringStyles = StyleSheet.create({
+  label: {
+    position: 'absolute',
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#3d6b42',
+  },
+});
+
 export function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const scrollBottomPad = Math.max(insets.bottom, 10) + 118;
 
   const [displayName, setDisplayName] = useState('there');
-  const [stats, setStats] = useState<HomeStats>({
+  const [metrics, setMetrics] = useState<HomeMetrics>({
+    streak: 0,
     caloriesThisWeek: 0,
     workoutsThisWeek: 0,
     activeMinutesThisWeek: 0,
+    todayMinutes: 0,
   });
-  const [recommendedPrograms, setRecommendedPrograms] = useState<PilatesProgram[]>([]);
 
   const refreshHomeData = useCallback(async () => {
+    let greeting = 'there';
     try {
-      const user = await ensureDefaultUser();
-      let greeting = user.displayName?.trim();
-      if (!greeting) {
-        const t = await tokenStorage.getUser();
-        if (t && typeof t === 'object') {
-          const fn =
-            typeof (t as { fullName?: string }).fullName === 'string'
-              ? (t as { fullName: string }).fullName.trim()
-              : '';
-          if (fn) greeting = fn;
-          else if (typeof (t as { email?: string }).email === 'string') {
-            const em = (t as { email: string }).email.trim();
-            const local = em.split('@')[0];
-            if (local) greeting = local;
-          }
+      const t = await tokenStorage.getUser();
+      if (t && typeof t === 'object') {
+        const fn =
+          typeof (t as { fullName?: string }).fullName === 'string'
+            ? (t as { fullName: string }).fullName.trim()
+            : '';
+        if (fn) greeting = fn;
+        else if (typeof (t as { email?: string }).email === 'string') {
+          const em = (t as { email: string }).email.trim();
+          const local = em.split('@')[0];
+          if (local) greeting = local;
         }
       }
-      setDisplayName(greeting || 'there');
+      if (greeting === 'there') {
+        const user = await ensureDefaultUser();
+        if (user.displayName?.trim()) greeting = user.displayName.trim();
+      }
     } catch {
-      setDisplayName('there');
+      /* keep default greeting */
     }
+    setDisplayName(greeting);
+
     try {
-      const [completions, programs] = await Promise.all([
+      const userId = await resolvePilatesApiUserId();
+      const [analytics, completions] = await Promise.all([
+        generateAnalytics(userId),
         loadCompletions(),
-        loadPrograms(),
       ]);
-      setStats(calculateHomeStats(completions));
-      setRecommendedPrograms(programs.slice(0, 3));
+      const userEntries = filterCompletionsForUser(completions, userId);
+      const weekEntries = filterCompletionsByPeriod(userEntries, '7d', new Date());
+      setMetrics({
+        streak: analytics.streak,
+        caloriesThisWeek: totalCaloriesBurned(weekEntries),
+        workoutsThisWeek: totalCompletedSessions(weekEntries),
+        activeMinutesThisWeek: totalMinutes(weekEntries),
+        todayMinutes: analytics.progress.todayMinutes,
+      });
     } catch (e) {
-      console.warn('[FitLife] HomeScreen: load failed', e);
-      setStats({
+      console.warn('[FitLife] HomeScreen metrics failed', e);
+      setMetrics({
+        streak: 0,
         caloriesThisWeek: 0,
         workoutsThisWeek: 0,
         activeMinutesThisWeek: 0,
+        todayMinutes: 0,
       });
-      setRecommendedPrograms([]);
     }
   }, []);
 
@@ -135,11 +171,6 @@ export function HomeScreen({ navigation }: Props) {
     useCallback(() => {
       void refreshHomeData();
     }, [refreshHomeData]),
-  );
-
-  const recommendedSlots = useMemo(
-    () => buildRecommendedSlots(recommendedPrograms),
-    [recommendedPrograms],
   );
 
   const openFitnessTab = useCallback(() => {
@@ -154,21 +185,24 @@ export function HomeScreen({ navigation }: Props) {
     navigation.navigate('Search', { screen: 'PilatesHome' });
   }, [navigation]);
 
-  const openDiscoverAll = useCallback(() => {
+  const openProgress = useCallback(() => {
     navigation.navigate('Search', {
-      screen: 'DiscoverHub',
-      params: { initialModality: 'all' },
+      screen: 'PilatesHome',
+      params: { screen: 'Progress' },
     });
   }, [navigation]);
 
-  const openWorkoutDetail = useCallback(
-    (workoutId: string) => {
-      navigation.navigate('Search', {
-        screen: 'WorkoutDetail',
-        params: { workoutId },
-      });
-    },
-    [navigation],
+  const openBooking = useCallback(() => {
+    navigation.navigate('Yoga', { screen: 'Schedule' });
+  }, [navigation]);
+
+  const openUpcoming = useCallback(() => {
+    navigation.navigate('Yoga', { screen: 'Upcoming' });
+  }, [navigation]);
+
+  const challengePercent = Math.min(
+    100,
+    Math.round((metrics.todayMinutes / CHALLENGE_MINUTES) * 100),
   );
 
   return (
@@ -177,7 +211,7 @@ export function HomeScreen({ navigation }: Props) {
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: Math.max(insets.top, 12) + 10,
+          paddingTop: Math.max(insets.top, 12) + 8,
           paddingBottom: scrollBottomPad,
         },
       ]}
@@ -185,61 +219,66 @@ export function HomeScreen({ navigation }: Props) {
     >
       <View style={styles.header}>
         <Text style={styles.appTitle}>FitLife</Text>
-        <Pressable style={styles.avatarButton} onPress={() => navigation.navigate('Profile')}>
-          <Ionicons name="person-outline" size={17} color="#111" />
-        </Pressable>
       </View>
 
       <View style={styles.heroCard}>
-        <Text style={styles.greeting}>Hello, {displayName}! 👋</Text>
-        <Text style={styles.greetingSub}>Ready for your workout?</Text>
+        <View style={styles.heroTextCol}>
+          <Text style={styles.greeting}>Hello, {displayName}! 👋</Text>
+          <Text style={styles.greetingSub}>You&apos;re doing great today!</Text>
+        </View>
+        <View style={styles.streakPill}>
+          <Ionicons name="flame" size={18} color="#c9782e" />
+          <Text style={styles.streakValue}>{metrics.streak}</Text>
+          <Text style={styles.streakLabel}>Day streak</Text>
+        </View>
       </View>
 
-      <View style={styles.sectionDivider} />
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Your Stats</Text>
-        <Pressable
-          onPress={() =>
-            navigation.navigate('Search', {
-              screen: 'PilatesHome',
-              params: { screen: 'Progress' },
-            })
-          }
-        >
-          {({ pressed }) => (
-            <Text style={[styles.sectionLink, pressed && styles.linkPressed]}>View all</Text>
-          )}
-        </Pressable>
-      </View>
-      <View style={styles.row}>
-        <StatCard
+      <View style={styles.statsCard}>
+        <StatItem
           icon="flame-outline"
-          title="Calories Burned"
-          value={String(stats.caloriesThisWeek)}
-          subtitle="kcal"
+          iconColor="#3d6b42"
+          iconBg="#e8f5eb"
+          value={String(metrics.caloriesThisWeek)}
+          label="kcal burned"
         />
-        <StatCard
-          icon="barbell-outline"
-          title="Workouts"
-          value={String(stats.workoutsThisWeek)}
-          subtitle="this week"
+        <StatItem
+          icon="walk-outline"
+          iconColor="#c9782e"
+          iconBg="#fff4e8"
+          value="—"
+          label="steps"
         />
-        <StatCard
+        <StatItem
           icon="time-outline"
-          title="Active Time"
-          value={formatMinutes(stats.activeMinutesThisWeek)}
-          subtitle="this week"
+          iconColor="#c94444"
+          iconBg="#fdecef"
+          value={formatMinutesShort(metrics.activeMinutesThisWeek)}
+          label="active"
+        />
+        <StatItem
+          icon="water-outline"
+          iconColor="#3b7ec8"
+          iconBg="#e8f2fc"
+          value="—"
+          label="water"
         />
       </View>
 
-      <View style={[styles.sectionHeader, styles.sectionHeaderFirst]}>
-        <Text style={styles.sectionTitle}>Choose your activity</Text>
+      <View style={styles.challengeCard}>
+        <View style={styles.challengeTextCol}>
+          <Text style={styles.challengeTitle}>Today&apos;s challenge</Text>
+          <Text style={styles.challengeSub}>
+            Complete a {CHALLENGE_MINUTES}-minute workout
+          </Text>
+        </View>
+        <RingProgress percent={challengePercent} />
       </View>
-      <View style={styles.row}>
+
+      <Text style={styles.sectionTitle}>Choose your activity</Text>
+
+      <View style={styles.activityColumn}>
         <Pressable
-          style={({ pressed }) => [styles.cardPressable, pressed && styles.cardPressed]}
-          accessibilityRole="button"
+          style={({ pressed }) => [styles.activityPressable, pressed && styles.cardPressed]}
           onPress={openFitnessTab}
         >
           <ActivityCard
@@ -247,12 +286,11 @@ export function HomeScreen({ navigation }: Props) {
             title="Fitness"
             subtitle="Strength & conditioning"
             accent="#2d8a45"
-            tintBg="#e8f5eb"
+            tags={['35 min', 'Intermediate']}
           />
         </Pressable>
         <Pressable
-          style={({ pressed }) => [styles.cardPressable, pressed && styles.cardPressed]}
-          accessibilityRole="button"
+          style={({ pressed }) => [styles.activityPressable, pressed && styles.cardPressed]}
           onPress={openYogaTab}
         >
           <ActivityCard
@@ -260,61 +298,76 @@ export function HomeScreen({ navigation }: Props) {
             title="Yoga"
             subtitle="Balance & mobility"
             accent="#c9782e"
-            tintBg="#fff4e8"
+            tags={['45 min', 'Beginner']}
           />
         </Pressable>
-        <Pressable onPress={openPilatesTab} style={styles.cardPressable}>
+        <Pressable
+          style={({ pressed }) => [styles.activityPressable, pressed && styles.cardPressed]}
+          onPress={openPilatesTab}
+        >
           <ActivityCard
             icon="body-outline"
             title="Pilates"
             subtitle="Core & flexibility"
             accent="#c94444"
-            tintBg="#fdecef"
+            tags={['40 min', 'Intermediate']}
           />
         </Pressable>
       </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recommended for you</Text>
-        <Pressable onPress={openDiscoverAll}>
-          {({ pressed }) => (
-            <Text style={[styles.sectionLink, pressed && styles.linkPressed]}>See all</Text>
-          )}
-        </Pressable>
-      </View>
-      <View style={styles.row}>
-        {recommendedSlots.map((slot, index) => (
-          <Pressable
-            key={`${slot.workoutId}-${index}`}
-            onPress={() => openWorkoutDetail(slot.workoutId)}
-            style={styles.cardPressable}
-          >
-            <RecommendedCard title={slot.title} accent={RECO_CARD_ACCENTS[index] ?? '#4e7a53'} />
-          </Pressable>
-        ))}
+      <Text style={styles.sectionTitle}>Upcoming class</Text>
+      <Pressable
+        style={({ pressed }) => [styles.upcomingCard, pressed && styles.cardPressed]}
+        onPress={openUpcoming}
+      >
+        <View style={styles.upcomingIconWrap}>
+          <Ionicons name="fitness-outline" size={28} color="#7c6aad" />
+        </View>
+        <View style={styles.upcomingTextCol}>
+          <Text style={styles.upcomingTitle}>Yoga Flow</Text>
+          <Text style={styles.upcomingSub}>18:00 – 19:00 · Beginner</Text>
+        </View>
+        <View style={styles.instructorBadge}>
+          <Ionicons name="person-circle-outline" size={28} color="#7c6aad" />
+        </View>
+      </Pressable>
+
+      <Text style={styles.sectionTitle}>Shortcuts</Text>
+      <View style={styles.quickGrid}>
+        <QuickAction
+          icon="play-outline"
+          label="Start Workout"
+          color="#2d8a45"
+          bg="#e8f5eb"
+          onPress={openFitnessTab}
+        />
+        <QuickAction
+          icon="stats-chart-outline"
+          label="Progress"
+          color="#3d6b42"
+          bg="#eef6ee"
+          onPress={openProgress}
+        />
+        <QuickAction
+          icon="calendar-outline"
+          label="Booking"
+          color="#c9782e"
+          bg="#fff4e8"
+          onPress={openBooking}
+        />
+        <QuickAction
+          icon="leaf-outline"
+          label="Yoga"
+          color="#7c6aad"
+          bg="#f0ecf8"
+          onPress={openYogaTab}
+        />
       </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Shortcuts</Text>
+      <View style={styles.quoteCard}>
+        <Text style={styles.quoteText}>Small progress is still progress.</Text>
+        <Ionicons name="leaf" size={22} color="#3d6b42" style={styles.quoteIcon} />
       </View>
-      <Pressable
-        style={({ pressed }) => [styles.shortcutRow, pressed && styles.shortcutRowPressed]}
-        onPress={() =>
-          navigation.navigate('Search', {
-            screen: 'PilatesHome',
-            params: { screen: 'Progress' },
-          })
-        }
-      >
-        <View style={styles.shortcutIconWrap}>
-          <Ionicons name="reorder-three-outline" size={22} color="#4e7a53" />
-        </View>
-        <View style={styles.shortcutTextCol}>
-          <Text style={styles.shortcutTitle}>Progress</Text>
-          <Text style={styles.shortcutSub}>Streak, charts, targets, weight log</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="#888" />
-      </Pressable>
     </ScrollView>
   );
 }
@@ -338,14 +391,11 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     flexGrow: 1,
-    gap: 18,
+    gap: 14,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   appTitle: {
     fontSize: 24,
@@ -353,130 +403,255 @@ const styles = StyleSheet.create({
     color: '#142210',
     letterSpacing: -0.5,
   },
-  avatarButton: {
-    position: 'absolute',
-    right: 0,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e2e8e2',
-    ...shadowSoft,
-  },
   heroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 20,
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-    borderWidth: 1,
-    borderColor: '#e5ebe5',
-    ...shadowSoft,
-  },
-  greeting: { fontSize: 20, fontWeight: '800', color: '#142210', letterSpacing: -0.3 },
-  greetingSub: { fontSize: 14, color: '#5c6b5c', marginTop: 6, lineHeight: 20 },
-  sectionDivider: {
-    height: 1,
-    backgroundColor: '#dde4dd',
-    marginTop: 2,
-    marginBottom: -4,
-    opacity: 0.85,
-  },
-  sectionHeader: {
-    marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionHeaderFirst: {
-    marginTop: 10,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1a2218',
-    letterSpacing: -0.2,
-  },
-  sectionLink: { fontSize: 13, color: '#3d6b42', fontWeight: '700' },
-  linkPressed: { opacity: 0.65 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  cardPressable: { flex: 1, minWidth: 0 },
-  cardPressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
-  shortcutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e5ebe5',
-    backgroundColor: '#fff',
-    marginBottom: 12,
+    gap: 12,
     ...shadowSoft,
   },
-  shortcutRowPressed: { opacity: 0.9 },
-  shortcutIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#f0f4f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shortcutTextCol: { flex: 1, minWidth: 0 },
-  shortcutTitle: { fontSize: 16, fontWeight: '800', color: '#142210' },
-  shortcutSub: { fontSize: 13, color: '#5c6b5c', marginTop: 4, lineHeight: 18 },
-  statCard: {
+  heroTextCol: {
     flex: 1,
     minWidth: 0,
-    minHeight: 108,
-    borderRadius: 16,
-    backgroundColor: '#fff',
+  },
+  greeting: { fontSize: 19, fontWeight: '800', color: '#142210', letterSpacing: -0.3 },
+  greetingSub: { fontSize: 13, color: '#5c6b5c', marginTop: 6, lineHeight: 18 },
+  streakPill: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 6,
+    backgroundColor: '#f3faf4',
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    minWidth: 72,
     borderWidth: 1,
-    borderColor: '#e8eee8',
+    borderColor: '#dce8de',
+  },
+  streakValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#142210',
+    marginTop: 2,
+  },
+  streakLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#5c6b5c',
+    marginTop: 2,
+  },
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: '#e5ebe5',
     ...shadowSoft,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
   },
   statIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: '#eef6ee',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  statTitle: {
-    fontSize: 10,
-    color: '#5c6b5c',
+  statValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#142210',
     textAlign: 'center',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
-  statValue: { fontSize: 18, fontWeight: '800', color: '#142210', marginTop: 4 },
-  statSub: { fontSize: 11, color: '#7a887a', marginTop: 2, fontWeight: '600' },
-  activityCard: {
-    flex: 1,
-    minHeight: 124,
-    borderRadius: 18,
-    padding: 14,
-    justifyContent: 'space-between',
+  statLabel: {
+    fontSize: 10,
+    color: '#6b7a6b',
+    marginTop: 2,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  challengeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.65)',
+    borderColor: '#e5ebe5',
+    gap: 12,
     ...shadowSoft,
   },
+  challengeTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  challengeTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#142210',
+  },
+  challengeSub: {
+    fontSize: 13,
+    color: '#5c6b5c',
+    marginTop: 6,
+    lineHeight: 18,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1a2218',
+    letterSpacing: -0.3,
+    marginTop: 6,
+  },
+  activityColumn: {
+    gap: 12,
+  },
+  activityPressable: {
+    width: '100%',
+  },
+  cardPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
+  activityCard: {
+    width: '100%',
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5ebe5',
+    overflow: 'hidden',
+    ...shadowSoft,
+  },
+  activityAccentEdge: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 6,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+  },
+  activityCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingRight: 14,
+    paddingLeft: 18,
+    minHeight: 96,
+  },
   activityIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  activityTextCol: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 6,
+  },
+  activityTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#142210',
+    letterSpacing: -0.2,
+  },
+  activitySub: {
+    fontSize: 12,
+    color: '#5c6b5c',
+    lineHeight: 17,
+    marginTop: 3,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  tag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: '#f3f6f3',
+  },
+  tagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4a564a',
+  },
+  activityChevron: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f3f6f3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upcomingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f4f0fa',
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e6dff0',
+    gap: 12,
+    ...shadowSoft,
+  },
+  upcomingIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upcomingTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  upcomingTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#142210',
+  },
+  upcomingSub: {
+    fontSize: 12,
+    color: '#6b6080',
+    marginTop: 4,
+  },
+  instructorBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  quickAction: {
+    width: '48%',
+    flexGrow: 1,
+    minWidth: '46%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#e5ebe5',
+    alignItems: 'center',
+    ...shadowSoft,
+  },
+  quickIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 12,
@@ -484,64 +659,58 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  activityTitle: { fontSize: 15, fontWeight: '800', color: '#142210', letterSpacing: -0.2 },
-  activitySub: { fontSize: 12, color: '#4a564a', lineHeight: 16, marginTop: 4 },
-  activityAccentBar: {
-    height: 4,
-    borderRadius: 4,
-    marginTop: 12,
-    alignSelf: 'stretch',
+  quickLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#142210',
+    textAlign: 'center',
   },
-  recoCard: {
-    flex: 1,
-    minHeight: 100,
-    borderRadius: 16,
-    backgroundColor: '#fff',
-    padding: 14,
-    justifyContent: 'space-between',
+  quoteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e8f5eb',
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginTop: 4,
     borderWidth: 1,
-    borderColor: '#e8eee8',
-    overflow: 'hidden',
-    ...shadowSoft,
+    borderColor: '#d4e8d8',
   },
-  recoAccent: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+  quoteText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2a4a2e',
+    lineHeight: 22,
   },
-  recoInner: { paddingLeft: 8, flex: 1, justifyContent: 'space-between', minHeight: 72 },
-  recoTitle: { fontSize: 13, fontWeight: '800', color: '#142210', lineHeight: 18 },
-  recoMeta: { fontSize: 11, color: '#7a887a', marginTop: 6, fontWeight: '600' },
-  recoBookmarkRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 },
+  quoteIcon: {
+    marginLeft: 10,
+    opacity: 0.7,
+  },
 });
 
-function StatCard({
+function StatItem({
   icon,
-  title,
+  iconColor,
+  iconBg,
   value,
-  subtitle,
+  label,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
-  title: string;
+  iconColor: string;
+  iconBg: string;
   value: string;
-  subtitle: string;
+  label: string;
 }) {
   return (
-    <View style={styles.statCard}>
-      <View style={styles.statIconWrap}>
-        <Ionicons name={icon} size={18} color="#3d6b42" />
+    <View style={styles.statItem}>
+      <View style={[styles.statIconWrap, { backgroundColor: iconBg }]}>
+        <Ionicons name={icon} size={18} color={iconColor} />
       </View>
-      <Text style={styles.statTitle} numberOfLines={2}>
-        {title}
-      </Text>
-      <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+      <Text style={styles.statValue} numberOfLines={1}>
         {value}
       </Text>
-      <Text style={styles.statSub}>{subtitle}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
@@ -551,47 +720,68 @@ function ActivityCard({
   title,
   subtitle,
   accent,
-  tintBg,
+  tags = [],
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
   accent: string;
-  tintBg: string;
+  tags?: string[];
 }) {
   return (
-    <View style={[styles.activityCard, { backgroundColor: tintBg }]}>
-      <View>
-        <View style={[styles.activityIconWrap, { backgroundColor: `${accent}22` }]}>
-          <Ionicons name={icon} size={22} color={accent} />
+    <View style={styles.activityCard}>
+      <View style={[styles.activityAccentEdge, { backgroundColor: accent }]} />
+      <View style={styles.activityCardInner}>
+        <View style={[styles.activityIconWrap, { backgroundColor: `${accent}18` }]}>
+          <Ionicons name={icon} size={24} color={accent} />
         </View>
-        <Text style={styles.activityTitle} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={styles.activitySub} numberOfLines={2}>
-          {subtitle}
-        </Text>
+        <View style={styles.activityTextCol}>
+          <Text style={styles.activityTitle} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={styles.activitySub} numberOfLines={2}>
+            {subtitle}
+          </Text>
+          {tags.length > 0 ? (
+            <View style={styles.tagRow}>
+              {tags.map((tag) => (
+                <View key={tag} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </View>
+        <View style={styles.activityChevron}>
+          <Ionicons name="chevron-forward" size={17} color={accent} />
+        </View>
       </View>
-      <View style={[styles.activityAccentBar, { backgroundColor: accent }]} />
     </View>
   );
 }
 
-function RecommendedCard({ title, accent }: { title: string; accent: string }) {
+function QuickAction({
+  icon,
+  label,
+  color,
+  bg,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  color: string;
+  bg: string;
+  onPress: () => void;
+}) {
   return (
-    <View style={styles.recoCard}>
-      <View style={[styles.recoAccent, { backgroundColor: accent }]} />
-      <View style={styles.recoInner}>
-        <View>
-          <Text style={styles.recoTitle} numberOfLines={3}>
-            {title}
-          </Text>
-          <Text style={styles.recoMeta}>Tap to search in app</Text>
-        </View>
-        <View style={styles.recoBookmarkRow}>
-          <Ionicons name="arrow-forward-circle-outline" size={22} color={accent} />
-        </View>
+    <Pressable
+      style={({ pressed }) => [styles.quickAction, pressed && styles.cardPressed]}
+      onPress={onPress}
+    >
+      <View style={[styles.quickIconWrap, { backgroundColor: bg }]}>
+        <Ionicons name={icon} size={22} color={color} />
       </View>
-    </View>
+      <Text style={styles.quickLabel}>{label}</Text>
+    </Pressable>
   );
 }

@@ -225,13 +225,9 @@ export function filterCompletionsForUser(
   return entries.filter((e) => {
     const eu = e.userId?.trim() ?? '';
     if (eu === userId) return true;
-
-    if (
-      eu === '' &&
-      userId.startsWith('pilates-anon-')
-    ) {
-      return true;
-    }
+    if (eu === 'sync') return true;
+    // Legacy/local rows saved before userId was attached.
+    if (eu === '') return true;
     return false;
   });
 }

@@ -1,5 +1,5 @@
-import { getApiOrigin } from '../constants/apiConfig';
+import { getApiBaseUrl as getApiBaseUrlFromConfig } from '../constants/apiConfig';
 
 export function getApiBaseUrl(): string {
-  return getApiOrigin();
+  return getApiBaseUrlFromConfig();
 }
