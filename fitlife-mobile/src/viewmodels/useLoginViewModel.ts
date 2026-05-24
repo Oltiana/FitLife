@@ -50,10 +50,10 @@ export const useLoginViewModel = (onSuccess: () => void) => {
       }
 
       await tokenStorage.saveAuth(token, refreshToken, {
-        fullName: response.fullName ?? response.FullName ?? '',
-        email: response.email ?? response.Email ?? email,
-        isVerified: response.isVerified ?? response.IsVerified ?? false,
-      });
+  fullName: response.fullName ?? response.FullName ?? '',
+  email: response.email ?? response.Email ?? email,
+  isVerified: response.isVerified ?? response.IsVerified ?? false,
+}, response.role ?? response.Role ?? 'User');
 
       onSuccess();
     } catch (err: unknown) {

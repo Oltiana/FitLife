@@ -3,7 +3,7 @@ import {
   getCatalogWorkoutById,
   pilatesCatalog,
   pilatesImageAssets,
-} from '../data/pilates';
+} from '../data/pilates/catalog';
 import {
   normalizePilatesLevel,
   type PilatesWorkout,
@@ -98,7 +98,6 @@ function mapProgramToWorkout(program: PilatesProgram): PilatesWorkout {
   };
 }
 
-/** Prefer full built-in catalog; attach SQL ids when API program names match. */
 function mergeCatalogWithApiPrograms(apiPrograms: PilatesProgram[]): PilatesWorkout[] {
   const apiByName = new Map(
     apiPrograms.map((p) => [p.name.trim().toLowerCase(), p]),

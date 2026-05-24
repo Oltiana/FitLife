@@ -133,14 +133,21 @@ function createListStyles(colors: AppColors) {
       transform: [{ scale: 0.985 }],
     },
     cardTitle: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: '#FFFFFF',
-      letterSpacing: -0.3,
+  fontSize: 20,
+  fontWeight: '800',
+  color: '#FFFFFF',
+  letterSpacing: -0.3,
+  ...Platform.select({
+    web: {
+      textShadow: 'rgba(0,0,0,0.35) 0px 1px 6px',
+    },
+    default: {
       textShadowColor: 'rgba(0,0,0,0.35)',
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 6,
     },
+  }),
+},
     cardMeta: {
       flexDirection: 'row',
       alignItems: 'center',

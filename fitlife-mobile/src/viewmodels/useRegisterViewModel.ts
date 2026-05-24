@@ -79,10 +79,10 @@ export const useRegisterViewModel = (onSuccess: () => void) => {
       const response = await authApi.register(fullName, email, password);
 
       await tokenStorage.saveAuth(response.token, response.refreshToken, {
-        fullName: response.fullName,
-        email: response.email,
-        isVerified: response.isVerified,
-      });
+  fullName: response.fullName,
+  email: response.email,
+  isVerified: response.isVerified,
+}, response.role ?? 'User');
 
       onSuccess();
     } catch (err: any) {

@@ -7,7 +7,7 @@ import {
 import { navigationRef } from './src/navigation/PilatesNavigationRef';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { WebAppRoot } from './src/components/PilatesWebAppRoot';
@@ -25,9 +25,7 @@ import { ThemeProvider, useTheme } from './src/theme/PilatesThemeContext';
 import { tokenStorage } from './src/storage/tokenStorage';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
-
-const ROBOTO_STACK =
-  Platform.OS === 'web' ? 'Roboto, Arial, sans-serif' : 'Roboto';
+import { AdminDashboard } from './src/screens/admin/AdminDashboard';
 
 function Root({ children }: { children: React.ReactNode }) {
   if (Platform.OS === 'web') {
@@ -52,11 +50,31 @@ function BootSpinner() {
 function ThemedNavigation() {
   const { colors, colorScheme } = useTheme();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
-    tokenStorage.getToken().then(t => setIsLoggedIn(!!t));
+    const checkAuth = async () => {
+      const token = await tokenStorage.getToken();
+      const role = await tokenStorage.getRole();
+      setIsLoggedIn(!!token);
+      setIsAdmin(role === 'Admin');
+    };
+    void checkAuth();
   }, []);
+
+  const handleLoginSuccess = async () => {
+    const role = await tokenStorage.getRole();
+    setIsAdmin(role === 'Admin');
+    await syncPilatesAfterAuth();
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = async () => {
+    await tokenStorage.clearAuth();
+    setIsAdmin(false);
+    setIsLoggedIn(false);
+  };
 
   const linking = useMemo<LinkingOptions<MainTabParamList>>(
     () => ({
@@ -125,18 +143,20 @@ function ThemedNavigation() {
       />
     ) : (
       <LoginScreen
-        onLoginSuccess={() => {
-          void syncPilatesAfterAuth().finally(() => setIsLoggedIn(true));
-        }}
+        onLoginSuccess={() => void handleLoginSuccess()}
         onNavigateToRegister={() => setShowRegister(true)}
       />
     );
   }
 
+  if (isAdmin) {
+    return <AdminDashboard onLogout={handleLogout} />;
+  }
+
   return (
     <NavigationContainer theme={theme} ref={navigationRef} linking={linking}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <MainTabs onLogout={() => setIsLoggedIn(false)} />
+      <MainTabs onLogout={handleLogout} />
     </NavigationContainer>
   );
 }

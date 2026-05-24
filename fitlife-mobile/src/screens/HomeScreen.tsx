@@ -1,6 +1,5 @@
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
   Platform,
@@ -26,9 +25,6 @@ import {
   totalMinutes,
 } from '../domain/PilatesProgressStats';
 import { tokenStorage } from '../storage/tokenStorage';
-import type { MainTabParamList } from '../navigation/PilatesNavigationTypes';
-
-type Props = BottomTabScreenProps<MainTabParamList, 'Home'>;
 
 type HomeMetrics = {
   streak: number;
@@ -84,8 +80,7 @@ function RingProgress({
           strokeDasharray={`${c} ${c}`}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${center}, ${center}`}
+          transform={`rotate(-90, ${center}, ${center})`}
         />
       </Svg>
       <Text style={ringStyles.label}>{Math.round(clamped)}%</Text>
@@ -102,7 +97,8 @@ const ringStyles = StyleSheet.create({
   },
 });
 
-export function HomeScreen({ navigation }: Props) {
+export function HomeScreen() {
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const scrollBottomPad = Math.max(insets.bottom, 10) + 118;
 
@@ -136,7 +132,6 @@ export function HomeScreen({ navigation }: Props) {
         if (user.displayName?.trim()) greeting = user.displayName.trim();
       }
     } catch {
-      /* keep default greeting */
     }
     setDisplayName(greeting);
 

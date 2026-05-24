@@ -11,10 +11,11 @@ namespace FitLifeAPI.Models.Entities
         public string? ResetPasswordToken { get; set; }
         public DateTime? ResetTokenExpiry { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
-    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
-    public ICollection<WorkoutPlan> WorkoutPlans { get; set; } = new List<WorkoutPlan>();
-    public ICollection<WorkoutSession> WorkoutSessions { get; set; } = new List<WorkoutSession>();
-    public ICollection<FavoriteExercise> FavoriteExercises { get; set; } = new List<FavoriteExercise>();
+        public string Role { get; set; } = "User";
+
+        public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+        public ICollection<WorkoutPlan> WorkoutPlans { get; set; } = new List<WorkoutPlan>();
+        public ICollection<WorkoutSession> WorkoutSessions { get; set; } = new List<WorkoutSession>();
+        public ICollection<FavoriteExercise> FavoriteExercises { get; set; } = new List<FavoriteExercise>();
     }
 }
