@@ -11,13 +11,13 @@ import { ActivityIndicator, Platform, Text, TextInput, View } from 'react-native
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { WebAppRoot } from './src/components/PilatesWebAppRoot';
-import { bootstrapRemoteApiIfConfigured } from './src/api/PilatesBackendApi';
-import { loadThemePreference } from './src/data/PilatesThemePreferenceRepository';
-import type { ColorSchemePreference } from './src/data/PilatesThemePreferenceRepository';
-import { ensurePreferencesForLegacyInstall } from './src/data/PilatesUserPreferencesRepository';
-import { syncPilatesAfterAuth } from './src/api/pilatesBootSync';
-import { hasAuthToken } from './src/api/pilatesApiSession';
-import { loadPrograms } from './src/data/PilatesUserProgramRepository';
+import { hasAuthToken, syncPilatesAfterAuth } from './src/api/pilatesApi';
+import {
+  ensurePreferencesForLegacyInstall,
+  loadPrograms,
+  loadThemePreference,
+  type ColorSchemePreference,
+} from './src/data/pilates';
 import { hydratePilatesModelFromPrograms } from './src/models/PilatesModel';
 import { MainTabs } from './src/navigation/MainTabs';
 import type { MainTabParamList } from './src/navigation/PilatesNavigationTypes';
@@ -150,7 +150,6 @@ export default function App() {
       try {
         const theme = await loadThemePreference();
         setInitialTheme(theme);
-        await bootstrapRemoteApiIfConfigured();
         if (await hasAuthToken()) {
           try {
             await syncPilatesAfterAuth();
