@@ -1,18 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getMyWorkoutProgress } from '../api/PilatesBackendApi';
-import { setLastPilatesSyncError } from '../api/pilatesBootSync';
-import { saveWorkoutCompletionToDatabase } from '../api/pilatesDatabaseSync';
-import { getApiBaseUrl } from '../config/PilatesApiConfig';
-import type { WorkoutCompletion } from '../domain/PilatesDomainTypes';
-import { hasAuthToken } from '../api/pilatesApiSession';
-import { resolvePilatesApiUserId } from './PilatesUserProgramRepository';
+import {
+  getLastPilatesSyncError,
+  getMyWorkoutProgress,
+  hasAuthToken,
+  reloadPilatesProgramsFromApi,
+  resolveApiProgramId,
+  saveWorkoutCompletionToDatabase,
+  setLastPilatesSyncError,
+} from '../../api/pilatesApi';
+import { getApiOrigin } from '../../constants/apiConfig';
+import type { WorkoutCompletion } from '../../domain/PilatesDomainTypes';
+import { hydratePilatesModelFromPrograms } from '../../models/PilatesModel';
+import { readCachedPilatesPrograms } from './cache';
+import { resolvePilatesApiUserId } from './programs';
+
+export { getLastPilatesSyncError };
 
 const STORAGE_KEY = '@fitlife/workout_completions';
-
-
-export async function clearPilatesProgressLocalCache(): Promise<void> {
-  await AsyncStorage.removeItem(STORAGE_KEY);
-}
 
 function sortCompletionsChronological(
   entries: WorkoutCompletion[],
@@ -23,22 +27,6 @@ function sortCompletionsChronological(
     if (ta !== tb) return ta - tb;
     return a.id.localeCompare(b.id);
   });
-}
-
-function mergeCompletionsById(
-  remote: WorkoutCompletion[],
-  local: WorkoutCompletion[],
-): WorkoutCompletion[] {
-  const byId = new Map<string, WorkoutCompletion>();
-  for (const r of remote) {
-    byId.set(r.id, r);
-  }
-  for (const l of local) {
-    if (!byId.has(l.id)) {
-      byId.set(l.id, l);
-    }
-  }
-  return sortCompletionsChronological([...byId.values()]);
 }
 
 function parseList(raw: string | null): WorkoutCompletion[] {
@@ -59,19 +47,17 @@ function parseList(raw: string | null): WorkoutCompletion[] {
 }
 
 export async function loadCompletions(): Promise<WorkoutCompletion[]> {
-  const local = await loadLocalCompletionsOnly();
-  if (!getApiBaseUrl() || !(await hasAuthToken())) {
-    return sortCompletionsChronological(local);
+  if (!getApiOrigin() || !(await hasAuthToken())) {
+    return loadLocalCompletionsOnly();
   }
   try {
     const userId = await resolvePilatesApiUserId();
     const remote = await getMyWorkoutProgress(userId);
-    const merged = mergeCompletionsById(remote, local);
-    await saveCompletions(merged);
-    return merged;
+    await saveCompletions(remote);
+    return sortCompletionsChronological(remote);
   } catch (e) {
     console.warn('[FitLife] loadCompletions remote failed; using local fallback', e);
-    return sortCompletionsChronological(local);
+    return loadLocalCompletionsOnly();
   }
 }
 
@@ -90,7 +76,7 @@ export async function appendCompletion(
   entry: WorkoutCompletion,
 ): Promise<AppendCompletionResult> {
   if (!(await hasAuthToken())) {
-    const syncError = 'Nuk je i loguar. Hyr me login që të ruhet në SQL.';
+    const syncError = 'Sign in required to save progress to the server.';
     await setLastPilatesSyncError(syncError);
     return {
       entries: await loadLocalCompletionsOnly(),
@@ -108,7 +94,7 @@ export async function appendCompletion(
 
   if (!pilatesProgramId && !enriched.workoutTitle?.trim()) {
     const syncError =
-      'Mungon programi nga API. Hap Pilates pas login (ID numerik, jo core-fundamentals).';
+      'Missing program. Pull to refresh on the Pilates list after login.';
     await setLastPilatesSyncError(syncError);
     return {
       entries: await loadLocalCompletionsOnly(),
@@ -118,13 +104,55 @@ export async function appendCompletion(
   }
 
   try {
+    let programs = await readCachedPilatesPrograms();
+    try {
+      programs = await reloadPilatesProgramsFromApi();
+      hydratePilatesModelFromPrograms(programs);
+    } catch (refreshErr) {
+      console.warn('[FitLife] refresh programs before save failed', refreshErr);
+    }
+
+    const resolvedProgramId = resolveApiProgramId(
+      pilatesProgramId || enriched.workoutId,
+      programs,
+    );
+
+    if (!/^\d+$/.test(resolvedProgramId.trim())) {
+      throw new Error(
+        `Program "${enriched.workoutTitle}" has no numeric id from API. Pull to refresh on Pilates list.`,
+      );
+    }
+
     const savedCount = await saveWorkoutCompletionToDatabase(
-      pilatesProgramId,
+      resolvedProgramId,
       enriched.workoutTitle,
+      {
+        pilatesWorkoutId: enriched.pilatesWorkoutId,
+        pilatesWorkoutIds: enriched.pilatesWorkoutIds,
+        durationMinutes: enriched.durationMinutes,
+        programName: enriched.programName ?? enriched.workoutTitle,
+        workoutName: enriched.workoutName,
+        exercisesCompleted: enriched.exercisesCompleted,
+      },
     );
 
     const remote = await getMyWorkoutProgress(userId);
-    await saveCompletions(sortCompletionsChronological(remote));
+    const hasServerRow = remote.some(
+      (r) =>
+        r.id.startsWith('progress-') &&
+        (r.pilatesProgramId === resolvedProgramId ||
+          r.workoutTitle.trim().toLowerCase() ===
+            enriched.workoutTitle.trim().toLowerCase()),
+    );
+    if (!hasServerRow) {
+      throw new Error(
+        `Server did not return progress for "${enriched.workoutTitle}". ` +
+          `Add PilatesWorkouts for program id ${resolvedProgramId}, then try again. ` +
+          `API: ${getApiOrigin()}`,
+      );
+    }
+
+    await saveCompletions(remote);
     await setLastPilatesSyncError(null);
     return {
       entries: remote,
@@ -134,7 +162,7 @@ export async function appendCompletion(
   } catch (e) {
     const syncError = e instanceof Error ? e.message : String(e);
     await setLastPilatesSyncError(syncError);
-    console.warn('[FitLife] appendCompletion: nuk u ruajt në SQL', e);
+    console.warn('[FitLife] appendCompletion: save to SQL failed', e);
     return {
       entries: await loadLocalCompletionsOnly(),
       syncedToDatabase: false,

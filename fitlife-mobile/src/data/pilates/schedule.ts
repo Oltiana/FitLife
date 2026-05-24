@@ -1,13 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { canToggleSlot, programSlotKey } from '../domain/PilatesProgramSchedule';
+import { canToggleSlot, programSlotKey } from '../../domain/PilatesProgramSchedule';
 
 const KEY = '@fitlife/program_day_slots_v1';
-
-type Row = {
-  userId: string;
-  pilatesProgramId: string;
-  slots: string[];
-};
 
 function storageKey(userId: string, pilatesProgramId: string): string {
   return `${userId}::${pilatesProgramId}`;

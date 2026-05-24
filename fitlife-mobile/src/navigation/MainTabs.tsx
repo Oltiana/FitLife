@@ -6,12 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FitLifeProfileScreen } from '../screens/FitLifeProfileScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { useTheme } from '../theme/PilatesThemeContext';
-import { PilatesCalendarStack } from './PilatesCalendarStack';
-import { PilatesStack } from './PilatesStack';
-import type { MainTabParamList } from './PilatesNavigationTypes';
 import { FitnessStack } from './FitnessStack';
-import YogaStack from "./YogaStack";
-import ScheduleScreen from '../screens/yoga/ScheduleScreen';
+import { PilatesCalendarStack } from './PilatesCalendarStack';
+import type { MainTabParamList } from './PilatesNavigationTypes';
+import { PilatesStack } from './PilatesStack';
+import YogaStack from './YogaStack';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -90,7 +89,16 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
           ),
         }}
       />
-      
+      <Tab.Screen
+        name="Calendar"
+        component={PilatesCalendarStack}
+        options={{
+          title: 'Schedule',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size + 2} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="Profile"
         options={{

@@ -16,7 +16,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ImageBanner } from '../../components/PilatesImageBanner';
 import { PilatesModel } from '../../models/PilatesModel';
 import { usePilatesWorkoutViewModel } from '../../viewmodels/PilatesViewModel';
-import { appendCompletion } from '../../data/PilatesProgressRepository';
+import { appendCompletion } from '../../data/pilates';
+import { getApiOrigin } from '../../constants/apiConfig';
 import { estimatePilatesCalories } from '../../domain/PilatesCaloriesEstimate';
 import type { PilatesStackParamList } from '../../navigation/PilatesNavigationTypes';
 import type { AppColors } from '../../theme/PilatesColors';
@@ -93,15 +94,22 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
           id: `session-${Date.now()}-${pilatesProgramId || w.id}`,
           workoutId: pilatesProgramId || w.id,
           pilatesProgramId: pilatesProgramId || undefined,
+          pilatesWorkoutId:
+            route.params.pilatesWorkoutId ?? w.pilatesWorkoutId,
+          pilatesWorkoutIds:
+            route.params.pilatesWorkoutIds ?? w.pilatesWorkoutIds,
           workoutTitle: w.title,
+          programName: w.title,
+          workoutName: w.title,
+          exercisesCompleted: w.exercises.map((ex) => ex.name),
           completedAt: new Date().toISOString(),
           durationMinutes: totalMin,
           caloriesBurned,
         });
       if (!syncedToDatabase) {
         Alert.alert(
-          'Could not save',
-          syncError ?? 'Your progress could not be updated. Please sign in and try again.',
+          'Not saved to database',
+          `${syncError ?? 'Could not reach API.'}\n\nAPI: ${getApiOrigin()}\n\nProgress on this screen is only on the phone until SQL save works.`,
           [{ text: 'OK', onPress: dismissCompletionAlert }],
         );
       } else if (Platform.OS === 'web') {

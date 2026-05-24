@@ -1,5 +1,9 @@
-import { pilatesImageAssets } from '../data/pilatesImageAssets';
-import { findCatalogByProgram } from '../data/pilatesCatalogLookup';
+import {
+  findCatalogByProgram,
+  getCatalogWorkoutById,
+  pilatesCatalog,
+  pilatesImageAssets,
+} from '../data/pilates';
 import {
   normalizePilatesLevel,
   type PilatesWorkout,
@@ -10,7 +14,7 @@ import {
   type PilatesProgram,
 } from '../domain/PilatesProgramTypes';
 
-let runtimeWorkouts: PilatesWorkout[] = [];
+let runtimeWorkouts: PilatesWorkout[] = [...pilatesCatalog];
 
 function guessCategory(program: PilatesProgram): PilatesCategory {
   const slug = `${program.id} ${program.name}`.toLowerCase();
@@ -48,7 +52,22 @@ function mapProgramToWorkout(program: PilatesProgram): PilatesWorkout {
             imageBannerFlex: staticExercise?.imageBannerFlex,
           };
         })
-      : (catalogMatch?.exercises ?? []);
+      : catalogMatch?.exercises?.length
+        ? catalogMatch.exercises
+        : [
+            {
+              id: `${program.id}-session`,
+              name: program.name,
+              description:
+                program.description.trim() || 'Session from your program.',
+              durationSec: Math.max(
+                60,
+                (program.workouts?.[0]?.durationMinutes ?? 10) * 60,
+              ),
+              image: fallbackExerciseImage(0),
+              imageCropPosition: 'center' as const,
+            },
+          ];
 
   const totalSec = exercises.reduce((sum, ex) => sum + ex.durationSec, 0);
   const estimatedMinutes = Math.max(
@@ -79,11 +98,47 @@ function mapProgramToWorkout(program: PilatesProgram): PilatesWorkout {
   };
 }
 
+/** Prefer full built-in catalog; attach SQL ids when API program names match. */
+function mergeCatalogWithApiPrograms(apiPrograms: PilatesProgram[]): PilatesWorkout[] {
+  const apiByName = new Map(
+    apiPrograms.map((p) => [p.name.trim().toLowerCase(), p]),
+  );
+  const usedApiProgramIds = new Set<string>();
+
+  const fromCatalog: PilatesWorkout[] = pilatesCatalog.map((catalogWorkout) => {
+    const api = apiByName.get(catalogWorkout.title.trim().toLowerCase());
+    if (api != null && /^\d+$/.test(String(api.id).trim())) {
+      const apiId = String(api.id).trim();
+      usedApiProgramIds.add(apiId);
+      const fromApi = mapProgramToWorkout(api);
+      return {
+        ...fromApi,
+        id: apiId,
+        pilatesProgramId: apiId,
+        title: catalogWorkout.title,
+        level: catalogWorkout.level,
+        category: catalogWorkout.category,
+        estimatedMinutes: catalogWorkout.estimatedMinutes,
+        description: catalogWorkout.description,
+        coverImage: catalogWorkout.coverImage,
+        exercises: catalogWorkout.exercises,
+      };
+    }
+    return { ...catalogWorkout };
+  });
+
+  const apiOnly = apiPrograms
+    .filter((p) => {
+      const id = String(p.id).trim();
+      return /^\d+$/.test(id) && !usedApiProgramIds.has(id);
+    })
+    .map(mapProgramToWorkout);
+
+  return [...fromCatalog, ...apiOnly];
+}
 
 export function hydratePilatesModelFromPrograms(programs: PilatesProgram[]): void {
-  runtimeWorkouts = programs
-    .map(mapProgramToWorkout)
-    .filter((w) => w.exercises.length > 0);
+  runtimeWorkouts = mergeCatalogWithApiPrograms(programs);
 }
 
 export const PilatesModel = {
@@ -92,6 +147,8 @@ export const PilatesModel = {
   },
 
   getWorkoutById(id: string): PilatesWorkout | undefined {
-    return runtimeWorkouts.find((w) => w.id === id);
+    return (
+      runtimeWorkouts.find((w) => w.id === id) ?? getCatalogWorkoutById(id)
+    );
   },
 };

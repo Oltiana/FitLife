@@ -1,14 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  fetchPreferencesRemote,
-  putPreferencesRemote,
-} from '../api/PilatesBackendApi';
-import { getApiBaseUrl } from '../config/PilatesApiConfig';
-import type { UserPreferences } from '../domain/PilatesUserPreferences';
-import { resolvePilatesApiUserId } from './PilatesUserProgramRepository';
-import { loadCompletions } from './PilatesProgressRepository';
+import type { UserPreferences } from '../../domain/PilatesUserPreferences';
+import { loadCompletions } from './progress';
 
-export type { UserPreferences } from '../domain/PilatesUserPreferences';
+export type { UserPreferences } from '../../domain/PilatesUserPreferences';
 
 const KEY = '@fitlife/user_preferences_v1';
 
@@ -53,33 +47,12 @@ async function loadUserPreferencesLocal(): Promise<UserPreferences> {
 }
 
 export async function loadUserPreferences(): Promise<UserPreferences> {
-  const base = getApiBaseUrl();
-  if (base) {
-    try {
-      const userId = await resolvePilatesApiUserId();
-      const remote = await fetchPreferencesRemote(base, userId);
-      await AsyncStorage.setItem(KEY, JSON.stringify(remote));
-      return remote;
-    } catch (e) {
-      console.warn('[FitLife] prefs: remote failed, using cache', e);
-      return loadUserPreferencesLocal();
-    }
-  }
   return loadUserPreferencesLocal();
 }
 
 export async function saveUserPreferences(
   patch: Partial<UserPreferences>,
 ): Promise<UserPreferences> {
-  const base = getApiBaseUrl();
-  if (base) {
-    const userId = await resolvePilatesApiUserId();
-    const prev = await fetchPreferencesRemote(base, userId);
-    const next: UserPreferences = { ...prev, ...patch };
-    await putPreferencesRemote(base, userId, next);
-    await AsyncStorage.setItem(KEY, JSON.stringify(next));
-    return next;
-  }
   const current = await loadUserPreferencesLocal();
   const next: UserPreferences = { ...current, ...patch };
   await AsyncStorage.setItem(KEY, JSON.stringify(next));
@@ -87,20 +60,6 @@ export async function saveUserPreferences(
 }
 
 export async function ensurePreferencesForLegacyInstall(): Promise<void> {
-  const base = getApiBaseUrl();
-  if (base) {
-    try {
-      const completions = await loadCompletions();
-      if (completions.length === 0) return;
-      const prefs = await loadUserPreferences();
-      if (prefs.onboardingComplete) return;
-      await saveUserPreferences({ onboardingComplete: true });
-    } catch {
-
-    }
-    return;
-  }
-
   const raw = await AsyncStorage.getItem(KEY);
   if (raw != null) return;
   const completions = await loadCompletions();

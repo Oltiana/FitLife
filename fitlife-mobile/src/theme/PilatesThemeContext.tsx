@@ -10,7 +10,7 @@ import {
 import {
   saveThemePreference,
   type ColorSchemePreference,
-} from '../data/PilatesThemePreferenceRepository';
+} from '../data/pilates';
 import {
   darkColors,
   lightColors,

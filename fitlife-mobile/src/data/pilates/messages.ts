@@ -1,4 +1,3 @@
-
 const GENERAL = [
   'Every mindful minute adds up — keep showing up for yourself.',
   'Small steps today build stronger habits tomorrow.',

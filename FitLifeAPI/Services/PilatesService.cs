@@ -18,10 +18,14 @@ namespace FitLifeAPI.Services
         public async Task<IEnumerable<PilatesProgramResponse>> GetAllProgramsAsync(int userId)
         {
             var programs = await _pilatesRepository.GetAllProgramsAsync();
-            var enrollments = await _pilatesRepository.GetUserEnrollmentsAsync(userId);
-            var enrolledIds = enrollments.Select(e => e.PilatesProgramId).ToHashSet();
-
-            return programs.Select(p => MapToResponse(p, userId, enrolledIds));
+            var result = new List<PilatesProgramResponse>();
+            foreach (var p in programs)
+            {
+                var progress = await _pilatesRepository.GetUserProgressAsync(userId, p.Id);
+                var completedIds = progress.Where(x => x.IsCompleted).Select(x => x.PilatesWorkoutId).ToHashSet();
+                result.Add(MapToResponse(p, completedIds));
+            }
+            return result;
         }
 
         public async Task<PilatesProgramResponse?> GetProgramByIdAsync(int id, int userId)
@@ -113,6 +117,9 @@ namespace FitLifeAPI.Services
 
         public async Task<UserPilatesProgressResponse?> CompleteWorkoutAsync(int userId, CompletePilatesWorkoutRequest request)
         {
+            var workout = await _pilatesRepository.GetWorkoutByIdAsync(request.PilatesWorkoutId);
+            var snapshot = BuildProgressSnapshot(request, workout);
+
             var existing = await _pilatesRepository.GetProgressAsync(userId, request.PilatesWorkoutId);
 
             if (existing == null)
@@ -122,7 +129,10 @@ namespace FitLifeAPI.Services
                     UserId = userId,
                     PilatesWorkoutId = request.PilatesWorkoutId,
                     IsCompleted = true,
-                    CompletedAt = DateTime.UtcNow
+                    CompletedAt = DateTime.UtcNow,
+                    ProgramName = snapshot.ProgramName,
+                    WorkoutName = snapshot.WorkoutName,
+                    ExercisesCompleted = snapshot.ExercisesCompleted,
                 };
                 await _pilatesRepository.AddProgressAsync(progress);
             }
@@ -130,10 +140,14 @@ namespace FitLifeAPI.Services
             {
                 existing.IsCompleted = true;
                 existing.CompletedAt = DateTime.UtcNow;
+                existing.ProgramName = snapshot.ProgramName;
+                existing.WorkoutName = snapshot.WorkoutName;
+                existing.ExercisesCompleted = snapshot.ExercisesCompleted;
                 await _pilatesRepository.UpdateProgressAsync(existing);
             }
 
-            var workout = await _pilatesRepository.GetWorkoutByIdAsync(request.PilatesWorkoutId);
+            if (workout == null)
+                workout = await _pilatesRepository.GetWorkoutByIdAsync(request.PilatesWorkoutId);
             if (workout == null) return null;
 
             var allProgress = await _pilatesRepository.GetUserProgressAsync(userId, workout.PilatesProgramId);
@@ -207,6 +221,63 @@ namespace FitLifeAPI.Services
             return await _pilatesRepository.GetWorkoutByIdAsync(id);
         }
 
+        public async Task<PilatesProgramResponse?> UpdateProgramAsync(int id, UpdatePilatesProgramRequest request)
+        {
+            var program = await _pilatesRepository.GetProgramByIdAsync(id);
+            if (program == null) return null;
+
+            program.Name = request.Name.Trim();
+            program.Description = request.Description.Trim();
+            program.DurationWeeks = request.DurationWeeks;
+            program.Level = request.Level.Trim();
+            program.DisplayOrder = request.DisplayOrder;
+
+            var ok = await _pilatesRepository.UpdateProgramAsync(program);
+            if (!ok) return null;
+
+            var refreshed = await _pilatesRepository.GetProgramByIdAsync(id);
+            if (refreshed == null) return null;
+            return MapToResponse(refreshed, new HashSet<int>());
+        }
+
+        public async Task<bool> DeleteProgramAsync(int id)
+        {
+            return await _pilatesRepository.DeleteProgramAsync(id);
+        }
+
+        public async Task<PilatesWorkoutResponse?> UpdateWorkoutAsync(int id, UpdatePilatesWorkoutRequest request)
+        {
+            var workout = await _pilatesRepository.GetWorkoutByIdAsync(id);
+            if (workout == null) return null;
+
+            workout.Name = request.Name.Trim();
+            workout.Description = request.Description.Trim();
+            workout.DurationMinutes = request.DurationMinutes;
+            workout.OrderIndex = request.OrderIndex;
+
+            var ok = await _pilatesRepository.UpdateWorkoutAsync(workout);
+            if (!ok) return null;
+
+            var refreshed = await _pilatesRepository.GetWorkoutByIdAsync(id);
+            if (refreshed == null) return null;
+
+            return new PilatesWorkoutResponse
+            {
+                Id = refreshed.Id,
+                PilatesProgramId = refreshed.PilatesProgramId,
+                Name = refreshed.Name,
+                Description = refreshed.Description,
+                DurationMinutes = refreshed.DurationMinutes,
+                OrderIndex = refreshed.OrderIndex,
+                IsCompleted = false,
+            };
+        }
+
+        public async Task<bool> DeleteWorkoutAsync(int id)
+        {
+            return await _pilatesRepository.DeleteWorkoutAsync(id);
+        }
+
         public async Task<IReadOnlyList<UserPilatesWorkoutProgressResponse>> GetMyCompletedWorkoutsAsync(int userId)
         {
             var rows = await _pilatesRepository.GetUserCompletedProgressAsync(userId);
@@ -215,14 +286,52 @@ namespace FitLifeAPI.Services
                 Id = p.Id,
                 PilatesWorkoutId = p.PilatesWorkoutId,
                 PilatesProgramId = p.Workout.PilatesProgramId,
-                WorkoutName = p.Workout.Name,
+                ProgramName = ResolveProgramName(p),
+                WorkoutName = ResolveWorkoutName(p),
+                ExercisesCompleted = p.ExercisesCompleted,
                 IsCompleted = p.IsCompleted,
                 CompletedAt = p.CompletedAt,
                 DurationMinutes = p.Workout.DurationMinutes,
             }).ToList();
         }
 
-        private static PilatesProgramResponse MapToResponse(PilatesProgram p, int userId, HashSet<int> enrolledIds)
+        private static (string ProgramName, string WorkoutName, string ExercisesCompleted) BuildProgressSnapshot(
+            CompletePilatesWorkoutRequest request,
+            PilatesWorkout? workout)
+        {
+            var programName = string.IsNullOrWhiteSpace(request.ProgramName)
+                ? workout?.Program?.Name ?? string.Empty
+                : request.ProgramName.Trim();
+            var workoutName = string.IsNullOrWhiteSpace(request.WorkoutName)
+                ? workout?.Name ?? string.Empty
+                : request.WorkoutName.Trim();
+            var exercises = FormatExercisesCompleted(request.ExercisesCompleted);
+            return (programName, workoutName, exercises);
+        }
+
+        private static string FormatExercisesCompleted(IEnumerable<string>? items)
+        {
+            if (items == null) return string.Empty;
+            var names = items
+                .Select(s => s.Trim())
+                .Where(s => s.Length > 0)
+                .ToList();
+            return names.Count == 0 ? string.Empty : string.Join(" • ", names);
+        }
+
+        private static string ResolveProgramName(UserPilatesProgress p)
+        {
+            if (!string.IsNullOrWhiteSpace(p.ProgramName)) return p.ProgramName;
+            return p.Workout.Program?.Name ?? string.Empty;
+        }
+
+        private static string ResolveWorkoutName(UserPilatesProgress p)
+        {
+            if (!string.IsNullOrWhiteSpace(p.WorkoutName)) return p.WorkoutName;
+            return p.Workout.Name;
+        }
+
+        private static PilatesProgramResponse MapToResponse(PilatesProgram p, HashSet<int> completedWorkoutIds)
         {
             return new PilatesProgramResponse
             {
@@ -240,7 +349,7 @@ namespace FitLifeAPI.Services
                     Description = w.Description,
                     DurationMinutes = w.DurationMinutes,
                     OrderIndex = w.OrderIndex,
-                    IsCompleted = false
+                    IsCompleted = completedWorkoutIds.Contains(w.Id),
                 }).ToList()
             };
         }

@@ -32,6 +32,7 @@ namespace FitLifeAPI.Repositories
         public async Task<PilatesWorkout?> GetWorkoutByIdAsync(int id)
         {
             return await _context.PilatesWorkouts
+                .Include(w => w.Program)
                 .FirstOrDefaultAsync(w => w.Id == id);
         }
 
@@ -69,6 +70,7 @@ namespace FitLifeAPI.Repositories
         {
             return await _context.UserPilatesProgresses
                 .Include(p => p.Workout)
+                    .ThenInclude(w => w.Program)
                 .Where(p => p.UserId == userId && p.IsCompleted)
                 .OrderByDescending(p => p.CompletedAt)
                 .ToListAsync();
@@ -110,6 +112,49 @@ namespace FitLifeAPI.Repositories
         {
             await _context.PilatesWorkouts.AddAsync(workout);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> UpdateProgramAsync(PilatesProgram program)
+        {
+            var existing = await _context.PilatesPrograms.FindAsync(program.Id);
+            if (existing == null) return false;
+            existing.Name = program.Name;
+            existing.Description = program.Description;
+            existing.DurationWeeks = program.DurationWeeks;
+            existing.Level = program.Level;
+            existing.DisplayOrder = program.DisplayOrder;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteProgramAsync(int id)
+        {
+            var program = await _context.PilatesPrograms.FindAsync(id);
+            if (program == null) return false;
+            _context.PilatesPrograms.Remove(program);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> UpdateWorkoutAsync(PilatesWorkout workout)
+        {
+            var existing = await _context.PilatesWorkouts.FindAsync(workout.Id);
+            if (existing == null) return false;
+            existing.Name = workout.Name;
+            existing.Description = workout.Description;
+            existing.DurationMinutes = workout.DurationMinutes;
+            existing.OrderIndex = workout.OrderIndex;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteWorkoutAsync(int id)
+        {
+            var workout = await _context.PilatesWorkouts.FindAsync(id);
+            if (workout == null) return false;
+            _context.PilatesWorkouts.Remove(workout);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

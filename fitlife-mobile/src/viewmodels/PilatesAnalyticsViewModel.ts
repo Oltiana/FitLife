@@ -1,11 +1,11 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { generateAnalytics } from '../api/pilatesModuleApi';
 import {
+  generateAnalytics,
   loadUserPreferences,
+  resolvePilatesApiUserId,
   saveUserPreferences,
-} from '../data/PilatesUserPreferencesRepository';
-import { resolvePilatesApiUserId } from '../data/PilatesUserProgramRepository';
+} from '../data/pilates';
 import type { WorkoutCompletion } from '../domain/PilatesDomainTypes';
 
 export function usePilatesAnalyticsViewModel() {

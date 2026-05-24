@@ -14,8 +14,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarChart, LineChart } from 'react-native-gifted-charts';
-import { pickMotivationalMessage } from '../../data/PilatesMotivationalMessages';
-import { appendWeightEntry, loadWeightEntries } from '../../data/PilatesWeightRepository';
+import {
+  appendWeightEntry,
+  getLastPilatesSyncError,
+  loadWeightEntries,
+  pickMotivationalMessage,
+} from '../../data/pilates';
 import { usePilatesAnalyticsViewModel } from '../../viewmodels/PilatesAnalyticsViewModel';
 import type { AppColors } from '../../theme/PilatesColors';
 import { useTheme } from '../../theme/PilatesThemeContext';
@@ -77,6 +81,7 @@ export function PilatesProgressScreen() {
   const [minInput, setMinInput] = useState('');
   const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
   const [weightInput, setWeightInput] = useState('');
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const reloadWeights = useCallback(() => {
     void loadWeightEntries().then(setWeightEntries);
@@ -85,7 +90,9 @@ export function PilatesProgressScreen() {
   useFocusEffect(
     useCallback(() => {
       reloadWeights();
-    }, [reloadWeights]),
+      void getLastPilatesSyncError().then(setSyncError);
+      void refresh();
+    }, [reloadWeights, refresh]),
   );
 
   const weightLineData = useMemo(
@@ -197,6 +204,11 @@ export function PilatesProgressScreen() {
           <Text style={styles.subtitle}>
             Track sessions, streaks, and daily goals.
           </Text>
+          {syncError ? (
+            <Text style={styles.syncErrorBanner}>
+              Not in database: {syncError}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.weekCompareCard}>
@@ -587,6 +599,12 @@ function createProgressStyles(colors: AppColors) {
     fontSize: 15,
     color: colors.textSecondary,
     lineHeight: 22,
+  },
+  syncErrorBanner: {
+    marginTop: 10,
+    fontSize: 13,
+    color: '#c62828',
+    lineHeight: 20,
   },
   todayCard: {
     backgroundColor: colors.surface,

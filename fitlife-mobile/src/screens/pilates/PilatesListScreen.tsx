@@ -7,6 +7,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -16,11 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ImageBanner } from '../../components/PilatesImageBanner';
 import { PilatesListSkeleton } from '../../components/PilatesListSkeleton';
 import { useEnrolledProgramIds } from '../../hooks/usePilatesEnrolledProgramIds';
-import { usePilatesListViewModel } from '../../viewmodels/PilatesViewModel';
 import type {
   PilatesSectionTabParamList,
   PilatesStackParamList,
 } from '../../navigation/PilatesNavigationTypes';
+import { usePilatesListViewModel } from '../../viewmodels/PilatesViewModel';
 import {
   formatPilatesLevelLabel,
   type PilatesCategory,
@@ -206,22 +207,41 @@ function createListStyles(colors: AppColors) {
       color: colors.textSecondary,
       lineHeight: 22,
     },
+    errorText: {
+      marginTop: 10,
+      fontSize: 13,
+      color: '#c62828',
+      lineHeight: 20,
+    },
   });
 }
 
 export function PilatesListScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createListStyles(colors), [colors]);
-  const { workouts, loading } = usePilatesListViewModel();
-  const { enrolledIds, displayName, refresh } = useEnrolledProgramIds();
+  const { workouts, loading, loadError, refresh: refreshPrograms } =
+    usePilatesListViewModel();
+  const [refreshing, setRefreshing] = useState(false);
+  const { enrolledIds, displayName, refresh: refreshEnrollments } =
+    useEnrolledProgramIds();
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState<PilatesLevel | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<PilatesCategory | null>(null);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([refreshPrograms(), refreshEnrollments()]);
+  }, [refreshPrograms, refreshEnrollments]);
+
   useFocusEffect(
     useCallback(() => {
-      void refresh();
-    }, [refresh]),
+      void refreshAll();
+    }, [refreshAll]),
   );
+
+  const onPullRefresh = useCallback(() => {
+    setRefreshing(true);
+    void refreshAll().finally(() => setRefreshing(false));
+  }, [refreshAll]);
 
   const filteredWorkouts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -293,6 +313,9 @@ export function PilatesListScreen({ navigation }: Props) {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} />
+        }
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.screenTitle}>Pilates</Text>
@@ -301,6 +324,9 @@ export function PilatesListScreen({ navigation }: Props) {
             </Text>
             {displayName ? (
               <Text style={styles.signedInHint}>Signed in as {displayName}</Text>
+            ) : null}
+            {loadError ? (
+              <Text style={styles.errorText}>{loadError}</Text>
             ) : null}
             <View style={styles.searchWrap}>
               <TextInput
@@ -403,7 +429,7 @@ export function PilatesListScreen({ navigation }: Props) {
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyText}>
               {workouts.length === 0
-                ? 'Nuk ka programe. Rinis API-n (dotnet run) që të ngarkohen nga databaza, pastaj login dhe rifresko.'
+                ? 'Nuk u ngarkuan ushtrimet. Tërhiq poshtë për të rifreskuar.'
                 : 'No sessions match your search/filter. Try removing one filter.'}
             </Text>
           </View>

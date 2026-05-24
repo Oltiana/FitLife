@@ -15,6 +15,10 @@ namespace FitLifeAPI.Services.Interfaces
         Task<IReadOnlyList<UserPilatesWorkoutProgressResponse>> GetMyCompletedWorkoutsAsync(int userId);
         Task<PilatesProgramResponse> CreateProgramAsync(CreatePilatesProgramRequest request);
         Task<PilatesWorkoutResponse> CreateWorkoutAsync(CreatePilatesWorkoutRequest request);
+        Task<PilatesProgramResponse?> UpdateProgramAsync(int id, UpdatePilatesProgramRequest request);
+        Task<bool> DeleteProgramAsync(int id);
+        Task<PilatesWorkoutResponse?> UpdateWorkoutAsync(int id, UpdatePilatesWorkoutRequest request);
+        Task<bool> DeleteWorkoutAsync(int id);
         Task<PilatesWorkout?> GetWorkoutByIdAsync(int id);
     }
 }

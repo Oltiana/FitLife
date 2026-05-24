@@ -3,7 +3,7 @@ import {
   loadPrograms,
   loadUserPrograms,
   resolvePilatesBootstrapUser,
-} from '../data/PilatesUserProgramRepository';
+} from '../data/pilates';
 
 
 export function useEnrolledProgramIds() {

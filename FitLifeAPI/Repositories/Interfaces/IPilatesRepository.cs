@@ -18,5 +18,9 @@ namespace FitLifeAPI.Repositories.Interfaces
         Task UpdateProgressAsync(UserPilatesProgress progress);
         Task AddProgramAsync(PilatesProgram program);
         Task AddWorkoutAsync(PilatesWorkout workout);
+        Task<bool> UpdateProgramAsync(PilatesProgram program);
+        Task<bool> DeleteProgramAsync(int id);
+        Task<bool> UpdateWorkoutAsync(PilatesWorkout workout);
+        Task<bool> DeleteWorkoutAsync(int id);
     }
 }

@@ -1,57 +1,33 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  bootstrapFitLifeBackend,
+  clearPilatesApiCache,
   deleteMyEnrollment,
   enroll,
   getMyEnrollments,
-  getPrograms,
-} from '../api/PilatesBackendApi';
-import { resolveApiProgramId } from '../api/pilatesIdResolver';
-import { getApiBaseUrl } from '../config/PilatesApiConfig';
+  hasAuthToken,
+  reloadPilatesProgramsFromApi,
+  resolveApiProgramId,
+} from '../../api/pilatesApi';
+import { getApiBaseUrl } from '../../config/PilatesApiConfig';
 import {
   normalizePilatesProgram,
   normalizeUserProgram,
   type PilatesProgram,
   type User,
   type UserProgram,
-} from '../domain/PilatesProgramTypes';
-import { hasAuthToken } from '../api/pilatesApiSession';
-import { tokenStorage } from '../storage/tokenStorage';
+} from '../../domain/PilatesProgramTypes';
+import { tokenStorage } from '../../storage/tokenStorage';
+import {
+  KEY_PILATES_PROGRAMS,
+  KEY_USER_PROGRAMS,
+  readCachedPilatesPrograms,
+} from './cache';
 
-function sortProgramsByDisplayOrder(programs: PilatesProgram[]): PilatesProgram[] {
-  return [...programs].sort((a, b) => {
-    const ao = a.displayOrder ?? 9999;
-    const bo = b.displayOrder ?? 9999;
-    if (ao !== bo) return ao - bo;
-    return a.name.localeCompare(b.name);
-  });
-}
+export { clearPilatesApiCache, reloadPilatesProgramsFromApi } from '../../api/pilatesApi';
 
 const KEY_USERS = '@fitlife/users';
-const KEY_PROGRAMS = '@fitlife/pilates_programs';
-const KEY_USER_PROGRAMS = '@fitlife/user_programs';
-
-
-export async function clearPilatesApiCache(): Promise<void> {
-  await AsyncStorage.multiRemove([KEY_PROGRAMS, KEY_USER_PROGRAMS]);
-}
-
-
-export async function reloadPilatesProgramsFromApi(): Promise<PilatesProgram[]> {
-  const base = getApiBaseUrl();
-  if (!base) {
-    throw new Error('API URL mungon (apiConfig.ts).');
-  }
-  if (!(await hasAuthToken())) {
-    throw new Error('Duhet të hysh me login.');
-  }
-  const list = sortProgramsByDisplayOrder(await getPrograms());
-  await AsyncStorage.setItem(KEY_PROGRAMS, JSON.stringify(list));
-  return list;
-}
 const KEY_ANON_PILATES_DB = '@fitlife/pilates_anon_db_user_id';
 const LEGACY_LOCAL_USER_ID = 'user-local-1';
-
 
 export async function getOrCreateAnonymousPilatesDbUserId(): Promise<string> {
   const existing = await AsyncStorage.getItem(KEY_ANON_PILATES_DB);
@@ -66,14 +42,13 @@ export async function getOrCreateAnonymousPilatesDbUserId(): Promise<string> {
   return id;
 }
 
-
 export async function resolvePilatesApiUserId(): Promise<string> {
   const authUser = await resolveAuthBackedUser();
   if (authUser != null) {
     try {
       await ensureDefaultUser();
     } catch {
-      
+      /* optional local user row */
     }
     return authUser.id;
   }
@@ -93,7 +68,7 @@ export async function resolvePilatesBootstrapUser(): Promise<{
     try {
       await ensureDefaultUser();
     } catch {
-      
+      /* optional */
     }
     return { userId: authUser.id, displayName: authUser.displayName };
   }
@@ -161,14 +136,6 @@ function isUser(x: unknown): x is User {
   );
 }
 
-function isPilatesProgram(x: unknown): x is PilatesProgram {
-  return normalizePilatesProgram(x) != null;
-}
-
-function isUserProgram(x: unknown): x is UserProgram {
-  return normalizeUserProgram(x) != null;
-}
-
 export async function ensureDefaultUser(): Promise<User> {
   const raw = await AsyncStorage.getItem(KEY_USERS);
   const list = parseArray<unknown>(raw)
@@ -200,54 +167,25 @@ export async function loadUsers(): Promise<User[]> {
   return parseArray<unknown>(raw).filter(isUser);
 }
 
-
 export async function loadPrograms(): Promise<PilatesProgram[]> {
   const base = getApiBaseUrl();
   const loggedIn = await hasAuthToken();
   if (base && loggedIn) {
     try {
-      const raw = await AsyncStorage.getItem(KEY_PROGRAMS);
-      const stale = parseArray<unknown>(raw)
-        .map(normalizePilatesProgram)
-        .filter((p): p is PilatesProgram => p != null);
+      const stale = await readCachedPilatesPrograms();
       if (stale.some((p) => !/^\d+$/.test(p.id))) {
-        await AsyncStorage.removeItem(KEY_PROGRAMS);
+        await AsyncStorage.removeItem(KEY_PILATES_PROGRAMS);
       }
       return await reloadPilatesProgramsFromApi();
     } catch (e) {
       console.warn('[FitLife] programs API failed', e);
-      const raw = await AsyncStorage.getItem(KEY_PROGRAMS);
-      const cached = sortProgramsByDisplayOrder(
-        parseArray<unknown>(raw)
-          .map(normalizePilatesProgram)
-          .filter((p): p is PilatesProgram => p != null),
-      );
+      const cached = await readCachedPilatesPrograms();
       if (cached.some((p) => /^\d+$/.test(p.id))) return cached;
       throw e;
     }
   }
-  if (base) {
-    try {
-      const boot = await resolvePilatesBootstrapUser();
-      await bootstrapFitLifeBackend(base, {
-        userId: boot.userId,
-        displayName: boot.displayName,
-      });
-      const list = await getPrograms();
-      await AsyncStorage.setItem(KEY_PROGRAMS, JSON.stringify(list));
-      return list;
-    } catch (e) {
-      console.warn('[FitLife] programs: remote failed, using cache', e);
-    }
-  }
 
-  const raw = await AsyncStorage.getItem(KEY_PROGRAMS);
-  let list = sortProgramsByDisplayOrder(
-    parseArray<unknown>(raw)
-      .map(normalizePilatesProgram)
-      .filter((p): p is PilatesProgram => p != null),
-  );
-  return list;
+  return readCachedPilatesPrograms();
 }
 
 export async function getProgramById(id: string): Promise<PilatesProgram | undefined> {
@@ -255,24 +193,11 @@ export async function getProgramById(id: string): Promise<PilatesProgram | undef
   return programs.find((p) => p.id === id);
 }
 
-
 export async function loadUserPrograms(userId: string): Promise<UserProgram[]> {
   const base = getApiBaseUrl();
   const loggedIn = await hasAuthToken();
   if (base && loggedIn) {
     return await getMyEnrollments(userId);
-  }
-  if (base) {
-    try {
-      const boot = await resolvePilatesBootstrapUser();
-      await bootstrapFitLifeBackend(base, {
-        userId: boot.userId,
-        displayName: boot.displayName,
-      });
-      return await getMyEnrollments(userId);
-    } catch (e) {
-      console.warn('[FitLife] enrollments: remote failed, using cache', e);
-    }
   }
   const raw = await AsyncStorage.getItem(KEY_USER_PROGRAMS);
   const all = parseArray<unknown>(raw)

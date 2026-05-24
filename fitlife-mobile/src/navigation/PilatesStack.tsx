@@ -3,10 +3,10 @@ import { Platform } from 'react-native';
 import { BrowseModalityDetailScreen } from '../screens/discover/BrowseModalityDetailScreen';
 import { DiscoverHubScreen } from '../screens/discover/DiscoverHubScreen';
 import { ActiveWorkoutScreen } from '../screens/pilates/PilatesActiveWorkoutScreen';
-import { PilatesSectionTabs } from './PilatesSectionTabs';
 import { PilatesProgramScheduleScreen } from '../screens/pilates/PilatesProgramScheduleScreen';
 import { WorkoutDetailScreen } from '../screens/pilates/PilatesWorkoutDetailScreen';
 import { useTheme } from '../theme/PilatesThemeContext';
+import { PilatesSectionTabs } from './PilatesSectionTabs';
 import type { PilatesStackParamList } from './PilatesNavigationTypes';
 
 const Stack = createNativeStackNavigator<PilatesStackParamList>();

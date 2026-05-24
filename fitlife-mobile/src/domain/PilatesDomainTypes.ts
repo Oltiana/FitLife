@@ -73,8 +73,13 @@ export type WorkoutCompletion = {
 
   pilatesWorkoutId?: number;
 
+  pilatesWorkoutIds?: number[];
+
   pilatesProgramId?: string;
   workoutTitle: string;
+  programName?: string;
+  workoutName?: string;
+  exercisesCompleted?: string[];
   completedAt: string;
   durationMinutes: number;
 

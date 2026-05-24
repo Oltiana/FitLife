@@ -11,11 +11,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { loadProgramMarkedSlots, toggleProgramDaySlot } from '../../data/PilatesProgramProgressRepository';
+import { loadProgramMarkedSlots, toggleProgramDaySlot } from '../../data/pilates';
 import {
   getProgramById,
   resolvePilatesApiUserId,
-} from '../../data/PilatesUserProgramRepository';
+} from '../../data/pilates';
 import {
   countMarkedInWeek,
   isProgramCompleted,

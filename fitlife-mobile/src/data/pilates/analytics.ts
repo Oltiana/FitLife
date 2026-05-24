@@ -1,12 +1,10 @@
-import { loadCompletions } from '../data/PilatesProgressRepository';
-import { loadPrograms } from '../data/PilatesUserProgramRepository';
+import { loadCompletions } from './progress';
 import {
   calculateStreak as computeActivityStreak,
   caloriesLast7DaysByDay,
   caloriesPerWeekLast4Windows,
   filterCompletionsByPeriod,
   filterCompletionsForUser,
-  filterWorkoutsByLevel,
   longestStreakEver,
   minutesLast7DaysByDay,
   minutesPerWeekLast4Windows,
@@ -15,11 +13,8 @@ import {
   totalCompletedSessions,
   totalMinutes,
   type ProgressPeriod,
-} from '../domain/PilatesProgressStats';
-import type { PilatesProgram } from '../domain/PilatesProgramTypes';
-import type { PilatesLevel, WorkoutCompletion } from '../domain/PilatesDomainTypes';
-import { PilatesModel } from '../models/PilatesModel';
-import { navigationRef } from '../navigation/PilatesNavigationRef';
+} from '../../domain/PilatesProgressStats';
+import type { WorkoutCompletion } from '../../domain/PilatesDomainTypes';
 
 export type { ProgressPeriod };
 
@@ -42,29 +37,6 @@ export type AnalyticsPayload = {
   streak: number;
   progress: ProgressDataPayload;
 };
-
-export async function getPilatesPrograms(
-  level?: PilatesLevel,
-): Promise<PilatesProgram[]> {
-  const programs = await loadPrograms();
-  if (level == null) return programs;
-  return programs.filter((p) => p.level === level);
-}
-
-export function getPilatesWorkoutsFromCatalog(level?: PilatesLevel) {
-  return filterWorkoutsByLevel(PilatesModel.listWorkouts(), level);
-}
-
-export function startPilatesSession(pilatesProgramId: string): void {
-  if (!navigationRef.isReady()) {
-    console.warn('[FitLife] Navigation not ready; startPilatesSession skipped.');
-    return;
-  }
-  navigationRef.navigate('Search', {
-    screen: 'ActiveWorkout',
-    params: { workoutId: pilatesProgramId },
-  });
-}
 
 export async function getProgressData(
   userId: string,
@@ -92,14 +64,6 @@ export async function getProgressData(
     totalMinutes: totalMinutes(inRange),
     totalCaloriesEstimate: totalCaloriesBurned(inRange),
   };
-}
-
-export async function calculateStreak(
-  userId: string,
-  now: Date = new Date(),
-): Promise<number> {
-  const all = await loadCompletions();
-  return computeActivityStreak(all, userId, now);
 }
 
 export async function generateAnalytics(

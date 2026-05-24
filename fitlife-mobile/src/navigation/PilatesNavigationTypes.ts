@@ -8,7 +8,6 @@ export type PilatesSectionTabParamList = {
 export type PilatesStackParamList = {
   DiscoverHub: { initialModality?: 'all' | 'pilates' | 'fitness' | 'yoga' } | undefined;
   PilatesHome: NavigatorScreenParams<PilatesSectionTabParamList> | undefined;
-  
   PilatesList: undefined;
   BrowseModalityDetail: {
     id: string;
@@ -27,6 +26,11 @@ export type PilatesStackParamList = {
   ProgramSchedule: { workoutId: string };
 };
 
+export type CalendarStackParamList = {
+  CalendarHub: undefined;
+  ProgramSchedule: { workoutId: string };
+};
+
 export type YogaStackParamList = {
   YogaHome: undefined;
   WorkoutDetail: undefined;
@@ -39,6 +43,6 @@ export type MainTabParamList = {
   Fitness: undefined;
   Search: NavigatorScreenParams<PilatesStackParamList>;
   Yoga: NavigatorScreenParams<YogaStackParamList>;
-  Schedule: undefined;
+  Calendar: NavigatorScreenParams<CalendarStackParamList>;
   Profile: undefined;
 };
