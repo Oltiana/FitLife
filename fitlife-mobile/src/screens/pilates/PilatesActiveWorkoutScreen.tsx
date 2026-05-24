@@ -17,7 +17,7 @@ import { ImageBanner } from '../../components/PilatesImageBanner';
 import { PilatesModel } from '../../models/PilatesModel';
 import { usePilatesWorkoutViewModel } from '../../viewmodels/PilatesViewModel';
 import { appendCompletion } from '../../data/pilates';
-import { getApiOrigin } from '../../constants/apiConfig';
+import { BASE_URL } from '../../constants/apiConfig';
 import { estimatePilatesCalories } from '../../domain/PilatesCaloriesEstimate';
 import type { PilatesStackParamList } from '../../navigation/PilatesNavigationTypes';
 import type { AppColors } from '../../theme/PilatesColors';
@@ -109,7 +109,7 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
       if (!syncedToDatabase) {
         Alert.alert(
           'Not saved to database',
-          `${syncError ?? 'Could not reach API.'}\n\nAPI: ${getApiOrigin()}\n\n` +
+          `${syncError ?? 'Could not reach API.'}\n\nAPI: ${BASE_URL}\n\n` +
             'Checklist:\n' +
             '• API running on YOUR PC (dotnet run in FitLifeAPI)\n' +
             '• apiConfig.ts has YOUR Wi‑Fi IP (not someone else\'s)\n' +

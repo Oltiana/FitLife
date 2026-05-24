@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getApiOrigin } from '../constants/apiConfig';
+import { BASE_URL } from '../constants/apiConfig';
 import {
   findCatalogByProgramName,
 } from '../data/pilates/catalog';
@@ -17,13 +17,13 @@ import { hydratePilatesModelFromPrograms } from '../models/PilatesModel';
 import { tokenStorage } from '../storage/tokenStorage';
 
 const ROUTES = {
-  programs: '/api/Pilates/programs',
-  enroll: '/api/Pilates/enroll',
-  myEnrollments: '/api/Pilates/my-enrollments',
+  programs: '/Pilates/programs',
+  enroll: '/Pilates/enroll',
+  myEnrollments: '/Pilates/my-enrollments',
   myEnrollmentByProgramId: (pilatesProgramId: number | string) =>
-    `/api/Pilates/my-enrollments/${pilatesProgramId}`,
-  myWorkoutProgress: '/api/Pilates/my-workout-progress',
-  completeWorkout: '/api/Pilates/complete-workout',
+    `/Pilates/my-enrollments/${pilatesProgramId}`,
+  myWorkoutProgress: '/Pilates/my-workout-progress',
+  completeWorkout: '/Pilates/complete-workout',
 } as const;
 
 const KEY_LAST_SYNC_ERROR = '@fitlife/pilates_last_sync_error';
@@ -92,7 +92,7 @@ type UserPilatesWorkoutProgressResponse = {
 };
 
 function apiUrl(path: string): string {
-  const base = getApiOrigin().replace(/\/$/, '');
+  const base = BASE_URL.replace(/\/$/, '');
   const segment = path.startsWith('/') ? path : `/${path}`;
   return `${base}${segment}`;
 }

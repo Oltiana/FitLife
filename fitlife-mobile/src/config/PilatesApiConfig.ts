@@ -1,2 +1,4 @@
 /** @deprecated Import from `../constants/apiConfig` instead. */
-export { getApiBaseUrl, getApiOrigin } from '../constants/apiConfig';
+import { getApiBaseUrl, BASE_URL } from '../constants/apiConfig';
+
+export { getApiBaseUrl, BASE_URL };

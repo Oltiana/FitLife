@@ -8,7 +8,7 @@ import {
   reloadPilatesProgramsFromApi,
   resolveApiProgramId,
 } from '../../api/pilatesApi';
-import { getApiBaseUrl } from '../../constants/apiConfig';
+import { BASE_URL } from '../../constants/apiConfig';
 import {
   normalizePilatesProgram,
   normalizeUserProgram,
@@ -168,7 +168,7 @@ export async function loadUsers(): Promise<User[]> {
 }
 
 export async function loadPrograms(): Promise<PilatesProgram[]> {
-  const base = getApiBaseUrl();
+  const base = BASE_URL;
   const loggedIn = await hasAuthToken();
   if (base && loggedIn) {
     try {
@@ -194,7 +194,7 @@ export async function getProgramById(id: string): Promise<PilatesProgram | undef
 }
 
 export async function loadUserPrograms(userId: string): Promise<UserProgram[]> {
-  const base = getApiBaseUrl();
+  const base = BASE_URL;
   const loggedIn = await hasAuthToken();
   if (base && loggedIn) {
     return await getMyEnrollments(userId);
@@ -215,7 +215,7 @@ export async function enrollUserInProgram(
     throw new Error(`Unknown program: ${pilatesProgramId}`);
   }
 
-  const base = getApiBaseUrl();
+  const base = BASE_URL;
   if (base && (await hasAuthToken())) {
     const apiProgramId = resolveApiProgramId(pilatesProgramId, programs);
     if (!/^\d+$/.test(apiProgramId.trim())) {
@@ -253,7 +253,7 @@ export async function unenrollUserFromProgram(
   userId: string,
   pilatesProgramId: string,
 ): Promise<void> {
-  const base = getApiBaseUrl();
+  const base = BASE_URL;
   if (base) {
     const programs = await loadPrograms();
     const apiProgramId = resolveApiProgramId(pilatesProgramId, programs);

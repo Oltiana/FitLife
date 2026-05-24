@@ -8,7 +8,7 @@ import {
   saveWorkoutCompletionToDatabase,
   setLastPilatesSyncError,
 } from '../../api/pilatesApi';
-import { getApiOrigin } from '../../constants/apiConfig';
+import { BASE_URL } from '../../constants/apiConfig';
 import type { WorkoutCompletion } from '../../domain/PilatesDomainTypes';
 import { hydratePilatesModelFromPrograms } from '../../models/PilatesModel';
 import { readCachedPilatesPrograms } from './cache';
@@ -62,7 +62,7 @@ function parseList(raw: string | null): WorkoutCompletion[] {
 }
 
 export async function loadCompletions(): Promise<WorkoutCompletion[]> {
-  if (!getApiOrigin() || !(await hasAuthToken())) {
+  if (!BASE_URL || !(await hasAuthToken())) {
     return loadLocalCompletionsOnly();
   }
   try {
