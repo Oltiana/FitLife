@@ -27,15 +27,18 @@ export type PilatesStackParamList = {
   ProgramSchedule: { workoutId: string };
 };
 
-export type CalendarStackParamList = {
-  CalendarHub: undefined;
-  ProgramSchedule: { workoutId: string };
+export type YogaStackParamList = {
+  YogaHome: undefined;
+  WorkoutDetail: undefined;
+  Upcoming: undefined;
+  Schedule: undefined;
 };
 
 export type MainTabParamList = {
   Home: undefined;
   Fitness: undefined;
   Search: NavigatorScreenParams<PilatesStackParamList>;
-  Calendar: NavigatorScreenParams<CalendarStackParamList>;
+  Yoga: NavigatorScreenParams<YogaStackParamList>;
+  Schedule: undefined;
   Profile: undefined;
 };

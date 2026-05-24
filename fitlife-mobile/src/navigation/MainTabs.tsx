@@ -10,6 +10,8 @@ import { PilatesCalendarStack } from './PilatesCalendarStack';
 import { PilatesStack } from './PilatesStack';
 import type { MainTabParamList } from './PilatesNavigationTypes';
 import { FitnessStack } from './FitnessStack';
+import YogaStack from "./YogaStack";
+import ScheduleScreen from '../screens/yoga/ScheduleScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -79,15 +81,16 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
         }}
       />
       <Tab.Screen
-        name="Calendar"
-        component={PilatesCalendarStack}
+        name="Yoga"
+        component={YogaStack}
         options={{
-          title: 'Schedule',
+          title: 'Yoga',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size + 2} color={color} />
+            <Ionicons name="leaf-outline" size={size + 2} color={color} />
           ),
         }}
       />
+      
       <Tab.Screen
         name="Profile"
         options={{
@@ -99,6 +102,7 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
       >
         {() => <FitLifeProfileScreen onLogout={onLogout} />}
       </Tab.Screen>
+      
     </Tab.Navigator>
   );
 }
