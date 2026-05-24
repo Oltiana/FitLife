@@ -109,7 +109,13 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
       if (!syncedToDatabase) {
         Alert.alert(
           'Not saved to database',
-          `${syncError ?? 'Could not reach API.'}\n\nAPI: ${getApiOrigin()}\n\nProgress on this screen is only on the phone until SQL save works.`,
+          `${syncError ?? 'Could not reach API.'}\n\nAPI: ${getApiOrigin()}\n\n` +
+            'Checklist:\n' +
+            '• API running on YOUR PC (dotnet run in FitLifeAPI)\n' +
+            '• apiConfig.ts has YOUR Wi‑Fi IP (not someone else\'s)\n' +
+            '• You are logged in\n' +
+            '• SQL has PilatesPrograms and PilatesWorkouts\n\n' +
+            'Progress stays on this phone only until the above works.',
           [{ text: 'OK', onPress: dismissCompletionAlert }],
         );
       } else if (Platform.OS === 'web') {

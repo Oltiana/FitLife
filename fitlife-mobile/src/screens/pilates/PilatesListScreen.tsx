@@ -16,7 +16,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ImageBanner } from '../../components/PilatesImageBanner';
 import { PilatesListSkeleton } from '../../components/PilatesListSkeleton';
-import { useEnrolledProgramIds } from '../../hooks/usePilatesEnrolledProgramIds';
+import {
+  isWorkoutInMyPrograms,
+  useEnrolledProgramIds,
+} from '../../hooks/usePilatesEnrolledProgramIds';
 import type {
   PilatesSectionTabParamList,
   PilatesStackParamList,
@@ -279,7 +282,7 @@ export function PilatesListScreen({ navigation }: Props) {
               </Text>
             </View>
             <View style={styles.cardMetaRight}>
-              {enrolledIds.has(item.id) ? (
+              {isWorkoutInMyPrograms(item, enrolledIds) ? (
                 <View style={styles.enrolledPill}>
                   <Text style={styles.enrolledPillText}>My program</Text>
                 </View>

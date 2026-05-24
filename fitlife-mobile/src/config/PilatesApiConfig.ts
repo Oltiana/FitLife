@@ -1,5 +1,2 @@
-import { getApiBaseUrl as getApiBaseUrlFromConfig } from '../constants/apiConfig';
-
-export function getApiBaseUrl(): string {
-  return getApiBaseUrlFromConfig();
-}
+/** @deprecated Import from `../constants/apiConfig` instead. */
+export { getApiBaseUrl, getApiOrigin } from '../constants/apiConfig';

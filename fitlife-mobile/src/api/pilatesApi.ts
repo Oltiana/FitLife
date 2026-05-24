@@ -2,10 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApiOrigin } from '../constants/apiConfig';
 import {
   findCatalogByProgramName,
+} from '../data/pilates/catalog';
+import {
   KEY_PILATES_PROGRAMS,
   KEY_USER_PROGRAMS,
   sortProgramsByDisplayOrder,
-} from '../data/pilates';
+} from '../data/pilates/cache';
 import type { PilatesProgram, UserProgram } from '../domain/PilatesProgramTypes';
 import {
   normalizePilatesLevel,
@@ -419,18 +421,6 @@ export async function saveWorkoutCompletionToDatabase(
     programName,
     hintIds,
   );
-
-  try {
-    await enroll(programId);
-  } catch (e) {
-    const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
-    if (
-      !msg.includes('already enrolled') &&
-      !msg.includes('already enrolled in this program')
-    ) {
-      throw e;
-    }
-  }
 
   const sorted = sortWorkouts(prog);
   const incomplete = sorted.filter((w) => !w.isCompleted).map((w) => w.id);

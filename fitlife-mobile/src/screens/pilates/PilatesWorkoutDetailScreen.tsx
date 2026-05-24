@@ -20,7 +20,10 @@ import {
   getProgramById,
   unenrollUserFromProgram,
 } from '../../data/pilates';
-import { useEnrolledProgramIds } from '../../hooks/usePilatesEnrolledProgramIds';
+import {
+  isWorkoutInMyPrograms,
+  useEnrolledProgramIds,
+} from '../../hooks/usePilatesEnrolledProgramIds';
 import type {
   MainTabParamList,
   PilatesStackParamList,
@@ -299,7 +302,7 @@ export function WorkoutDetailScreen({ route, navigation }: Props) {
     );
   }
 
-  const isEnrolled = enrolledIds.has(workout.id);
+  const isEnrolled = workout != null && isWorkoutInMyPrograms(workout, enrolledIds);
   const planWeeks = programRow?.durationWeeks;
 
   const onToggleProgram = async () => {

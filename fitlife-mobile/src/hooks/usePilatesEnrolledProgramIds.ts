@@ -5,6 +5,16 @@ import {
   resolvePilatesBootstrapUser,
 } from '../data/pilates';
 
+/** True only when the user tapped "Add to my programs" (not after completing a workout). */
+export function isWorkoutInMyPrograms(
+  workout: { id: string; pilatesProgramId?: string },
+  enrolledIds: Set<string>,
+): boolean {
+  if (enrolledIds.size === 0) return false;
+  if (enrolledIds.has(workout.id.trim())) return true;
+  const pid = workout.pilatesProgramId?.trim();
+  return pid != null && pid.length > 0 && enrolledIds.has(pid);
+}
 
 export function useEnrolledProgramIds() {
   const [userId, setUserId] = useState<string | null>(null);

@@ -8,7 +8,7 @@ import {
   reloadPilatesProgramsFromApi,
   resolveApiProgramId,
 } from '../../api/pilatesApi';
-import { getApiBaseUrl } from '../../config/PilatesApiConfig';
+import { getApiBaseUrl } from '../../constants/apiConfig';
 import {
   normalizePilatesProgram,
   normalizeUserProgram,
