@@ -1,7 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
+import { type ReactNode } from 'react';
+import { AdminUsersScreen } from './AdminUsersScreen';
 import {
   ActivityIndicator,
+  Dimensions,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,8 +32,12 @@ const NAV_ITEMS = [
   { id: 'fitness', label: 'Fitness', icon: 'barbell-outline' },
 ] as const;
 
+const screenWidth = Dimensions.get('window').width;
+const isWide = Platform.OS === 'web' && screenWidth >= 768;
+
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeSection, setActiveSection] = useState<Section>('home');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalPilatesPrograms: 0,
@@ -37,6 +45,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     totalFitnessExercises: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [popupContent, setPopupContent] = useState<ReactNode>(null);
 
   useEffect(() => {
     getAdminStats()
@@ -52,45 +61,75 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     { label: 'Workout Plans', value: String(stats.totalFitnessExercises), icon: 'barbell-outline', color: '#3b7ec8', bg: '#e8f2fc' },
   ];
 
+  const handleNavPress = (id: Section) => {
+    setActiveSection(id);
+    setSidebarOpen(false);
+  };
+
+  const SidebarContent = () => (
+    <View style={styles.sidebar}>
+      <View style={styles.sidebarHeader}>
+        <Ionicons name="cube-outline" size={28} color="#3d6b42" />
+        <Text style={styles.sidebarTitle}>FitLife</Text>
+        <Text style={styles.sidebarSub}>Admin Panel</Text>
+      </View>
+
+      <View style={styles.navList}>
+        {NAV_ITEMS.map((item) => (
+          <Pressable
+            key={item.id}
+            style={[styles.navItem, activeSection === item.id && styles.navItemActive]}
+            onPress={() => handleNavPress(item.id as Section)}
+          >
+            <Ionicons
+              name={item.icon as any}
+              size={20}
+              color={activeSection === item.id ? '#3d6b42' : '#6b7a6b'}
+            />
+            <Text style={[styles.navLabel, activeSection === item.id && styles.navLabelActive]}>
+              {item.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Pressable style={styles.logoutBtn} onPress={onLogout}>
+        <Ionicons name="log-out-outline" size={20} color="#c94444" />
+        <Text style={styles.logoutText}>Logout</Text>
+      </Pressable>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.sidebar}>
-        <View style={styles.sidebarHeader}>
-          <Ionicons name="cube-outline" size={28} color="#3d6b42" />
-          <Text style={styles.sidebarTitle}>FitLife</Text>
-          <Text style={styles.sidebarSub}>Admin Panel</Text>
-        </View>
+      {isWide && <SidebarContent />}
 
-        <View style={styles.navList}>
-          {NAV_ITEMS.map((item) => (
-            <Pressable
-              key={item.id}
-              style={[styles.navItem, activeSection === item.id && styles.navItemActive]}
-              onPress={() => setActiveSection(item.id)}
-            >
-              <Ionicons
-                name={item.icon as any}
-                size={20}
-                color={activeSection === item.id ? '#3d6b42' : '#6b7a6b'}
-              />
-              <Text style={[styles.navLabel, activeSection === item.id && styles.navLabelActive]}>
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Pressable style={styles.logoutBtn} onPress={onLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#c94444" />
-          <Text style={styles.logoutText}>Logout</Text>
+      {!isWide && sidebarOpen && (
+        <Pressable
+          style={styles.drawerOverlay}
+          onPress={() => setSidebarOpen(false)}
+        >
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <SidebarContent />
+          </Pressable>
         </Pressable>
-      </View>
+      )}
 
       <View style={styles.main}>
         <View style={styles.topBar}>
-          <Text style={styles.pageTitle}>
-            {NAV_ITEMS.find((n) => n.id === activeSection)?.label}
-          </Text>
+          <View style={styles.topBarLeft}>
+            {!isWide && (
+              <Pressable
+                style={styles.hamburger}
+                onPress={() => setSidebarOpen(true)}
+              >
+                <Ionicons name="menu-outline" size={28} color="#142210" />
+              </Pressable>
+            )}
+            <Text style={styles.pageTitle}>
+              {NAV_ITEMS.find((n) => n.id === activeSection)?.label}
+            </Text>
+          </View>
           <View style={styles.adminBadge}>
             <Ionicons name="shield-checkmark-outline" size={14} color="#3d6b42" />
             <Text style={styles.adminBadgeText}>Admin</Text>
@@ -102,7 +141,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <HomeSection stats={STATS} loading={loadingStats} />
           )}
           {activeSection === 'users' && (
-            <PlaceholderSection title="Users" description="Manage users — view, edit, delete accounts." icon="people-outline" />
+            <AdminUsersScreen
+              onShowPopup={(content) => setPopupContent(content)}
+              onHidePopup={() => setPopupContent(null)}
+            />
           )}
           {activeSection === 'pilates' && (
             <PlaceholderSection title="Pilates Programs" description="Add, edit or remove Pilates programs and workouts." icon="body-outline" />
@@ -115,6 +157,20 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           )}
         </ScrollView>
       </View>
+
+      {popupContent && (
+        <Pressable
+          style={styles.overlay}
+          onPress={() => setPopupContent(null)}
+        >
+          <Pressable
+            style={styles.popup}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {popupContent}
+          </Pressable>
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 }
@@ -144,7 +200,6 @@ function HomeSection({
           ))}
         </View>
       )}
-
       <Text style={styles.sectionHeading}>Quick Actions</Text>
       <View style={styles.actionsGrid}>
         <ActionCard icon="stats-chart-outline" label="Analytics" color="#3b7ec8" bg="#e8f2fc" />
@@ -192,6 +247,17 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 20,
     justifyContent: 'space-between',
+    height: '100%',
+  },
+  drawerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    zIndex: 100,
+    flexDirection: 'row',
   },
   sidebarHeader: {
     alignItems: 'center',
@@ -225,18 +291,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 10,
   },
-  navItemActive: {
-    backgroundColor: '#e8f5eb',
-  },
-  navLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6b7a6b',
-  },
-  navLabelActive: {
-    color: '#3d6b42',
-    fontWeight: '700',
-  },
+  navItemActive: { backgroundColor: '#e8f5eb' },
+  navLabel: { fontSize: 13, fontWeight: '600', color: '#6b7a6b' },
+  navLabelActive: { color: '#3d6b42', fontWeight: '700' },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -247,29 +304,27 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#fdecef',
   },
-  logoutText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#c94444',
-  },
-  main: {
-    flex: 1,
-  },
+  logoutText: { fontSize: 13, fontWeight: '700', color: '#c94444' },
+  main: { flex: 1 },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5ebe5',
   },
-  pageTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#142210',
+  topBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
+  hamburger: {
+    padding: 4,
+  },
+  pageTitle: { fontSize: 20, fontWeight: '800', color: '#142210' },
   adminBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -279,15 +334,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 999,
   },
-  adminBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#3d6b42',
-  },
-  content: {
-    padding: 24,
-    gap: 8,
-  },
+  adminBadgeText: { fontSize: 12, fontWeight: '700', color: '#3d6b42' },
+  content: { padding: 20, gap: 8 },
   sectionHeading: {
     fontSize: 15,
     fontWeight: '800',
@@ -319,11 +367,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#142210',
-  },
+  statValue: { fontSize: 22, fontWeight: '800', color: '#142210' },
   statLabel: {
     fontSize: 11,
     color: '#6b7a6b',
@@ -354,12 +398,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  actionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#142210',
-    textAlign: 'center',
-  },
+  actionLabel: { fontSize: 12, fontWeight: '700', color: '#142210', textAlign: 'center' },
   placeholder: {
     flex: 1,
     alignItems: 'center',
@@ -367,11 +406,7 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     gap: 12,
   },
-  placeholderTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#142210',
-  },
+  placeholderTitle: { fontSize: 20, fontWeight: '800', color: '#142210' },
   placeholderDesc: {
     fontSize: 14,
     color: '#6b7a6b',
@@ -379,10 +414,38 @@ const styles = StyleSheet.create({
     maxWidth: 300,
     lineHeight: 22,
   },
-  placeholderHint: {
-    fontSize: 12,
-    color: '#a0b0a0',
-    fontWeight: '600',
-    marginTop: 4,
+  placeholderHint: { fontSize: 12, color: '#a0b0a0', fontWeight: '600', marginTop: 4 },
+  overlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+    ...Platform.select({
+      web: { position: 'fixed' as any },
+      default: {},
+    }),
+  },
+  popup: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    width: '90%',
+    maxWidth: 520,
+    maxHeight: '80%',
+    ...Platform.select({
+      web: { boxShadow: '0px 8px 32px rgba(0,0,0,0.18)' },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.18,
+        shadowRadius: 32,
+        elevation: 10,
+      },
+    }),
   },
 });

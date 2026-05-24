@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { WebAppRoot } from './src/components/PilatesWebAppRoot';
 import { hasAuthToken, syncPilatesAfterAuth } from './src/api/pilatesApi';
+import { type ReactNode } from 'react';
 import {
   ensurePreferencesForLegacyInstall,
   loadPrograms,
