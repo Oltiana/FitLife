@@ -7,7 +7,6 @@ import { FitLifeProfileScreen } from '../screens/FitLifeProfileScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { useTheme } from '../theme/PilatesThemeContext';
 import { FitnessStack } from './FitnessStack';
-import { PilatesCalendarStack } from './PilatesCalendarStack';
 import type { MainTabParamList } from './PilatesNavigationTypes';
 import { PilatesStack } from './PilatesStack';
 import YogaStack from './YogaStack';
@@ -86,16 +85,6 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
           title: 'Yoga',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="leaf-outline" size={size + 2} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Calendar"
-        component={PilatesCalendarStack}
-        options={{
-          title: 'Schedule',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size + 2} color={color} />
           ),
         }}
       />

@@ -43,6 +43,5 @@ export type MainTabParamList = {
   Fitness: undefined;
   Search: NavigatorScreenParams<PilatesStackParamList>;
   Yoga: NavigatorScreenParams<YogaStackParamList>;
-  Calendar: NavigatorScreenParams<CalendarStackParamList>;
   Profile: undefined;
 };

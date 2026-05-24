@@ -142,15 +142,24 @@ export function HomeScreen({ navigation }: Props) {
     [recommendedPrograms],
   );
 
-  const openDiscover = useCallback(
-    (initialModality: 'all' | 'pilates' | 'fitness' | 'yoga' = 'all') => {
-      navigation.navigate('Search', {
-        screen: 'DiscoverHub',
-        params: { initialModality },
-      });
-    },
-    [navigation],
-  );
+  const openFitnessTab = useCallback(() => {
+    navigation.navigate('Fitness');
+  }, [navigation]);
+
+  const openYogaTab = useCallback(() => {
+    navigation.navigate('Yoga');
+  }, [navigation]);
+
+  const openPilatesTab = useCallback(() => {
+    navigation.navigate('Search', { screen: 'PilatesHome' });
+  }, [navigation]);
+
+  const openDiscoverAll = useCallback(() => {
+    navigation.navigate('Search', {
+      screen: 'DiscoverHub',
+      params: { initialModality: 'all' },
+    });
+  }, [navigation]);
 
   const openWorkoutDetail = useCallback(
     (workoutId: string) => {
@@ -161,10 +170,6 @@ export function HomeScreen({ navigation }: Props) {
     },
     [navigation],
   );
-
-  const openCalendarTab = useCallback(() => {
-    navigation.navigate('Calendar', { screen: 'CalendarHub' });
-  }, [navigation]);
 
   return (
     <ScrollView
@@ -235,7 +240,7 @@ export function HomeScreen({ navigation }: Props) {
         <Pressable
           style={({ pressed }) => [styles.cardPressable, pressed && styles.cardPressed]}
           accessibilityRole="button"
-          onPress={() => openDiscover('fitness')}
+          onPress={openFitnessTab}
         >
           <ActivityCard
             icon="barbell-outline"
@@ -248,7 +253,7 @@ export function HomeScreen({ navigation }: Props) {
         <Pressable
           style={({ pressed }) => [styles.cardPressable, pressed && styles.cardPressed]}
           accessibilityRole="button"
-          onPress={() => openDiscover('yoga')}
+          onPress={openYogaTab}
         >
           <ActivityCard
             icon="leaf-outline"
@@ -258,7 +263,7 @@ export function HomeScreen({ navigation }: Props) {
             tintBg="#fff4e8"
           />
         </Pressable>
-        <Pressable onPress={() => openDiscover('pilates')} style={styles.cardPressable}>
+        <Pressable onPress={openPilatesTab} style={styles.cardPressable}>
           <ActivityCard
             icon="body-outline"
             title="Pilates"
@@ -271,7 +276,7 @@ export function HomeScreen({ navigation }: Props) {
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recommended for you</Text>
-        <Pressable onPress={() => openDiscover('all')}>
+        <Pressable onPress={openDiscoverAll}>
           {({ pressed }) => (
             <Text style={[styles.sectionLink, pressed && styles.linkPressed]}>See all</Text>
           )}
@@ -292,19 +297,6 @@ export function HomeScreen({ navigation }: Props) {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Shortcuts</Text>
       </View>
-      <Pressable
-        style={({ pressed }) => [styles.shortcutRow, pressed && styles.shortcutRowPressed]}
-        onPress={openCalendarTab}
-      >
-        <View style={styles.shortcutIconWrap}>
-          <Ionicons name="calendar-outline" size={22} color="#c4743d" />
-        </View>
-        <View style={styles.shortcutTextCol}>
-          <Text style={styles.shortcutTitle}>Schedule</Text>
-          <Text style={styles.shortcutSub}>Placeholder — content coming later</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="#888" />
-      </Pressable>
       <Pressable
         style={({ pressed }) => [styles.shortcutRow, pressed && styles.shortcutRowPressed]}
         onPress={() =>
