@@ -201,7 +201,7 @@ export async function loadUserPrograms(userId: string): Promise<UserProgram[]> {
   }
   const raw = await AsyncStorage.getItem(KEY_USER_PROGRAMS);
   const all = parseArray<unknown>(raw)
-    .map(normalizeUserProgram)
+    .map((row) => normalizeUserProgram(row))
     .filter((up): up is UserProgram => up != null);
   return all.filter((up) => up.userId === userId);
 }
@@ -229,7 +229,7 @@ export async function enrollUserInProgram(
 
   const raw = await AsyncStorage.getItem(KEY_USER_PROGRAMS);
   const all = parseArray<unknown>(raw)
-    .map(normalizeUserProgram)
+    .map((row) => normalizeUserProgram(row))
     .filter((up): up is UserProgram => up != null);
   if (
     all.some(
@@ -267,7 +267,7 @@ export async function unenrollUserFromProgram(
   }
   const raw = await AsyncStorage.getItem(KEY_USER_PROGRAMS);
   const all = parseArray<unknown>(raw)
-    .map(normalizeUserProgram)
+    .map((row) => normalizeUserProgram(row))
     .filter((up): up is UserProgram => up != null);
   const next = all.filter(
     (up) =>

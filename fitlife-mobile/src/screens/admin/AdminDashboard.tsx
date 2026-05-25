@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { type ReactNode } from 'react';
+import { AdminPilatesScreen } from './AdminPilatesScreen';
 import { AdminUsersScreen } from './AdminUsersScreen';
 import {
   ActivityIndicator,
@@ -47,6 +48,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [loadingStats, setLoadingStats] = useState(true);
   const [popupContent, setPopupContent] = useState<ReactNode>(null);
 
+  const refreshStats = useCallback(() => {
+    getAdminStats()
+      .then(setStats)
+      .catch(console.warn);
+  }, []);
+
   useEffect(() => {
     getAdminStats()
       .then(setStats)
@@ -64,6 +71,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const handleNavPress = (id: Section) => {
     setActiveSection(id);
     setSidebarOpen(false);
+    setPopupContent(null);
   };
 
   const SidebarContent = () => (
@@ -147,7 +155,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             />
           )}
           {activeSection === 'pilates' && (
-            <PlaceholderSection title="Pilates Programs" description="Add, edit or remove Pilates programs and workouts." icon="body-outline" />
+            <AdminPilatesScreen
+              onShowPopup={(content) => setPopupContent(content)}
+              onHidePopup={() => setPopupContent(null)}
+              onProgramsChanged={refreshStats}
+            />
           )}
           {activeSection === 'yoga' && (
             <PlaceholderSection title="Yoga Classes" description="Manage upcoming yoga classes and schedules." icon="leaf-outline" />
@@ -436,9 +448,12 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '90%',
     maxWidth: 520,
-    maxHeight: '80%',
+    maxHeight: '85%',
     ...Platform.select({
-      web: { boxShadow: '0px 8px 32px rgba(0,0,0,0.18)' },
+      web: {
+        boxShadow: '0px 8px 32px rgba(0,0,0,0.18)',
+        overflowY: 'auto' as const,
+      },
       default: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 8 },
