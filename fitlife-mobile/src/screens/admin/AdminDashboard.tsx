@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import { type ReactNode } from 'react';
 import { AdminPilatesScreen } from './AdminPilatesScreen';
+import {AdminYogaScreen} from './AdminYogaScreen';
 import { AdminUsersScreen } from './AdminUsersScreen';
 import {
   ActivityIndicator,
@@ -162,7 +163,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             />
           )}
           {activeSection === 'yoga' && (
-            <PlaceholderSection title="Yoga Classes" description="Manage upcoming yoga classes and schedules." icon="leaf-outline" />
+            <AdminYogaScreen
+              onShowPopup={(content) => setPopupContent(content)}
+              onHidePopup={() => setPopupContent(null)}
+              onProgramsChanged={refreshStats}
+            />
           )}
           {activeSection === 'fitness' && (
             <PlaceholderSection title="Fitness" description="Manage fitness workout plans." icon="barbell-outline" />
