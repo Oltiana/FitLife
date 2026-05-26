@@ -12,6 +12,7 @@ export type PilatesWorkoutItem = {
   name: string;
   description: string;
   durationMinutes: number;
+  estimatedCalories?: number;
   orderIndex: number;
   isCompleted: boolean;
 };

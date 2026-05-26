@@ -61,6 +61,8 @@ export type PilatesWorkout = {
   level: PilatesLevel;
   category: PilatesCategory;
   estimatedMinutes: number;
+  /** From SQL (admin). When > 0, used instead of client estimate on complete. */
+  estimatedCalories?: number;
   description: string;
   coverImage: ImageSourcePropType;
   exercises: PilatesExercise[];

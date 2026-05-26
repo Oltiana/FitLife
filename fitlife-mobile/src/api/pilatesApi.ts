@@ -24,6 +24,7 @@ const ROUTES = {
     `/Pilates/my-enrollments/${pilatesProgramId}`,
   myWorkoutProgress: '/Pilates/my-workout-progress',
   completeWorkout: '/Pilates/complete-workout',
+  progressContent: '/Pilates/progress-content',
 } as const;
 
 const KEY_LAST_SYNC_ERROR = '@fitlife/pilates_last_sync_error';
@@ -47,6 +48,7 @@ type PilatesWorkoutResponse = {
   name: string;
   description: string;
   durationMinutes: number;
+  estimatedCalories?: number;
   orderIndex: number;
   isCompleted: boolean;
 };
@@ -155,6 +157,7 @@ function mapApiProgramToDomain(p: PilatesProgramResponse): PilatesProgram {
       name: w.name,
       description: w.description ?? '',
       durationMinutes: w.durationMinutes,
+      estimatedCalories: w.estimatedCalories ?? 0,
       orderIndex: w.orderIndex,
       isCompleted: w.isCompleted,
     })),
@@ -492,4 +495,87 @@ export async function syncPilatesAfterAuth(): Promise<PilatesProgram[]> {
     await setLastPilatesSyncError(null);
   }
   return programs;
+}
+
+// --- Progress screen content (user) ---
+
+export type PilatesProgressUiConfig = {
+  id: number;
+  title: string;
+  subtitle: string;
+  motivationLabel: string;
+  dailyTargetsTitle: string;
+  dailyTargetsHint: string;
+};
+
+export type PilatesProgressPeriodSetting = {
+  id: number;
+  period: string;
+  sectionTitle: string;
+  description: string | null;
+  targetCalories: number | null;
+  targetMinutes: number | null;
+  minutesChartTitle: string | null;
+  caloriesChartTitle: string | null;
+  displayOrder: number;
+};
+
+export type PilatesMotivationMessage = {
+  id: number;
+  message: string;
+  displayOrder: number;
+  isActive: boolean;
+};
+
+export type PilatesProgressContent = {
+  ui: PilatesProgressUiConfig;
+  periods: PilatesProgressPeriodSetting[];
+  messages: PilatesMotivationMessage[];
+};
+
+let progressContentCached: PilatesProgressContent | null = null;
+
+export async function fetchPilatesProgressContent(
+  force = false,
+): Promise<PilatesProgressContent | null> {
+  if (progressContentCached && !force) return progressContentCached;
+  const raw = await tokenStorage.getToken();
+  const token = raw?.trim().replace(/^bearer\s+/i, '') ?? '';
+  if (!token) return null;
+  try {
+    const res = await fetch(`${BASE_URL}${ROUTES.progressContent}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+    if (!res.ok) return null;
+    progressContentCached = (await res.json()) as PilatesProgressContent;
+    return progressContentCached;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPilatesProgressContentCache(): void {
+  progressContentCached = null;
+}
+
+export function periodByName(
+  content: PilatesProgressContent | null,
+  period: 'Daily' | 'Weekly' | 'Monthly',
+): PilatesProgressPeriodSetting | undefined {
+  return content?.periods.find(
+    (p) => p.period.toLowerCase() === period.toLowerCase(),
+  );
+}
+
+export function activeMotivationMessages(
+  content: PilatesProgressContent | null,
+): string[] {
+  if (!content?.messages?.length) return [];
+  return content.messages
+    .filter((m) => m.isActive && m.message.trim())
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .map((m) => m.message.trim());
 }

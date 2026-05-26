@@ -81,7 +81,10 @@ export function ActiveWorkoutScreen({ route, navigation }: Props) {
         w.exercises.reduce((a, e) => a + e.durationSec, 0) / 60,
       ),
     );
-    const caloriesBurned = estimatePilatesCalories(totalMin, w.level);
+    const caloriesBurned =
+      w.estimatedCalories != null && w.estimatedCalories > 0
+        ? w.estimatedCalories
+        : estimatePilatesCalories(totalMin, w.level);
     setCompletionCalories(caloriesBurned);
     const pilatesProgramId =
       route.params.pilatesProgramId != null

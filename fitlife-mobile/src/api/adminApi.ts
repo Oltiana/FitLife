@@ -1,4 +1,3 @@
-import { ReactNode } from 'react';
 import { BASE_URL } from '../constants/apiConfig';
 import { tokenStorage } from '../storage/tokenStorage';
 
@@ -76,7 +75,6 @@ export type PilatesEnrollment = {
 };
 
 export type PilatesProgress = {
-  durationMinutes: ReactNode;
   id: number;
   programName: string;
   workoutName: string;

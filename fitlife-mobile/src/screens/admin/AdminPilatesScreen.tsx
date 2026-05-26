@@ -24,6 +24,7 @@ import {
   type CreatePilatesWorkoutPayload,
 } from '../../api/adminPilatesApi';
 import { clearPilatesApiCache } from '../../api/pilatesApi';
+import { AdminPilatesProgressPanel } from './AdminPilatesProgressScreen';
 import {
   formatPilatesLevelLabel,
   type PilatesLevel,
@@ -31,7 +32,8 @@ import {
 
 const LEVELS: PilatesLevel[] = ['beginner', 'intermediate', 'advanced'];
 
-type Tab = 'details' | 'workouts';
+type ProgramTab = 'details' | 'workouts';
+type PilatesAdminView = 'programs' | 'progress';
 
 function confirmAction(message: string): boolean {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -49,9 +51,9 @@ export function AdminPilatesScreen({
   onHidePopup: () => void;
   onProgramsChanged?: () => void;
 }) {
+  const [view, setView] = useState<PilatesAdminView>('programs');
   const [programs, setPrograms] = useState<AdminPilatesProgram[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadPrograms = useCallback(async (notifyDashboard = false) => {
@@ -170,30 +172,71 @@ export function AdminPilatesScreen({
     );
   };
 
-  if (loading) {
-    return <ActivityIndicator size="large" color="#3d6b42" style={{ marginTop: 60 }} />;
-  }
-
   return (
     <ScrollView
       contentContainerStyle={styles.list}
       showsVerticalScrollIndicator={false}
       nestedScrollEnabled
     >
-      <Pressable
-        style={({ pressed }) => [styles.addBar, pressed && { opacity: 0.85 }]}
-        onPress={openNewProgramForm}
-      >
-        <Ionicons name="add-circle-outline" size={20} color="#3d6b42" />
-        <Text style={styles.addBarText}>Add program</Text>
-      </Pressable>
+      <View style={styles.pilatesSubNav}>
+        <Pressable
+          style={[styles.pilatesSubTab, view === 'programs' && styles.pilatesSubTabActive]}
+          onPress={() => setView('programs')}
+        >
+          <Ionicons
+            name="list-outline"
+            size={16}
+            color={view === 'programs' ? '#3d6b42' : '#6b7a6b'}
+          />
+          <Text
+            style={[
+              styles.pilatesSubTabText,
+              view === 'programs' && styles.pilatesSubTabTextActive,
+            ]}
+          >
+            Programs
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.pilatesSubTab, view === 'progress' && styles.pilatesSubTabActive]}
+          onPress={() => setView('progress')}
+        >
+          <Ionicons
+            name="stats-chart-outline"
+            size={16}
+            color={view === 'progress' ? '#3d6b42' : '#6b7a6b'}
+          />
+          <Text
+            style={[
+              styles.pilatesSubTabText,
+              view === 'progress' && styles.pilatesSubTabTextActive,
+            ]}
+          >
+            Progress
+          </Text>
+        </Pressable>
+      </View>
 
-      {loadError ? <Text style={styles.loadError}>{loadError}</Text> : null}
-
-      {programs.length === 0 ? (
-        <Text style={styles.emptyText}>No Pilates programs yet.</Text>
+      {view === 'progress' ? (
+        <AdminPilatesProgressPanel />
+      ) : loading ? (
+        <ActivityIndicator size="large" color="#3d6b42" style={{ marginTop: 40 }} />
       ) : (
-        programs.map((program) => {
+        <>
+          <Pressable
+            style={({ pressed }) => [styles.addBar, pressed && { opacity: 0.85 }]}
+            onPress={openNewProgramForm}
+          >
+            <Ionicons name="add-circle-outline" size={20} color="#3d6b42" />
+            <Text style={styles.addBarText}>Add program</Text>
+          </Pressable>
+
+          {loadError ? <Text style={styles.loadError}>{loadError}</Text> : null}
+
+          {programs.length === 0 ? (
+            <Text style={styles.emptyText}>No Pilates programs yet.</Text>
+          ) : (
+            programs.map((program) => {
             const workoutCount = program.workouts?.length ?? 0;
             return (
               <Pressable
@@ -228,10 +271,17 @@ export function AdminPilatesScreen({
                 <Ionicons name="chevron-forward" size={18} color="#c8d5c8" />
               </Pressable>
             );
-        })
+            })
+          )}
+        </>
       )}
     </ScrollView>
   );
+}
+
+function formatWorkoutKcal(w: AdminPilatesWorkout): string {
+  const kcal = w.estimatedCalories ?? 0;
+  return kcal > 0 ? `${kcal} kcal` : 'auto';
 }
 
 function ProgramPopupContent({
@@ -251,7 +301,7 @@ function ProgramPopupContent({
   onDeleteWorkout: (w: AdminPilatesWorkout) => Promise<void>;
   onDeleteProgram: () => Promise<void>;
 }) {
-  const [activeTab, setActiveTab] = useState<Tab>('details');
+  const [activeTab, setActiveTab] = useState<ProgramTab>('details');
   const workouts = [...(program.workouts ?? [])].sort(
     (a, b) => a.orderIndex - b.orderIndex,
   );
@@ -277,8 +327,8 @@ function ProgramPopupContent({
 
         <View style={styles.tabRow}>
           {([
-            { id: 'details' as Tab, label: 'Details', icon: 'information-circle-outline' },
-            { id: 'workouts' as Tab, label: 'Workouts', icon: 'list-outline' },
+            { id: 'details' as ProgramTab, label: 'Details', icon: 'information-circle-outline' },
+            { id: 'workouts' as ProgramTab, label: 'Workouts', icon: 'list-outline' },
           ]).map((tab) => (
             <Pressable
               key={tab.id}
@@ -337,15 +387,21 @@ function ProgramPopupContent({
             {workouts.length === 0 ? (
               <Text style={styles.emptyText}>No workouts in this program.</Text>
             ) : (
-              workouts.map((w) => (
+              <>
+                <View style={styles.workoutTableHead}>
+                  <Text style={[styles.workoutTh, { flex: 1 }]}>Workout</Text>
+                  <Text style={styles.workoutTh}>Min</Text>
+                  <Text style={styles.workoutTh}>Kcal</Text>
+                </View>
+                {workouts.map((w) => (
                 <View key={w.id} style={styles.listItem}>
                   <Ionicons name="fitness-outline" size={16} color="#3d6b42" />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.listItemTitle}>{w.name}</Text>
-                    <Text style={styles.listItemSub}>
-                      #{w.orderIndex} · {w.durationMinutes} min
-                    </Text>
+                    <Text style={styles.listItemSub}>Order #{w.orderIndex}</Text>
                   </View>
+                  <Text style={styles.workoutCell}>{w.durationMinutes}</Text>
+                  <Text style={styles.workoutCell}>{formatWorkoutKcal(w)}</Text>
                   <Pressable onPress={() => onEditWorkout(w)}>
                     <Ionicons name="create-outline" size={18} color="#3b7ec8" />
                   </Pressable>
@@ -353,7 +409,8 @@ function ProgramPopupContent({
                     <Ionicons name="trash-outline" size={18} color="#c94444" />
                   </Pressable>
                 </View>
-              ))
+              ))}
+              </>
             )}
           </View>
         )}
@@ -527,6 +584,9 @@ function WorkoutFormPopup({
   const [orderIndex, setOrderIndex] = useState(
     String(workout?.orderIndex ?? nextOrder),
   );
+  const [estimatedCalories, setEstimatedCalories] = useState(
+    String(workout?.estimatedCalories ?? 0),
+  );
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -543,6 +603,7 @@ function WorkoutFormPopup({
           name: name.trim(),
           description: description.trim(),
           durationMinutes: Math.max(1, parseInt(durationMinutes, 10) || 1),
+          estimatedCalories: Math.max(0, parseInt(estimatedCalories, 10) || 0),
           orderIndex: parseInt(orderIndex, 10) || 1,
         });
       } else {
@@ -551,6 +612,7 @@ function WorkoutFormPopup({
           name: name.trim(),
           description: description.trim(),
           durationMinutes: Math.max(1, parseInt(durationMinutes, 10) || 1),
+          estimatedCalories: Math.max(0, parseInt(estimatedCalories, 10) || 0),
           orderIndex: parseInt(orderIndex, 10) || 1,
         };
         await createPilatesWorkout(payload);
@@ -586,6 +648,15 @@ function WorkoutFormPopup({
         onChangeText={setDurationMinutes}
         keyboardType="number-pad"
       />
+      <Field
+        label="Estimated calories (kcal)"
+        value={estimatedCalories}
+        onChangeText={setEstimatedCalories}
+        keyboardType="number-pad"
+      />
+      <Text style={styles.fieldHint}>
+        Use 0 to let the app estimate from duration and level.
+      </Text>
       <Field
         label="Order"
         value={orderIndex}
@@ -649,7 +720,56 @@ function SaveButton({
 }
 
 const styles = StyleSheet.create({
+  pilatesSubNav: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f4f0',
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+    marginBottom: 14,
+  },
+  pilatesSubTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  pilatesSubTabActive: { backgroundColor: '#fff' },
+  pilatesSubTabText: { fontSize: 13, fontWeight: '600', color: '#6b7a6b' },
+  pilatesSubTabTextActive: { color: '#3d6b42', fontWeight: '800' },
   popupBody: { gap: 16 },
+  workoutTableHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dde5dd',
+    marginBottom: 4,
+  },
+  workoutTh: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6b7a6b',
+    width: 44,
+    textAlign: 'right',
+  },
+  workoutCell: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#142210',
+    width: 44,
+    textAlign: 'right',
+  },
+  fieldHint: {
+    fontSize: 11,
+    color: '#6b7a6b',
+    marginTop: -6,
+    marginBottom: 12,
+  },
   loadError: {
     fontSize: 13,
     color: '#c94444',

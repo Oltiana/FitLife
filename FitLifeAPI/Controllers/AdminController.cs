@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FitLifeAPI.Data;
 using FitLifeAPI.DTOs.Requests;
+using FitLifeAPI.Services;
 
 namespace FitLifeAPI.Controllers
 {
@@ -132,6 +133,174 @@ public async Task<IActionResult> GetUserDetails(int id)
     return Ok(user);
 }
 
+        [HttpGet("pilates/progress")]
+        public async Task<IActionResult> GetPilatesProgress([FromQuery] int? programId)
+        {
+            var query = _context.UserPilatesProgresses
+                .Include(p => p.User)
+                .Include(p => p.Workout)
+                .AsQueryable();
+
+            if (programId.HasValue)
+            {
+                query = query.Where(p => p.Workout.PilatesProgramId == programId.Value);
+            }
+
+            var list = await query
+                .OrderByDescending(p => p.CompletedAt ?? DateTime.MinValue)
+                .ThenByDescending(p => p.Id)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.UserId,
+                    UserFullName = p.User.FullName,
+                    UserEmail = p.User.Email,
+                    p.ProgramName,
+                    p.WorkoutName,
+                    p.IsCompleted,
+                    p.CompletedAt,
+                    PilatesProgramId = p.Workout.PilatesProgramId,
+                })
+                .ToListAsync();
+
+            return Ok(list);
+        }
+
+        [HttpGet("pilates/enrollments")]
+        public async Task<IActionResult> GetPilatesEnrollments([FromQuery] int? programId)
+        {
+            var query = _context.UserPilatesEnrollments
+                .Include(e => e.User)
+                .Include(e => e.Program)
+                .AsQueryable();
+
+            if (programId.HasValue)
+            {
+                query = query.Where(e => e.PilatesProgramId == programId.Value);
+            }
+
+            var list = await query
+                .OrderByDescending(e => e.EnrolledAt)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.UserId,
+                    UserFullName = e.User.FullName,
+                    UserEmail = e.User.Email,
+                    PilatesProgramId = e.PilatesProgramId,
+                    ProgramName = e.Program.Name,
+                    e.EnrolledAt,
+                    e.CompletedAt,
+                })
+                .ToListAsync();
+
+            return Ok(list);
+        }
+
+        [HttpGet("pilates/progress-content")]
+        public async Task<IActionResult> GetPilatesProgressContentAdmin()
+        {
+            await PilatesProgressContentHelper.EnsureSeedAsync(_context);
+            return Ok(await PilatesProgressContentHelper.GetContentAsync(_context));
+        }
+
+        [HttpPut("pilates/progress-ui")]
+        public async Task<IActionResult> UpdatePilatesProgressUi(
+            [FromBody] UpdatePilatesProgressUiConfigRequest request)
+        {
+            await PilatesProgressContentHelper.EnsureSeedAsync(_context);
+            var ui = await PilatesProgressContentHelper.GetUiConfigAsync(_context);
+
+            ui.Title = request.Title.Trim();
+            ui.Subtitle = request.Subtitle.Trim();
+            ui.MotivationLabel = request.MotivationLabel.Trim();
+            ui.DailyTargetsTitle = request.DailyTargetsTitle.Trim();
+            ui.DailyTargetsHint = request.DailyTargetsHint.Trim();
+            await _context.SaveChangesAsync();
+            return Ok(ui);
+        }
+
+        [HttpPut("pilates/progress-periods/{id:int}")]
+        public async Task<IActionResult> UpdatePilatesProgressPeriod(
+            int id,
+            [FromBody] UpdatePilatesProgressPeriodRequest request)
+        {
+            var row = await _context.PilatesProgressPeriodSettings.FindAsync(id);
+            if (row == null) return NotFound();
+
+            row.SectionTitle = request.SectionTitle.Trim();
+            row.Description = string.IsNullOrWhiteSpace(request.Description)
+                ? null
+                : request.Description.Trim();
+            row.TargetCalories = request.TargetCalories is > 0 ? request.TargetCalories : null;
+            row.TargetMinutes = request.TargetMinutes is > 0 ? request.TargetMinutes : null;
+            row.MinutesChartTitle = string.IsNullOrWhiteSpace(request.MinutesChartTitle)
+                ? null
+                : request.MinutesChartTitle.Trim();
+            row.CaloriesChartTitle = string.IsNullOrWhiteSpace(request.CaloriesChartTitle)
+                ? null
+                : request.CaloriesChartTitle.Trim();
+            row.DisplayOrder = request.DisplayOrder;
+            await _context.SaveChangesAsync();
+            return Ok(row);
+        }
+
+        [HttpGet("pilates/motivation-messages")]
+        public async Task<IActionResult> GetMotivationMessages()
+        {
+            await PilatesProgressContentHelper.EnsureSeedAsync(_context);
+            var list = await _context.PilatesMotivationMessages
+                .OrderBy(m => m.DisplayOrder)
+                .ThenBy(m => m.Id)
+                .ToListAsync();
+            return Ok(list);
+        }
+
+        [HttpPost("pilates/motivation-messages")]
+        public async Task<IActionResult> CreateMotivationMessage(
+            [FromBody] UpsertPilatesMotivationMessageRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Message))
+                return BadRequest("Message is required.");
+
+            var row = new Models.Entities.PilatesMotivationMessage
+            {
+                Message = request.Message.Trim(),
+                DisplayOrder = request.DisplayOrder,
+                IsActive = request.IsActive,
+            };
+            _context.PilatesMotivationMessages.Add(row);
+            await _context.SaveChangesAsync();
+            return Ok(row);
+        }
+
+        [HttpPut("pilates/motivation-messages/{id:int}")]
+        public async Task<IActionResult> UpdateMotivationMessage(
+            int id,
+            [FromBody] UpsertPilatesMotivationMessageRequest request)
+        {
+            var row = await _context.PilatesMotivationMessages.FindAsync(id);
+            if (row == null) return NotFound();
+            if (string.IsNullOrWhiteSpace(request.Message))
+                return BadRequest("Message is required.");
+
+            row.Message = request.Message.Trim();
+            row.DisplayOrder = request.DisplayOrder;
+            row.IsActive = request.IsActive;
+            await _context.SaveChangesAsync();
+            return Ok(row);
+        }
+
+        [HttpDelete("pilates/motivation-messages/{id:int}")]
+        public async Task<IActionResult> DeleteMotivationMessage(int id)
+        {
+            var row = await _context.PilatesMotivationMessages.FindAsync(id);
+            if (row == null) return NotFound();
+            _context.PilatesMotivationMessages.Remove(row);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         [HttpPatch("users/{id}/role")]
         public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UpdateRoleRequest request)
         {
@@ -153,5 +322,6 @@ public async Task<IActionResult> GetUserDetails(int id)
             await _context.SaveChangesAsync();
             return Ok(new { message = "User deleted successfully" });
         }
+
     }
 }

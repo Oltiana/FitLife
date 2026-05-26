@@ -18,7 +18,7 @@ import {
   type AdminUserDetails,
 } from '../../api/adminApi';
 
-type Tab = 'info' | 'bookings';
+type Tab = 'info' | 'pilates' | 'bookings';
 
 export function AdminUsersScreen({
   onShowPopup,
@@ -160,6 +160,7 @@ function PopupContent({
         <View style={styles.tabRow}>
           {([
             { id: 'info', label: 'Info', icon: 'person-outline' },
+            { id: 'pilates', label: 'Pilates', icon: 'body-outline' },
             { id: 'bookings', label: 'Bookings', icon: 'calendar-outline' },
           ] as { id: Tab; label: string; icon: string }[]).map((tab) => (
             <Pressable
@@ -187,6 +188,53 @@ function PopupContent({
             <DetailItem icon="fitness-outline" label="Workout Plans" value={String(user.workoutPlans)} />
             <DetailItem icon="time-outline" label="Sessions" value={String(user.workoutSessions)} />
             <DetailItem icon="heart-outline" label="Favorites" value={String(user.favoriteExercises)} />
+          </View>
+        )}
+
+        {activeTab === 'pilates' && (
+          <View style={styles.detailGrid}>
+            <Text style={styles.pilatesSectionLabel}>Enrollments</Text>
+            {user.pilatesEnrollments.length === 0 ? (
+              <Text style={styles.emptyText}>No Pilates enrollments.</Text>
+            ) : (
+              user.pilatesEnrollments.map((e) => (
+                <View key={e.id} style={styles.listItem}>
+                  <Ionicons name="body-outline" size={16} color="#3d6b42" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.listItemTitle}>{e.programName}</Text>
+                    <Text style={styles.listItemSub}>
+                      Enrolled {new Date(e.enrolledAt).toLocaleDateString()}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
+            <Text style={[styles.pilatesSectionLabel, { marginTop: 12 }]}>
+              Workout progress
+            </Text>
+            {user.pilatesProgress.length === 0 ? (
+              <Text style={styles.emptyText}>No workout progress recorded.</Text>
+            ) : (
+              user.pilatesProgress.map((p) => (
+                <View key={p.id} style={styles.listItem}>
+                  <Ionicons
+                    name={p.isCompleted ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={16}
+                    color={p.isCompleted ? '#3d6b42' : '#a0b0a0'}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.listItemTitle}>
+                      {p.programName} · {p.workoutName}
+                    </Text>
+                    <Text style={styles.listItemSub}>
+                      {p.isCompleted && p.completedAt
+                        ? `Completed ${new Date(p.completedAt).toLocaleString()}`
+                        : 'Not completed'}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
         )}
 
@@ -337,6 +385,12 @@ const styles = StyleSheet.create({
     color: '#6b7a6b',
     textAlign: 'center',
     paddingVertical: 20,
+  },
+  pilatesSectionLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#3d6b42',
+    marginBottom: 4,
   },
   modalActions: { gap: 10 },
   actionBtn: {

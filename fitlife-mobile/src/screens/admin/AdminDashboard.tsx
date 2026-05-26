@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import { type ReactNode } from 'react';
 import { AdminPilatesScreen } from './AdminPilatesScreen';
-import {AdminYogaScreen} from './AdminYogaScreen';
+import { AdminYogaScreen } from './AdminYogaScreen';
 import { AdminUsersScreen } from './AdminUsersScreen';
 import {
   ActivityIndicator,

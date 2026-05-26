@@ -92,6 +92,10 @@ function mapProgramToWorkout(program: PilatesProgram): PilatesWorkout {
     level: normalizePilatesLevel(program.level),
     category: catalogMatch?.category ?? guessCategory(program),
     estimatedMinutes,
+    estimatedCalories:
+      nextWorkout?.estimatedCalories != null && nextWorkout.estimatedCalories > 0
+        ? nextWorkout.estimatedCalories
+        : undefined,
     description: program.description || catalogMatch?.description || program.name,
     coverImage: catalogMatch?.coverImage ?? fallbackExerciseImage(0),
     exercises,

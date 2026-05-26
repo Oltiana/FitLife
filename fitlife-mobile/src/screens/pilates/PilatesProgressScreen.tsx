@@ -15,6 +15,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarChart, LineChart } from 'react-native-gifted-charts';
 import {
+  activeMotivationMessages,
+  fetchPilatesProgressContent,
+  periodByName,
+  type PilatesProgressContent,
+} from '../../api/pilatesApi';
+import {
   appendWeightEntry,
   getLastPilatesSyncError,
   loadWeightEntries,
@@ -82,6 +88,8 @@ export function PilatesProgressScreen() {
   const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
   const [weightInput, setWeightInput] = useState('');
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [progressContent, setProgressContent] =
+    useState<PilatesProgressContent | null>(null);
 
   const reloadWeights = useCallback(() => {
     void loadWeightEntries().then(setWeightEntries);
@@ -92,8 +100,14 @@ export function PilatesProgressScreen() {
       reloadWeights();
       void getLastPilatesSyncError().then(setSyncError);
       void refresh();
+      void fetchPilatesProgressContent(true).then(setProgressContent);
     }, [reloadWeights, refresh]),
   );
+
+  const dailyPeriod = periodByName(progressContent, 'Daily');
+  const weeklyPeriod = periodByName(progressContent, 'Weekly');
+  const monthlyPeriod = periodByName(progressContent, 'Monthly');
+  const apiMotivation = activeMotivationMessages(progressContent);
 
   const weightLineData = useMemo(
     () => weightLast30DaysSeries(weightEntries),
@@ -132,8 +146,14 @@ export function PilatesProgressScreen() {
   }, [dailyCalorieTarget, dailyMinutesTarget]);
 
   const motivation = useMemo(
-    () => pickMotivationalMessage(streak, totalMinutes, sessionCount),
-    [sessionCount, streak, totalMinutes],
+    () =>
+      pickMotivationalMessage(
+        streak,
+        totalMinutes,
+        sessionCount,
+        apiMotivation,
+      ),
+    [apiMotivation, sessionCount, streak, totalMinutes],
   );
 
   const calGoalPct =
@@ -200,9 +220,12 @@ export function PilatesProgressScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Progress</Text>
+          <Text style={styles.title}>
+            {progressContent?.ui.title?.trim() || 'Progress'}
+          </Text>
           <Text style={styles.subtitle}>
-            Track sessions, streaks, and daily goals.
+            {progressContent?.ui.subtitle?.trim() ||
+              'Track sessions, streaks, and daily goals.'}
           </Text>
           {syncError ? (
             <Text style={styles.syncErrorBanner}>
@@ -212,7 +235,12 @@ export function PilatesProgressScreen() {
         </View>
 
         <View style={styles.weekCompareCard}>
-          <Text style={styles.todayLabel}>This week vs last week</Text>
+          <Text style={styles.todayLabel}>
+            {weeklyPeriod?.sectionTitle?.trim() || 'This week vs last week'}
+          </Text>
+          {weeklyPeriod?.description?.trim() ? (
+            <Text style={styles.periodNote}>{weeklyPeriod.description}</Text>
+          ) : null}
           <View style={styles.weekCompareRow}>
             <View style={styles.weekCompareCol}>
               <Text style={styles.weekCompareLabel}>Minutes</Text>
@@ -231,7 +259,12 @@ export function PilatesProgressScreen() {
         </View>
 
         <View style={styles.todayCard}>
-          <Text style={styles.todayLabel}>Today</Text>
+          <Text style={styles.todayLabel}>
+            {dailyPeriod?.sectionTitle?.trim() || 'Today'}
+          </Text>
+          {dailyPeriod?.description?.trim() ? (
+            <Text style={styles.periodNote}>{dailyPeriod.description}</Text>
+          ) : null}
           <View style={styles.todayRow}>
             <View style={styles.todayCol}>
               <Text style={styles.todayValue}>{todayCalories}</Text>
@@ -267,17 +300,33 @@ export function PilatesProgressScreen() {
           </Text>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Daily targets</Text>
+        {monthlyPeriod?.sectionTitle?.trim() ? (
+          <View style={styles.monthCard}>
+            <Text style={styles.todayLabel}>{monthlyPeriod.sectionTitle}</Text>
+            {monthlyPeriod.description?.trim() ? (
+              <Text style={styles.periodNote}>{monthlyPeriod.description}</Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        <Text style={styles.sectionTitle}>
+          {progressContent?.ui.dailyTargetsTitle?.trim() || 'Daily targets'}
+        </Text>
         <View style={styles.targetCard}>
           <Text style={styles.targetHint}>
-            Optional. Progress bars use today&apos;s totals only.
+            {progressContent?.ui.dailyTargetsHint?.trim() ||
+              "Optional. Progress bars use today's totals only."}
           </Text>
           <View style={styles.inputRow}>
             <Text style={styles.inputLabel}>kcal / day</Text>
             <TextInput
               style={styles.input}
               keyboardType="number-pad"
-              placeholder="e.g. 200"
+              placeholder={
+                dailyPeriod?.targetCalories
+                  ? `e.g. ${dailyPeriod.targetCalories}`
+                  : 'e.g. 200'
+              }
               placeholderTextColor={colors.textSecondary}
               value={calInput}
               onChangeText={setCalInput}
@@ -300,7 +349,11 @@ export function PilatesProgressScreen() {
             <TextInput
               style={styles.input}
               keyboardType="number-pad"
-              placeholder="e.g. 20"
+              placeholder={
+                dailyPeriod?.targetMinutes
+                  ? `e.g. ${dailyPeriod.targetMinutes}`
+                  : 'e.g. 20'
+              }
               placeholderTextColor={colors.textSecondary}
               value={minInput}
               onChangeText={setMinInput}
@@ -358,7 +411,9 @@ export function PilatesProgressScreen() {
         </View>
 
         <View style={styles.motivationCard}>
-          <Text style={styles.motivationLabel}>Keep going</Text>
+          <Text style={styles.motivationLabel}>
+            {progressContent?.ui.motivationLabel?.trim() || 'Keep going'}
+          </Text>
           <Text style={styles.motivationText}>{motivation}</Text>
         </View>
 
@@ -441,7 +496,9 @@ export function PilatesProgressScreen() {
           </Text>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>Minutes (last 7 days)</Text>
+            <Text style={styles.sectionTitle}>
+              {dailyPeriod?.minutesChartTitle?.trim() || 'Minutes (last 7 days)'}
+            </Text>
             <View style={styles.chartBox}>
               <View style={styles.chartClip}>
               <LineChart
@@ -470,7 +527,8 @@ export function PilatesProgressScreen() {
             </View>
 
             <Text style={styles.sectionTitle}>
-              Minutes by week (last 4 weeks)
+              {weeklyPeriod?.minutesChartTitle?.trim() ||
+                'Minutes by week (last 4 weeks)'}
             </Text>
             <View style={styles.chartBox}>
               <View style={styles.chartClip}>
@@ -497,7 +555,9 @@ export function PilatesProgressScreen() {
               </View>
             </View>
 
-            <Text style={styles.sectionTitle}>Calories (last 7 days)</Text>
+            <Text style={styles.sectionTitle}>
+              {dailyPeriod?.caloriesChartTitle?.trim() || 'Calories (last 7 days)'}
+            </Text>
             <View style={styles.chartBox}>
               <View style={styles.chartClip}>
               <LineChart
@@ -526,7 +586,8 @@ export function PilatesProgressScreen() {
             </View>
 
             <Text style={styles.sectionTitle}>
-              Calories by week (last 4 weeks)
+              {weeklyPeriod?.caloriesChartTitle?.trim() ||
+                'Calories by week (last 4 weeks)'}
             </Text>
             <View style={styles.chartBox}>
               <View style={styles.chartClip}>
@@ -868,6 +929,21 @@ function createProgressStyles(colors: AppColors) {
     borderWidth: 1,
     borderColor: colors.border,
     ...cardShadowThemed(colors.shadow),
+  },
+  monthCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  periodNote: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 4,
+    marginBottom: 4,
   },
   weekCompareRow: {
     flexDirection: 'row',

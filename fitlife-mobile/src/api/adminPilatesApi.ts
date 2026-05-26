@@ -7,6 +7,7 @@ export type AdminPilatesWorkout = {
   name: string;
   description: string;
   durationMinutes: number;
+  estimatedCalories: number;
   orderIndex: number;
 };
 
@@ -35,6 +36,7 @@ export type CreatePilatesWorkoutPayload = {
   name: string;
   description: string;
   durationMinutes: number;
+  estimatedCalories: number;
   orderIndex: number;
 };
 
@@ -42,6 +44,7 @@ export type UpdatePilatesWorkoutPayload = {
   name: string;
   description: string;
   durationMinutes: number;
+  estimatedCalories: number;
   orderIndex: number;
 };
 
@@ -139,5 +142,170 @@ export async function deletePilatesWorkout(id: number): Promise<void> {
   });
   if (!res.ok && res.status !== 204) {
     await parseError(res, 'Failed to delete workout');
+  }
+}
+
+export type AdminPilatesUserProgress = {
+  id: number;
+  userId: number;
+  userFullName: string;
+  userEmail: string;
+  programName: string;
+  workoutName: string;
+  isCompleted: boolean;
+  completedAt: string | null;
+  pilatesProgramId: number;
+};
+
+export type AdminPilatesEnrollmentRow = {
+  id: number;
+  userId: number;
+  userFullName: string;
+  userEmail: string;
+  pilatesProgramId: number;
+  programName: string;
+  enrolledAt: string;
+  completedAt: string | null;
+};
+
+export async function fetchAdminPilatesProgress(
+  programId?: number,
+): Promise<AdminPilatesUserProgress[]> {
+  const qs =
+    programId != null ? `?programId=${encodeURIComponent(String(programId))}` : '';
+  const res = await fetch(`${BASE_URL}/Admin/pilates/progress${qs}`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) await parseError(res, 'Failed to load Pilates progress');
+  const data = (await res.json()) as AdminPilatesUserProgress[];
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchAdminPilatesEnrollments(
+  programId?: number,
+): Promise<AdminPilatesEnrollmentRow[]> {
+  const qs =
+    programId != null ? `?programId=${encodeURIComponent(String(programId))}` : '';
+  const res = await fetch(`${BASE_URL}/Admin/pilates/enrollments${qs}`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) await parseError(res, 'Failed to load Pilates enrollments');
+  const data = (await res.json()) as AdminPilatesEnrollmentRow[];
+  return Array.isArray(data) ? data : [];
+}
+
+// --- Progress screen content (admin) ---
+
+export type PilatesProgressUiConfig = {
+  id: number;
+  title: string;
+  subtitle: string;
+  motivationLabel: string;
+  dailyTargetsTitle: string;
+  dailyTargetsHint: string;
+};
+
+export type PilatesProgressPeriodSetting = {
+  id: number;
+  period: string;
+  sectionTitle: string;
+  description: string | null;
+  targetCalories: number | null;
+  targetMinutes: number | null;
+  minutesChartTitle: string | null;
+  caloriesChartTitle: string | null;
+  displayOrder: number;
+};
+
+export type PilatesMotivationMessage = {
+  id: number;
+  message: string;
+  displayOrder: number;
+  isActive: boolean;
+};
+
+export type PilatesProgressContent = {
+  ui: PilatesProgressUiConfig;
+  periods: PilatesProgressPeriodSetting[];
+  messages: PilatesMotivationMessage[];
+};
+
+export type UpdatePilatesProgressPeriodPayload = {
+  sectionTitle: string;
+  description: string | null;
+  targetCalories: number | null;
+  targetMinutes: number | null;
+  minutesChartTitle: string | null;
+  caloriesChartTitle: string | null;
+  displayOrder: number;
+};
+
+export type UpsertMotivationMessagePayload = {
+  message: string;
+  displayOrder: number;
+  isActive: boolean;
+};
+
+export async function fetchAdminPilatesProgressContent(): Promise<PilatesProgressContent> {
+  const res = await fetch(`${BASE_URL}/Admin/pilates/progress-content`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) await parseError(res, 'Failed to load progress content');
+  return res.json();
+}
+
+export async function updatePilatesProgressUi(
+  payload: Omit<PilatesProgressUiConfig, 'id'>,
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/Admin/pilates/progress-ui`, {
+    method: 'PUT',
+    headers: await authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) await parseError(res, 'Failed to save screen text');
+}
+
+export async function updatePilatesProgressPeriod(
+  id: number,
+  payload: UpdatePilatesProgressPeriodPayload,
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/Admin/pilates/progress-periods/${id}`, {
+    method: 'PUT',
+    headers: await authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) await parseError(res, 'Failed to save period settings');
+}
+
+export async function createMotivationMessage(
+  payload: UpsertMotivationMessagePayload,
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/Admin/pilates/motivation-messages`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) await parseError(res, 'Failed to add message');
+}
+
+export async function updateMotivationMessage(
+  id: number,
+  payload: UpsertMotivationMessagePayload,
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/Admin/pilates/motivation-messages/${id}`, {
+    method: 'PUT',
+    headers: await authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) await parseError(res, 'Failed to update message');
+}
+
+export async function deleteMotivationMessage(id: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/Admin/pilates/motivation-messages/${id}`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  });
+  if (!res.ok && res.status !== 204) {
+    await parseError(res, 'Failed to delete message');
   }
 }

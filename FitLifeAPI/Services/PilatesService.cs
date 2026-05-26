@@ -51,6 +51,7 @@ namespace FitLifeAPI.Services
                     Name = w.Name,
                     Description = w.Description,
                     DurationMinutes = w.DurationMinutes,
+                    EstimatedCalories = w.EstimatedCalories,
                     OrderIndex = w.OrderIndex,
                     IsCompleted = completedIds.Contains(w.Id)
                 }).ToList()
@@ -119,6 +120,7 @@ namespace FitLifeAPI.Services
         {
             var workout = await _pilatesRepository.GetWorkoutByIdAsync(request.PilatesWorkoutId);
             var snapshot = BuildProgressSnapshot(request, workout);
+            var calories = ResolveCaloriesBurned(workout);
 
             var existing = await _pilatesRepository.GetProgressAsync(userId, request.PilatesWorkoutId);
 
@@ -133,6 +135,7 @@ namespace FitLifeAPI.Services
                     ProgramName = snapshot.ProgramName,
                     WorkoutName = snapshot.WorkoutName,
                     ExercisesCompleted = snapshot.ExercisesCompleted,
+                    CaloriesBurned = calories,
                 };
                 await _pilatesRepository.AddProgressAsync(progress);
             }
@@ -143,6 +146,7 @@ namespace FitLifeAPI.Services
                 existing.ProgramName = snapshot.ProgramName;
                 existing.WorkoutName = snapshot.WorkoutName;
                 existing.ExercisesCompleted = snapshot.ExercisesCompleted;
+                existing.CaloriesBurned = calories;
                 await _pilatesRepository.UpdateProgressAsync(existing);
             }
 
@@ -199,6 +203,7 @@ namespace FitLifeAPI.Services
                 Name = request.Name,
                 Description = request.Description,
                 DurationMinutes = request.DurationMinutes,
+                EstimatedCalories = Math.Max(0, request.EstimatedCalories),
                 OrderIndex = request.OrderIndex
             };
 
@@ -211,6 +216,7 @@ namespace FitLifeAPI.Services
                 Name = workout.Name,
                 Description = workout.Description,
                 DurationMinutes = workout.DurationMinutes,
+                EstimatedCalories = workout.EstimatedCalories,
                 OrderIndex = workout.OrderIndex,
                 IsCompleted = false
             };
@@ -253,6 +259,7 @@ namespace FitLifeAPI.Services
             workout.Name = request.Name.Trim();
             workout.Description = request.Description.Trim();
             workout.DurationMinutes = request.DurationMinutes;
+            workout.EstimatedCalories = Math.Max(0, request.EstimatedCalories);
             workout.OrderIndex = request.OrderIndex;
 
             var ok = await _pilatesRepository.UpdateWorkoutAsync(workout);
@@ -268,6 +275,7 @@ namespace FitLifeAPI.Services
                 Name = refreshed.Name,
                 Description = refreshed.Description,
                 DurationMinutes = refreshed.DurationMinutes,
+                EstimatedCalories = refreshed.EstimatedCalories,
                 OrderIndex = refreshed.OrderIndex,
                 IsCompleted = false,
             };
@@ -348,10 +356,21 @@ namespace FitLifeAPI.Services
                     Name = w.Name,
                     Description = w.Description,
                     DurationMinutes = w.DurationMinutes,
+                    EstimatedCalories = w.EstimatedCalories,
                     OrderIndex = w.OrderIndex,
                     IsCompleted = completedWorkoutIds.Contains(w.Id),
                 }).ToList()
             };
+        }
+
+        private static int? ResolveCaloriesBurned(PilatesWorkout? workout)
+        {
+            if (workout == null) return null;
+            if (workout.EstimatedCalories > 0) return workout.EstimatedCalories;
+            if (workout.DurationMinutes <= 0) return null;
+            // Same rough formula as mobile: MET ~3 × 65 kg
+            var hours = workout.DurationMinutes / 60.0;
+            return (int)Math.Round(3.0 * 65.0 * hours);
         }
     }
 }

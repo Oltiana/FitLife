@@ -22,6 +22,9 @@ namespace FitLifeAPI.Data
         public DbSet<YogaStep> YogaSteps { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<UpcomingClass> UpcomingClasses { get; set; }
+        public DbSet<PilatesProgressUiConfig> PilatesProgressUiConfigs { get; set; }
+        public DbSet<PilatesProgressPeriodSetting> PilatesProgressPeriodSettings { get; set; }
+        public DbSet<PilatesMotivationMessage> PilatesMotivationMessages { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)  

@@ -9,7 +9,11 @@ export function pickMotivationalMessage(
   streak: number,
   totalMinutes: number,
   totalSessions: number,
+  apiMessages?: string[],
 ): string {
+  const pool =
+    apiMessages && apiMessages.length > 0 ? apiMessages : GENERAL;
+
   if (totalSessions === 0) {
     return 'Complete your first session — the best time to start is now.';
   }
@@ -26,6 +30,6 @@ export function pickMotivationalMessage(
     return 'Three days in a row — momentum is on your side.';
   }
   const i =
-    (streak + totalSessions + Math.floor(totalMinutes / 10)) % GENERAL.length;
-  return GENERAL[i] ?? GENERAL[0]!;
+    (streak + totalSessions + Math.floor(totalMinutes / 10)) % pool.length;
+  return pool[i] ?? pool[0]!;
 }
