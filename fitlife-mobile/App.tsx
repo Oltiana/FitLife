@@ -12,7 +12,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { WebAppRoot } from './src/components/PilatesWebAppRoot';
 import { hasAuthToken, syncPilatesAfterAuth } from './src/api/pilatesApi';
-import { type ReactNode } from 'react';
 import {
   ensurePreferencesForLegacyInstall,
   loadPrograms,
@@ -26,7 +25,9 @@ import { ThemeProvider, useTheme } from './src/theme/PilatesThemeContext';
 import { tokenStorage } from './src/storage/tokenStorage';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
+import VerifyEmailScreen from './src/screens/auth/VerifyEmailScreen';
 import { AdminDashboard } from './src/screens/admin/AdminDashboard';
+import { AuthProvider, useAuth } from './src/hooks/useAuth';
 
 function Root({ children }: { children: React.ReactNode }) {
   if (Platform.OS === 'web') {
@@ -50,31 +51,30 @@ function BootSpinner() {
 
 function ThemedNavigation() {
   const { colors, colorScheme } = useTheme();
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const { isAuthenticated, isLoading, logout } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [showVerify, setShowVerify] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = await tokenStorage.getToken();
+    const checkRole = async () => {
       const role = await tokenStorage.getRole();
-      setIsLoggedIn(!!token);
       setIsAdmin(role === 'Admin');
     };
-    void checkAuth();
-  }, []);
+    if (isAuthenticated) void checkRole();
+    else setIsAdmin(false);
+  }, [isAuthenticated]);
 
   const handleLoginSuccess = async () => {
     const role = await tokenStorage.getRole();
     setIsAdmin(role === 'Admin');
     await syncPilatesAfterAuth();
-    setIsLoggedIn(true);
   };
 
   const handleLogout = async () => {
-    await tokenStorage.clearAuth();
+    await logout();
     setIsAdmin(false);
-    setIsLoggedIn(false);
   };
 
   const linking = useMemo<LinkingOptions<MainTabParamList>>(
@@ -129,20 +129,36 @@ function ThemedNavigation() {
     [colorScheme, colors],
   );
 
-  if (isLoggedIn === null) return null;
+  if (isLoading) return <BootSpinner />;
 
-  if (!isLoggedIn) {
-    return showRegister ? (
-      <RegisterScreen
-        onRegisterSuccess={() => {
-          void syncPilatesAfterAuth().finally(() => {
+  if (!isAuthenticated) {
+    if (showVerify) {
+      return (
+        <VerifyEmailScreen
+          email={pendingEmail}
+          onVerifySuccess={() => setShowVerify(false)}
+          onNavigateToLogin={() => {
+            setShowVerify(false);
             setShowRegister(false);
-            setIsLoggedIn(true);
-          });
-        }}
-        onNavigateToLogin={() => setShowRegister(false)}
-      />
-    ) : (
+          }}
+        />
+      );
+    }
+
+    if (showRegister) {
+      return (
+        <RegisterScreen
+          onRegisterSuccess={(email: string) => {
+            setPendingEmail(email);
+            setShowRegister(false);
+            setShowVerify(true);
+          }}
+          onNavigateToLogin={() => setShowRegister(false)}
+        />
+      );
+    }
+
+    return (
       <LoginScreen
         onLoginSuccess={() => void handleLoginSuccess()}
         onNavigateToRegister={() => setShowRegister(true)}
@@ -193,17 +209,19 @@ export default function App() {
 
   return (
     <Root>
-      <ThemeProvider initialScheme={initialTheme}>
-        <SafeAreaProvider>
-          {!bootReady ? (
-            <BootSpinner />
-          ) : (
-            <WebAppRoot>
-              <ThemedNavigation />
-            </WebAppRoot>
-          )}
-        </SafeAreaProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider initialScheme={initialTheme}>
+          <SafeAreaProvider>
+            {!bootReady ? (
+              <BootSpinner />
+            ) : (
+              <WebAppRoot>
+                <ThemedNavigation />
+              </WebAppRoot>
+            )}
+          </SafeAreaProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </Root>
   );
 }

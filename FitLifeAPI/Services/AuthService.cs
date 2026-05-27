@@ -25,47 +25,44 @@ namespace FitLifeAPI.Services
         }
 
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
-        {
-            var existingUser = await _authRepository.GetByEmailAsync(request.Email);
-            if (existingUser != null)
-                throw new Exception("Email already exists");
+{
+    var existingUser = await _authRepository.GetByEmailAsync(request.Email);
+    if (existingUser != null)
+        throw new Exception("Email already exists");
 
-            var user = new User
-            {
-                FullName = request.FullName,
-                Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                VerificationToken = new Random().Next(100000, 999999).ToString()
-            };
+    var user = new User
+    {
+        FullName = request.FullName,
+        Email = request.Email,
+        PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+        VerificationToken = new Random().Next(100000, 999999).ToString()
+    };
 
-            await _authRepository.AddAsync(user);
+    await _authRepository.AddAsync(user);
 
-            try
-            {
-                await _emailService.SendEmailAsync(
-                    user.Email,
-                    "Verify your email - FitLife",
-                    $@"<h2>Welcome to FitLife, {user.FullName}!</h2>
-                       <p>Your verification code is:</p>
-                       <h1 style='letter-spacing: 8px;'>{user.VerificationToken}</h1>
-                       <p>This code expires in 24 hours.</p>
-                       <p>If you did not create an account, ignore this email.</p>"
-                );
-            }
-            catch { }
+    try
+    {
+        await _emailService.SendEmailAsync(
+            user.Email,
+            "Verify your email - FitLife",
+            $@"<h2>Welcome to FitLife, {user.FullName}!</h2>
+               <p>Your verification code is:</p>
+               <h1 style='letter-spacing: 8px;'>{user.VerificationToken}</h1>
+               <p>This code expires in 24 hours.</p>"
+        );
+    }
+    catch { }
 
-            var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
-
-            return new AuthResponse
-            {
-                Token = GenerateJwtToken(user),
-                RefreshToken = refreshToken,
-                FullName = user.FullName,
-                Email = user.Email,
-                IsVerified = user.IsVerified,
-                Role = user.Role ?? "User",
-            };
-        }
+    return new AuthResponse
+    {
+        Token = string.Empty,
+        RefreshToken = string.Empty,
+        FullName = user.FullName,
+        Email = user.Email,
+        IsVerified = false,
+        Role = "User"
+    };
+}
 
         public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
@@ -105,7 +102,8 @@ namespace FitLifeAPI.Services
                 RefreshToken = newRefreshToken,
                 FullName = existing.User.FullName,
                 Email = existing.User.Email,
-                IsVerified = existing.User.IsVerified
+                IsVerified = existing.User.IsVerified,
+                Role = existing.User.Role ?? "User"
             };
         }
 
@@ -183,7 +181,7 @@ namespace FitLifeAPI.Services
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(7),
+                expires: DateTime.UtcNow.AddMinutes(60),
                 signingCredentials: credentials
             );
 

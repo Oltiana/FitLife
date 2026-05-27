@@ -44,13 +44,13 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
-        {
-            var result = await _authService.RefreshTokenAsync(refreshToken);
-            if (result == null)
-                return Unauthorized("Refresh token invalid or expired.");
-            return Ok(result);
-        }
+public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+{
+    var result = await _authService.RefreshTokenAsync(request.RefreshToken);
+    if (result == null)
+        return Unauthorized("Refresh token invalid or expired.");
+    return Ok(result);
+}
 
         [HttpPost("verify-email")]
         public async Task<IActionResult> VerifyEmail([FromBody] string code)
@@ -77,11 +77,10 @@ namespace FitLifeAPI.Controllers
             return Ok("Password reset successfully.");
         }
         [HttpPost("logout")]
-
-        public async Task<IActionResult> Logout([FromBody] string refreshToken)
-        {
-            await _authService.LogoutAsync(refreshToken);
-            return Ok("Logged out successfully.");
-        }
+public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
+{
+    await _authService.LogoutAsync(request.RefreshToken);
+    return Ok("Logged out successfully.");
+}
     }
 }

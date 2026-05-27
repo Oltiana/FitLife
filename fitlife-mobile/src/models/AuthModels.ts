@@ -4,10 +4,12 @@ export interface AuthResponse {
   fullName: string;
   email: string;
   isVerified: boolean;
+  role: string;
 }
 
 export interface AuthUser {
   fullName: string;
   email: string;
   isVerified: boolean;
+  role: string;
 }

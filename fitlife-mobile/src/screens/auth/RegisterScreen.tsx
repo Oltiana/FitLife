@@ -11,9 +11,9 @@ export default function RegisterScreen({
   onRegisterSuccess,
   onNavigateToLogin,
 }: {
-  onRegisterSuccess: () => void;
+  onRegisterSuccess: (email: string) => void;
   onNavigateToLogin: () => void;
-}) {
+}){
   const {
     firstName, setFirstName,
     lastName, setLastName,
