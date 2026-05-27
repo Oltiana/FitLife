@@ -4,6 +4,7 @@ import { type ReactNode } from 'react';
 import { AdminPilatesScreen } from './AdminPilatesScreen';
 import { AdminYogaScreen } from './AdminYogaScreen';
 import { AdminUsersScreen } from './AdminUsersScreen';
+import { AdminAnalyticsScreen } from './AdminAnalyticsScreen';
 import {
   ActivityIndicator,
   Dimensions,
@@ -17,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getAdminStats } from '../../api/adminApi';
 
-type Section = 'home' | 'users' | 'pilates' | 'yoga' | 'fitness';
+type Section = 'home' | 'users' | 'pilates' | 'yoga' | 'fitness'| 'analytics';
 
 type AdminStats = {
   totalUsers: number;
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { id: 'pilates', label: 'Pilates', icon: 'body-outline' },
   { id: 'yoga', label: 'Yoga', icon: 'leaf-outline' },
   { id: 'fitness', label: 'Fitness', icon: 'barbell-outline' },
+  { id: 'analytics', label: 'Analytics', icon: 'stats-chart-outline' },
 ] as const;
 
 const screenWidth = Dimensions.get('window').width;
@@ -63,10 +65,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   const STATS = [
-    { label: 'Total Users', value: String(stats.totalUsers), icon: 'people-outline', color: '#3d6b42', bg: '#e8f5eb' },
-    { label: 'Pilates Programs', value: String(stats.totalPilatesPrograms), icon: 'body-outline', color: '#c94444', bg: '#fdecef' },
-    { label: 'Yoga Classes', value: String(stats.totalYogaClasses), icon: 'leaf-outline', color: '#c9782e', bg: '#fff4e8' },
-    { label: 'Workout Plans', value: String(stats.totalFitnessExercises), icon: 'barbell-outline', color: '#3b7ec8', bg: '#e8f2fc' },
+    { label: 'Total Users', value: String(stats.totalUsers), icon: 'people-outline', color: '#3d6b42', bg: '#e8f5eb', section: 'users' as Section },
+    { label: 'Pilates Programs', value: String(stats.totalPilatesPrograms), icon: 'body-outline', color: '#c94444', bg: '#fdecef', section: 'pilates' as Section },
+    { label: 'Yoga Classes', value: String(stats.totalYogaClasses), icon: 'leaf-outline', color: '#c9782e', bg: '#fff4e8', section: 'yoga' as Section },
+    { label: 'Workout Plans', value: String(stats.totalFitnessExercises), icon: 'barbell-outline', color: '#3b7ec8', bg: '#e8f2fc', section: 'fitness' as Section },
   ];
 
   const handleNavPress = (id: Section) => {
@@ -147,12 +149,20 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {activeSection === 'home' && (
-            <HomeSection stats={STATS} loading={loadingStats} />
+            <HomeSection
+              stats={STATS}
+              loading={loadingStats}
+              onNavigate={handleNavPress}
+            />
           )}
+          {activeSection === 'analytics' && (
+  <AdminAnalyticsScreen onBack={() => handleNavPress('home')} />
+)}
           {activeSection === 'users' && (
             <AdminUsersScreen
               onShowPopup={(content) => setPopupContent(content)}
               onHidePopup={() => setPopupContent(null)}
+              onBack={() => handleNavPress('home')}
             />
           )}
           {activeSection === 'pilates' && (
@@ -160,6 +170,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               onShowPopup={(content) => setPopupContent(content)}
               onHidePopup={() => setPopupContent(null)}
               onProgramsChanged={refreshStats}
+              
             />
           )}
           {activeSection === 'yoga' && (
@@ -195,9 +206,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 function HomeSection({
   stats,
   loading,
+  onNavigate,
 }: {
-  stats: { label: string; value: string; icon: string; color: string; bg: string }[];
+  stats: { label: string; value: string; icon: string; color: string; bg: string; section: Section }[];
   loading: boolean;
+  onNavigate: (section: Section) => void;
 }) {
   return (
     <View>
@@ -207,19 +220,30 @@ function HomeSection({
       ) : (
         <View style={styles.statsGrid}>
           {stats.map((stat) => (
-            <View key={stat.label} style={styles.statCard}>
+            <Pressable
+              key={stat.label}
+              style={({ pressed }) => [styles.statCard, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
+              onPress={() => onNavigate(stat.section)}
+            >
               <View style={[styles.statIconWrap, { backgroundColor: stat.bg }]}>
                 <Ionicons name={stat.icon as any} size={22} color={stat.color} />
               </View>
               <Text style={styles.statValue}>{stat.value}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
+              <Ionicons name="chevron-forward-outline" size={12} color="#a0b0a0" style={{ marginTop: 4 }} />
+            </Pressable>
           ))}
         </View>
       )}
       <Text style={styles.sectionHeading}>Quick Actions</Text>
       <View style={styles.actionsGrid}>
-        <ActionCard icon="stats-chart-outline" label="Analytics" color="#3b7ec8" bg="#e8f2fc" />
+        <ActionCard
+  icon="stats-chart-outline"
+  label="Analytics"
+  color="#3b7ec8"
+  bg="#e8f2fc"
+  onPress={() => onNavigate('analytics')}
+/>
         <ActionCard icon="notifications-outline" label="Announcements" color="#c9782e" bg="#fff4e8" />
         <ActionCard icon="settings-outline" label="Settings" color="#6b7a6b" bg="#f0f4f0" />
         <ActionCard icon="shield-checkmark-outline" label="Permissions" color="#7c6aad" bg="#f0ecf8" />
@@ -228,9 +252,20 @@ function HomeSection({
   );
 }
 
-function ActionCard({ icon, label, color, bg }: { icon: string; label: string; color: string; bg: string }) {
+function ActionCard({
+  icon, label, color, bg, onPress
+}: {
+  icon: string;
+  label: string;
+  color: string;
+  bg: string;
+  onPress?: () => void;
+}) {
   return (
-    <Pressable style={({ pressed }) => [styles.actionCard, pressed && { opacity: 0.8 }]}>
+    <Pressable
+      style={({ pressed }) => [styles.actionCard, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
+      onPress={onPress}
+    >
       <View style={[styles.actionIconWrap, { backgroundColor: bg }]}>
         <Ionicons name={icon as any} size={24} color={color} />
       </View>
@@ -338,9 +373,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  hamburger: {
-    padding: 4,
-  },
+  hamburger: { padding: 4 },
   pageTitle: { fontSize: 20, fontWeight: '800', color: '#142210' },
   adminBadge: {
     flexDirection: 'row',

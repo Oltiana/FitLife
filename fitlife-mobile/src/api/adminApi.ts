@@ -101,3 +101,25 @@ export async function getAdminUserDetails(id: number): Promise<AdminUserDetails>
   if (!res.ok) throw new Error('Failed to fetch user details');
   return res.json();
 }
+export type DailyCount = {
+  date: string;
+  count: number;
+};
+
+export type ModuleStat = {
+  module: string;
+  count: number;
+};
+
+export type AnalyticsData = {
+  userRegistrations: DailyCount[];
+  moduleStats: ModuleStat[];
+};
+
+export async function getAdminAnalytics(): Promise<AnalyticsData> {
+  const res = await fetch(`${BASE_URL}/Admin/analytics`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch analytics');
+  return res.json();
+}

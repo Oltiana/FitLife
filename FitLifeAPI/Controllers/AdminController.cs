@@ -322,6 +322,32 @@ public async Task<IActionResult> GetUserDetails(int id)
             await _context.SaveChangesAsync();
             return Ok(new { message = "User deleted successfully" });
         }
+        [HttpGet("analytics")]
+        public async Task<IActionResult> GetAnalytics()
+        {
+            var users = await _context.Users
+                .Select(u => new { u.CreatedAt })
+                .ToListAsync();
+
+            var userRegistrations = users
+                .GroupBy(u => u.CreatedAt.Date)
+                .Select(g => new
+                {
+                    Date = g.Key.ToString("yyyy-MM-dd"),
+                    Count = g.Count()
+                })
+                .OrderBy(x => x.Date)
+                .ToList();
+
+            var moduleStats = new[]
+            {
+                new { Module = "Pilates", Count = await _context.UserPilatesEnrollments.CountAsync() },
+                new { Module = "Yoga",    Count = await _context.Bookings.CountAsync() },
+                new { Module = "Fitness", Count = await _context.WorkoutPlans.CountAsync() },
+            };
+
+            return Ok(new { userRegistrations, moduleStats });
+        }
 
     }
 }
