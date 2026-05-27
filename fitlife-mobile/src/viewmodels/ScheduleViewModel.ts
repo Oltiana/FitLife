@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
-
-const CURRENT_USER = "TEMP_USER";
+import { tokenStorage } from "../storage/tokenStorage";
 
 export function useScheduleViewModel(selectedDate: string) {
   const [sessions, setSessions] = useState<any[]>([]);
@@ -28,15 +27,32 @@ export function useScheduleViewModel(selectedDate: string) {
   };
 
   const bookSession = async (id: number) => {
-    await api.bookSession(id, CURRENT_USER);
+    try {
+      const currentUser =
+        await tokenStorage.getUser();
 
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === id && s.capacity > 0
-          ? { ...s, capacity: s.capacity - 1 }
-          : s
-      )
-    );
+      if (!currentUser) {
+        throw new Error("User not found");
+      }
+
+      await api.bookSession(
+        id,
+        currentUser.fullName
+      );
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === id && s.capacity > 0
+            ? {
+                ...s,
+                capacity: s.capacity - 1,
+              }
+            : s
+        )
+      );
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   const instructors = [
