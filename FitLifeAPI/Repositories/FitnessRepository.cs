@@ -120,5 +120,11 @@ namespace FitLifeAPI.Repositories
             _context.WorkoutSessions.Update(workoutSession);
             await _context.SaveChangesAsync();
         }
+
+        public async Task UpdateWorkoutExerciseAsync(WorkoutExercise workoutExercise)
+        {
+            _context.WorkoutExercises.Update(workoutExercise);
+            await _context.SaveChangesAsync();
+        }
     }
 }

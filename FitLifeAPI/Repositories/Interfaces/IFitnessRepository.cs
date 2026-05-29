@@ -23,5 +23,6 @@ namespace FitLifeAPI.Repositories.Interfaces
         Task<WorkoutSession?> GetWorkoutSessionByIdAsync(int id, int userId);
         Task AddWorkoutSessionAsync(WorkoutSession workoutSession);
         Task UpdateWorkoutSessionAsync(WorkoutSession workoutSession);
+        Task UpdateWorkoutExerciseAsync(WorkoutExercise workoutExercise);
     }
 }

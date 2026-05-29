@@ -146,6 +146,25 @@ namespace FitLifeAPI.Services
             return true;
         }
 
+        public async Task<bool> UpdateWorkoutExerciseAsync(
+        int workoutExerciseId,
+        int userId,
+        UpdateWorkoutExerciseRequest request)
+        {
+            var workoutExercise = await _fitnessRepository.GetWorkoutExerciseByIdAsync(workoutExerciseId);
+
+            if (workoutExercise == null || workoutExercise.WorkoutPlan.UserId != userId)
+                return false;
+
+            workoutExercise.Sets = request.Sets;
+            workoutExercise.Reps = request.Reps;
+
+
+            await _fitnessRepository.UpdateWorkoutExerciseAsync(workoutExercise);
+
+            return true;
+        }
+
         public async Task<IEnumerable<WorkoutSessionResponse>> GetWorkoutSessionsAsync(int userId)
         {
             var sessions = await _fitnessRepository.GetWorkoutSessionsAsync(userId);
@@ -226,6 +245,7 @@ namespace FitLifeAPI.Services
             {
                 Id = session.Id,
                 WorkoutPlanId = session.WorkoutPlanId,
+                WorkoutPlanName = session.WorkoutPlan?.Name ?? "Workout Plan",
                 StartedAt = session.StartedAt,
                 CompletedAt = session.CompletedAt,
                 DurationMinutes = session.DurationMinutes,

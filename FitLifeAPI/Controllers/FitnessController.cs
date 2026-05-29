@@ -122,6 +122,21 @@ namespace FitLifeAPI.Controllers
             return Ok("Workout exercise deleted successfully");
         }
 
+        [HttpPut("workout-exercises/{id}")]
+        public async Task<IActionResult> UpdateWorkoutExercise(
+    int id,
+    [FromBody] UpdateWorkoutExerciseRequest request)
+        {
+            var userId = GetUserId();
+
+            var result = await _fitnessService.UpdateWorkoutExerciseAsync(id, userId, request);
+
+            if (!result)
+                return NotFound("Workout exercise not found");
+
+            return Ok("Workout exercise updated successfully");
+        }
+
         [HttpGet("workout-sessions")]
         public async Task<IActionResult> GetWorkoutSessions()
         {
@@ -168,11 +183,11 @@ namespace FitLifeAPI.Controllers
                 var result = await _exerciseApiService.GetExercisesAsync(offset, limit);
                 return Ok(result);
             }
-                catch (Exception ex)
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
-        } 
+        }
         [AllowAnonymous]
         [HttpGet("exercises/{id}")]
         public async Task<IActionResult> GetExerciseById(string id)
@@ -180,10 +195,10 @@ namespace FitLifeAPI.Controllers
             var result = await _exerciseApiService.GetExerciseByIdAsync(id);
 
             if (result == null)
-            return NotFound("Exercise not found");
+                return NotFound("Exercise not found");
 
             return Ok(result);
         }
-                
+
     }
 }

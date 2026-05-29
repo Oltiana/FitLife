@@ -20,5 +20,6 @@ namespace FitLifeAPI.Services.Interfaces
         Task<IEnumerable<WorkoutSessionResponse>> GetWorkoutSessionsAsync(int userId);
         Task<WorkoutSessionResponse> StartWorkoutSessionAsync(int userId, CreateWorkoutSessionRequest request);
         Task<WorkoutSessionResponse?> CompleteWorkoutSessionAsync(int id, int userId, CompleteWorkoutSessionRequest request);
+       Task<bool> UpdateWorkoutExerciseAsync(int workoutExerciseId,int userId, UpdateWorkoutExerciseRequest request);
     }
 }
