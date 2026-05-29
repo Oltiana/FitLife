@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getExercises } from '../../api/fitnessApi';
 import { useNavigation } from '@react-navigation/native';
 
-const categories = ['All', 'Chest', 'Back', 'Legs', 'Arms'];
+const categories = ['All', 'Chest', 'Back', 'Legs', 'Arms', 'Waist'];
 const levels = ['Beginner', 'Intermediate'];
 
 export function ExerciseListScreen() {
@@ -37,6 +37,7 @@ export function ExerciseListScreen() {
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedLevel, setSelectedLevel] = useState<'Beginner' | 'Intermediate'>('Intermediate');
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     loadExercises();
@@ -48,7 +49,6 @@ export function ExerciseListScreen() {
       setError('');
 
       const data = await getExercises(0, 20);
-      console.log('FIRST EXERCISE:', JSON.stringify(data[0], null, 2));
       setExercises(data);
     } catch (err) {
       setError('Could not load exercises');
@@ -100,7 +100,6 @@ export function ExerciseListScreen() {
     );
   }
 
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -109,10 +108,50 @@ export function ExerciseListScreen() {
           <Text style={styles.subtitle}>{filteredExercises.length} exercises available</Text>
         </View>
 
-        <Pressable style={styles.menuButton}>
+        <Pressable
+          style={styles.menuButton}
+          onPress={() => setShowMenu(!showMenu)}
+        >
           <Ionicons name="menu" size={28} color="#6F9B73" />
         </Pressable>
       </View>
+
+      {showMenu && (
+        <View style={styles.dropdownMenu}>
+          <Pressable
+            style={styles.dropdownItem}
+            onPress={() => {
+              setShowMenu(false);
+              navigation.navigate('WorkoutPlans');
+            }}
+          >
+            <Ionicons name="list-outline" size={20} color="#5F8F64" />
+            <Text style={styles.dropdownText}>My Workout Plans</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.dropdownItem}
+            onPress={() => {
+              setShowMenu(false);
+              navigation.navigate('Favorites');
+            }}
+          >
+            <Ionicons name="heart-outline" size={20} color="#5F8F64" />
+            <Text style={styles.dropdownText}>Favorites</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.dropdownItem}
+            onPress={() => {
+              setShowMenu(false);
+              navigation.navigate('WorkoutHistory');
+            }}
+          >
+            <Ionicons name="time-outline" size={20} color="#5F8F64" />
+            <Text style={styles.dropdownText}>Workout History</Text>
+          </Pressable>
+        </View>
+      )}
 
       <View style={styles.searchBox}>
         <Ionicons name="search" size={20} color="#8E8E8E" />
@@ -159,6 +198,8 @@ export function ExerciseListScreen() {
           );
         })}
       </View>
+
+
 
       <FlatList
         data={filteredExercises}
@@ -406,4 +447,46 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 16,
   },
+  workoutPlansButton: {
+    marginHorizontal: 22,
+    marginTop: 16,
+    backgroundColor: '#5F8F64',
+    borderRadius: 18,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  workoutPlansButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  dropdownMenu: {
+    marginHorizontal: 22,
+    marginTop: -12,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E2E2E2',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 10,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  dropdownText: {
+    color: '#5F8F64',
+    fontSize: 14,
+    fontWeight: '800',
+},
 });
