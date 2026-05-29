@@ -5,6 +5,7 @@ import { AdminPilatesScreen } from './AdminPilatesScreen';
 import { AdminYogaScreen } from './AdminYogaScreen';
 import { AdminUsersScreen } from './AdminUsersScreen';
 import { AdminAnalyticsScreen } from './AdminAnalyticsScreen';
+import { AdminFitnessScreen } from './AdminFitnessScreen';
 import {
   ActivityIndicator,
   Dimensions,

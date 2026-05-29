@@ -82,56 +82,56 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("users/{id}/details")]
-public async Task<IActionResult> GetUserDetails(int id)
-{
-    var user = await _context.Users
-        .Where(u => u.Id == id)
-        .Select(u => new
+        public async Task<IActionResult> GetUserDetails(int id)
         {
-            u.Id,
-            u.FullName,
-            u.Email,
-            u.IsVerified,
-            u.Role,
-            u.CreatedAt,
-            WorkoutPlans = u.WorkoutPlans.Count,
-            WorkoutSessions = u.WorkoutSessions.Count,
-            FavoriteExercises = u.FavoriteExercises.Count,
-            PilatesEnrollments = _context.UserPilatesEnrollments
-                .Where(e => e.UserId == id)
-                .Select(e => new
+            var user = await _context.Users
+                .Where(u => u.Id == id)
+                .Select(u => new
                 {
-                    e.Id,
-                    ProgramName = e.Program.Name,
-                    e.EnrolledAt,
+                    u.Id,
+                    u.FullName,
+                    u.Email,
+                    u.IsVerified,
+                    u.Role,
+                    u.CreatedAt,
+                    WorkoutPlans = u.WorkoutPlans.Count,
+                    WorkoutSessions = u.WorkoutSessions.Count,
+                    FavoriteExercises = u.FavoriteExercises.Count,
+                    PilatesEnrollments = _context.UserPilatesEnrollments
+                        .Where(e => e.UserId == id)
+                        .Select(e => new
+                        {
+                            e.Id,
+                            ProgramName = e.Program.Name,
+                            e.EnrolledAt,
+                        })
+                        .ToList(),
+                    PilatesProgress = _context.UserPilatesProgresses
+                        .Where(p => p.UserId == id)
+                        .Select(p => new
+                        {
+                            p.Id,
+                            p.ProgramName,
+                            p.WorkoutName,
+                            p.IsCompleted,
+                            p.CompletedAt,
+                        })
+                        .ToList(),
+                    Bookings = _context.Bookings
+                        .Where(b => b.UserName == u.Email)
+                        .Select(b => new
+                        {
+                            b.Id,
+                            b.BookingDate,
+                            b.SessionId,
+                        })
+                        .ToList(),
                 })
-                .ToList(),
-            PilatesProgress = _context.UserPilatesProgresses
-                .Where(p => p.UserId == id)
-                .Select(p => new
-                {
-                    p.Id,
-                    p.ProgramName,
-                    p.WorkoutName,
-                    p.IsCompleted,
-                    p.CompletedAt,
-                })
-                .ToList(),
-            Bookings = _context.Bookings
-                .Where(b => b.UserName == u.Email)
-                .Select(b => new
-                {
-                    b.Id,
-                    b.BookingDate,
-                    b.SessionId,
-                })
-                .ToList(),
-        })
-        .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync();
 
-    if (user == null) return NotFound();
-    return Ok(user);
-}
+            if (user == null) return NotFound();
+            return Ok(user);
+        }
 
         [HttpGet("pilates/progress")]
         public async Task<IActionResult> GetPilatesProgress([FromQuery] int? programId)
@@ -347,6 +347,74 @@ public async Task<IActionResult> GetUserDetails(int id)
             };
 
             return Ok(new { userRegistrations, moduleStats });
+        }
+
+        [HttpGet("fitness/workout-plans")]
+        public async Task<IActionResult> GetFitnessWorkoutPlans()
+        {
+            var plans = await _context.WorkoutPlans
+                .Include(wp => wp.User)
+                .Include(wp => wp.WorkoutExercises)
+                .Include(wp => wp.WorkoutSessions)
+                .OrderByDescending(wp => wp.CreatedAt)
+                .Select(wp => new
+                {
+                    wp.Id,
+                    wp.Name,
+                    wp.Description,
+                    wp.Level,
+                    wp.CreatedAt,
+                    UserId = wp.UserId,
+                    UserName = wp.User.FullName,
+                    UserEmail = wp.User.Email,
+                    ExercisesCount = wp.WorkoutExercises.Count,
+                    SessionsCount = wp.WorkoutSessions.Count,
+                    Exercises = wp.WorkoutExercises
+                        .OrderBy(e => e.OrderIndex)
+                        .Select(e => new
+                        {
+                            e.Id,
+                            e.ExerciseName,
+                            e.BodyPart,
+                            e.TargetMuscle,
+                            e.Sets,
+                            e.Reps,
+                            e.OrderIndex
+                        })
+                        .ToList()
+                })
+                .ToListAsync();
+
+            return Ok(plans);
+        }
+
+        [HttpPut("fitness/workout-plans/{id}")]
+        public async Task<IActionResult> UpdateFitnessWorkoutPlan(
+    int id,
+    [FromBody] CreateWorkoutPlanRequest request)
+        {
+            var plan = await _context.WorkoutPlans.FindAsync(id);
+            if (plan == null) return NotFound();
+
+            plan.Name = request.Name;
+            plan.Description = request.Description;
+            plan.Level = request.Level;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Workout plan updated successfully" });
+        }
+
+        [HttpDelete("fitness/workout-plans/{id}")]
+        public async Task<IActionResult> DeleteFitnessWorkoutPlan(int id)
+        {
+            var plan = await _context.WorkoutPlans.FindAsync(id);
+            if (plan == null) return NotFound();
+
+            _context.WorkoutPlans.Remove(plan);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Workout plan deleted successfully" });
         }
 
     }
