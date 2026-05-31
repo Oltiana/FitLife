@@ -36,31 +36,34 @@ export function WorkoutPlansScreen() {
     }, [])
   );
 
- const handleDeletePlan = (id: number) => {
-  Alert.alert(
-    'Delete Workout Plan',
-    'Are you sure you want to delete this workout plan?',
-    [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteWorkoutPlan(id);
-            loadPlans();
-          } catch (error) {
-            console.log('Failed to delete workout plan', error);
-          }
+  const handleDeletePlan = (id: number) => {
+    Alert.alert(
+      'Delete Workout Plan',
+      'Are you sure you want to delete this workout plan?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteWorkoutPlan(id);
+              loadPlans();
+            } catch (error) {
+              console.log('Failed to delete workout plan', error);
+            }
+          },
         },
-      },
-    ]
-  );
-};
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </Pressable>
         <View>
           <Text style={styles.title}>Workout Plans</Text>
           <Text style={styles.subtitle}>Create and manage your fitness routines</Text>
@@ -225,5 +228,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
 });

@@ -15,7 +15,7 @@ import {
   getAdminFitnessWorkoutPlans,
   updateAdminFitnessWorkoutPlan,
   type AdminFitnessWorkoutPlan,
-} from '../../api/adminApi';
+} from '../../api/adminFitnessApi';
 
 export function AdminFitnessScreen({
   onShowPopup,

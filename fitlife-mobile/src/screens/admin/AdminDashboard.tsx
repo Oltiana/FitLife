@@ -181,8 +181,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               onProgramsChanged={refreshStats}
             />
           )}
-          {activeSection === 'fitness' && (
-            <PlaceholderSection title="Fitness" description="Manage fitness workout plans." icon="barbell-outline" />
+            {activeSection === 'fitness' && (
+            <AdminFitnessScreen
+              onShowPopup={(content) => setPopupContent(content)}
+              onHidePopup={() => setPopupContent(null)}
+            />
           )}
         </ScrollView>
       </View>

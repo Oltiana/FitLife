@@ -5,7 +5,6 @@ const BASE_URL = API_BASE_URL;
 
 async function authHeaders() {
   const token = await tokenStorage.getToken();
-
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
@@ -25,11 +24,13 @@ export async function getExercises(offset = 0, limit = 10) {
 }
 
 export async function getWorkoutPlans() {
-  const response = await fetch(`${BASE_URL}/fitness/workout-plans`, {
+  const response = await fetch(`${BASE_URL}/Fitness/workout-plans`, {
     headers: await authHeaders(),
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.log('GET WORKOUT PLANS ERROR:', response.status, errorText);
     throw new Error('Failed to fetch workout plans');
   }
 
@@ -191,12 +192,14 @@ export async function deleteFavoriteExercise(id: number) {
 }
 
 export async function deleteWorkoutPlan(id: number) {
-  const response = await fetch(`${BASE_URL}/fitness/workout-plans/${id}`, {
+  const response = await fetch(`${BASE_URL}/Fitness/workout-plans/${id}`, {
     method: 'DELETE',
     headers: await authHeaders(),
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.log('DELETE WORKOUT PLAN ERROR:', response.status, errorText);
     throw new Error('Failed to delete workout plan');
   }
 
@@ -223,15 +226,17 @@ export async function updateWorkoutExercise(
     reps: number;
   }
 ) {
-  const response = await fetch(`${BASE_URL}/fitness/workout-exercises/${id}`, {
+  const response = await fetch(`${BASE_URL}/Fitness/workout-exercises/${id}`, {
     method: 'PUT',
     headers: await authHeaders(),
     body: JSON.stringify(data),
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.log('UPDATE WORKOUT EXERCISE ERROR:', response.status, errorText);
     throw new Error('Failed to update workout exercise');
   }
 
-  return response.json();
+  return response.text();
 }

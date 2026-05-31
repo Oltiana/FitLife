@@ -2,8 +2,11 @@ import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -44,54 +47,65 @@ export function CreateWorkoutPlanScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </Pressable>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </Pressable>
 
-        <Text style={styles.title}>Create Plan</Text>
-        <Text style={styles.subtitle}>Build your own workout routine</Text>
-      </View>
+            <Text style={styles.title}>Create Plan</Text>
+            <Text style={styles.subtitle}>Build your own workout routine</Text>
+          </View>
 
-      <View style={styles.content}>
-        <Text style={styles.label}>Plan Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Example: Abs Workout"
-          value={name}
-          onChangeText={setName}
-        />
+          <View style={styles.content}>
+            <Text style={styles.label}>Plan Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Example: Abs Workout"
+              value={name}
+              onChangeText={setName}
+            />
 
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Short description..."
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Short description..."
+              value={description}
+              onChangeText={setDescription}
+              multiline
+            />
 
-        <Text style={styles.label}>Level</Text>
-        <View style={styles.levelRow}>
-          {(['Beginner', 'Intermediate'] as const).map((item) => (
-            <Pressable
-              key={item}
-              onPress={() => setLevel(item)}
-              style={[styles.levelChip, level === item && styles.levelChipActive]}
-            >
-              <Text style={[styles.levelText, level === item && styles.levelTextActive]}>
-                {item}
+            <Text style={styles.label}>Level</Text>
+            <View style={styles.levelRow}>
+              {(['Beginner', 'Intermediate'] as const).map((item) => (
+                <Pressable
+                  key={item}
+                  onPress={() => setLevel(item)}
+                  style={[styles.levelChip, level === item && styles.levelChipActive]}
+                >
+                  <Text style={[styles.levelText, level === item && styles.levelTextActive]}>
+                    {item}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Pressable style={styles.button} onPress={handleCreate} disabled={saving}>
+              <Text style={styles.buttonText}>
+                {saving ? 'Creating...' : 'Create Workout Plan'}
               </Text>
             </Pressable>
-          ))}
-        </View>
-
-        <Pressable style={styles.button} onPress={handleCreate} disabled={saving}>
-          <Text style={styles.buttonText}>
-            {saving ? 'Creating...' : 'Create Workout Plan'}
-          </Text>
-        </Pressable>
-      </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -169,5 +183,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '800',
     fontSize: 15,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
 });

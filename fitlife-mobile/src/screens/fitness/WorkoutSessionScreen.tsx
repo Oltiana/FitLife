@@ -156,6 +156,8 @@ export function WorkoutSessionScreen() {
   const progress =
     exercises.length > 0 ? ((currentExerciseIndex + 1) / exercises.length) * 100 : 0;
 
+  const hasExercises = exercises.length > 0;
+
   const openEditModal = (exercise: any) => {
     setSelectedExercise(exercise);
     setEditSets(exercise.sets?.toString() ?? '1');
@@ -163,25 +165,25 @@ export function WorkoutSessionScreen() {
     setEditModalVisible(true);
   };
 
-const handleUpdateExercise = async () => {
+  const handleUpdateExercise = async () => {
 
-  if (!selectedExercise) return;
+    if (!selectedExercise) return;
 
-  try {
-    await updateWorkoutExercise(selectedExercise.id, {
-      sets: Number(editSets),
-      reps: Number(editReps),
-    });
+    try {
+      await updateWorkoutExercise(selectedExercise.id, {
+        sets: Number(editSets),
+        reps: Number(editReps),
+      });
 
-    await loadPlan();
-    setEditModalVisible(false);
-    setSelectedExercise(null);
-    setStatusMessage('Exercise updated successfully.');
-  } catch (error) {
-    console.log('UPDATE ERROR', error);
-    setStatusMessage('Could not update exercise.');
-  }
-};
+      await loadPlan();
+      setEditModalVisible(false);
+      setSelectedExercise(null);
+      setStatusMessage('Exercise updated successfully.');
+    } catch (error) {
+      console.log('UPDATE ERROR', error);
+      setStatusMessage('Could not update exercise.');
+    }
+  };
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -286,8 +288,14 @@ const handleUpdateExercise = async () => {
         ) : null}
 
         {!sessionStarted ? (
-          <Pressable style={styles.startButton} onPress={handleStartWorkout}>
-            <Text style={styles.startButtonText}>Start Workout</Text>
+          <Pressable
+            style={[styles.startButton, !hasExercises && styles.disabledButton]}
+            onPress={handleStartWorkout}
+            disabled={!hasExercises}
+          >
+            <Text style={styles.startButtonText}>
+              {hasExercises ? 'Start Workout' : 'Add exercises to start'}
+            </Text>
           </Pressable>
         ) : (
           <Pressable style={styles.completeButton} onPress={handleCompleteWorkout}>
@@ -651,4 +659,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '800',
   },
+  disabledButton: {
+    opacity: 0.5,
+  }
 });

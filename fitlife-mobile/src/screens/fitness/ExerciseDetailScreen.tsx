@@ -141,11 +141,6 @@ export function ExerciseDetailScreen() {
             <Text style={styles.value}>{exercise?.equipment ?? 'Not specified'}</Text>
           </View>
 
-          <Pressable style={styles.favoriteButton} onPress={handleAddFavorite}>
-            <Ionicons name="heart-outline" size={20} color="#5F8F64" />
-            <Text style={styles.favoriteButtonText}>Add to Favorites</Text>
-          </Pressable>
-
           {favoriteMessage ? (
             <Text style={styles.favoriteMessage}>{favoriteMessage}</Text>
           ) : null}
@@ -387,17 +382,6 @@ const styles = StyleSheet.create({
   cancelText: {
     color: '#777',
     fontWeight: '800',
-  },
-  favoriteButton: {
-    width: '100%',
-    backgroundColor: '#DCEADB',
-    paddingVertical: 14,
-    borderRadius: 20,
-    marginTop: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
   },
   favoriteButtonText: {
     color: '#5F8F64',

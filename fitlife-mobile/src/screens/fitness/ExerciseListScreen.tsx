@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -11,24 +13,13 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { getExercises } from '../../api/fitnessApi';
+import { addFavoriteExercise, getExercises, getFavoriteExercises, } from '../../api/fitnessApi';
 import { useNavigation } from '@react-navigation/native';
 
 const categories = ['All', 'Chest', 'Back', 'Legs', 'Arms', 'Waist'];
 const levels = ['Beginner', 'Intermediate'];
 
 export function ExerciseListScreen() {
-  const getFitnessExerciseIcon = (bodyPart?: string) => {
-    const part = bodyPart?.toLowerCase() ?? '';
-
-    if (part.includes('waist')) return 'body-outline';
-    if (part.includes('chest')) return 'barbell-outline';
-    if (part.includes('back')) return 'add-circle-outline';
-    if (part.includes('upper legs') || part.includes('lower legs')) return 'walk-outline';
-    if (part.includes('upper arms') || part.includes('lower arms')) return 'barbell-outline';
-
-    return 'fitness-outline';
-  };
   const navigation = useNavigation<any>();
 
   const [exercises, setExercises] = useState<any[]>([]);
@@ -38,9 +29,12 @@ export function ExerciseListScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedLevel, setSelectedLevel] = useState<'Beginner' | 'Intermediate'>('Intermediate');
   const [showMenu, setShowMenu] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+
 
   useEffect(() => {
     loadExercises();
+    loadFavorites();
   }, []);
 
   const loadExercises = async () => {
@@ -57,28 +51,91 @@ export function ExerciseListScreen() {
     }
   };
 
+  const loadFavorites = async () => {
+  try {
+    const favorites = await getFavoriteExercises();
+
+    setFavoriteIds(
+      favorites.map((f:any) => f.externalExerciseId)
+    );
+  } catch (error) {
+    console.log('Failed to load favorites');
+  }
+};
+
+  const getFitnessExerciseIcon = (bodyPart?: string) => {
+    const part = bodyPart?.toLowerCase() ?? '';
+
+    if (part.includes('waist')) return 'body-outline';
+    if (part.includes('chest')) return 'barbell-outline';
+    if (part.includes('back')) return 'add-circle-outline';
+    if (part.includes('upper legs') || part.includes('lower legs')) return 'walk-outline';
+    if (part.includes('upper arms') || part.includes('lower arms')) return 'barbell-outline';
+
+    return 'fitness-outline';
+  };
+
+  const getExerciseImage = (bodyPart?: string) => {
+    const part = bodyPart?.toLowerCase() ?? '';
+
+    if (part.includes('chest')) return require('../../../assets/images/fitness-images/chest.jpg');
+    if (part.includes('back')) return require('../../../assets/images/fitness-images/back.jpg');
+
+    if (part.includes('upper legs') || part.includes('lower legs')) {
+      return require('../../../assets/images/fitness-images/legs.jpg');
+    }
+
+    if (part.includes('upper arms') || part.includes('lower arms')) {
+      return require('../../../assets/images/fitness-images/arms.jpg');
+    }
+
+    if (part.includes('waist')) return require('../../../assets/images/fitness-images/core.jpg');
+
+    return null;
+  };
+
+  const handleAddFavorite = async (exercise: any) => {
+    const exerciseId = exercise.externalExerciseId ?? exercise.id?.toString();
+
+    try {
+      await addFavoriteExercise({
+        externalExerciseId: exerciseId,
+        exerciseName: exercise.exerciseName || exercise.name,
+        bodyPart: exercise.bodyPart,
+        targetMuscle: exercise.targetMuscle || exercise.target,
+        equipment: exercise.equipment,
+        gifUrl: exercise.gifUrl ?? null,
+      });
+
+      setFavoriteIds((prev) => [...prev, exerciseId]);
+    } catch (error) {
+      Alert.alert('Error', 'Could not add exercise to favorites.');
+    }
+  };
+
   const filteredExercises = useMemo(() => {
     return exercises.filter((exercise) => {
-      const name = exercise.name?.toLowerCase() ?? '';
+      const exerciseName = exercise.exerciseName || exercise.name || '';
       const bodyPart = exercise.bodyPart?.toLowerCase() ?? '';
-      const target = exercise.target?.toLowerCase() ?? '';
-      const level = exercise.level?.toLowerCase() ?? '';
+      const targetMuscle = exercise.targetMuscle || exercise.target || '';
+      const level = exercise.level?.toLowerCase() ?? 'intermediate';
 
       const matchesLevel = level === selectedLevel.toLowerCase();
 
+
       const matchesSearch =
-        name.includes(searchText.toLowerCase()) ||
+        exerciseName.toLowerCase().includes(searchText.toLowerCase()) ||
         bodyPart.includes(searchText.toLowerCase()) ||
-        target.includes(searchText.toLowerCase());
+        targetMuscle.toLowerCase().includes(searchText.toLowerCase());
 
       const matchesCategory =
         selectedCategory === 'All' ||
         bodyPart.includes(selectedCategory.toLowerCase()) ||
-        target.includes(selectedCategory.toLowerCase());
+        targetMuscle.toLowerCase().includes(selectedCategory.toLowerCase());
 
       return matchesSearch && matchesCategory && matchesLevel;
     });
-  }, [exercises, searchText, selectedCategory]);
+  }, [exercises, searchText, selectedCategory, selectedLevel]);
 
   if (loading) {
     return (
@@ -108,10 +165,7 @@ export function ExerciseListScreen() {
           <Text style={styles.subtitle}>{filteredExercises.length} exercises available</Text>
         </View>
 
-        <Pressable
-          style={styles.menuButton}
-          onPress={() => setShowMenu(!showMenu)}
-        >
+        <Pressable style={styles.menuButton} onPress={() => setShowMenu(!showMenu)}>
           <Ionicons name="menu" size={28} color="#6F9B73" />
         </Pressable>
       </View>
@@ -156,7 +210,7 @@ export function ExerciseListScreen() {
       <View style={styles.searchBox}>
         <Ionicons name="search" size={20} color="#8E8E8E" />
         <TextInput
-          placeholder="Search exercises..."
+          placeholder="Search exercises, muscles..."
           placeholderTextColor="#999"
           value={searchText}
           onChangeText={setSearchText}
@@ -181,6 +235,7 @@ export function ExerciseListScreen() {
           );
         })}
       </View>
+
       <View style={styles.levelWrapper}>
         {levels.map((level) => {
           const isSelected = selectedLevel === level;
@@ -199,8 +254,6 @@ export function ExerciseListScreen() {
         })}
       </View>
 
-
-
       <FlatList
         data={filteredExercises}
         keyExtractor={(item, index) =>
@@ -212,39 +265,60 @@ export function ExerciseListScreen() {
           const exerciseName = item.exerciseName || item.name;
           const targetMuscle = item.targetMuscle || item.target;
           const iconName = getFitnessExerciseIcon(item.bodyPart);
+          const imageSource = getExerciseImage(item.bodyPart);
 
+          const exerciseId = item.externalExerciseId ?? item.id?.toString();
+          const isFavorite = favoriteIds.includes(exerciseId);
           return (
-            <Pressable
-              style={styles.card}
-              onPress={() =>
-                navigation.navigate('ExerciseDetails', {
-                  exercise: item,
-                })
-              }
-            >
-              <View style={styles.iconBox}>
-                <Ionicons name={iconName as any} size={38} color="#5F8F64" />
-              </View>
+            <View style={styles.card}>
+              <Pressable
+                style={styles.cardPressArea}
+                onPress={() =>
+                  navigation.navigate('ExerciseDetails', {
+                    exercise: item,
+                  })
+                }
+              >
+                <View style={styles.exerciseImageBox}>
+                  {imageSource ? (
+                    <Image source={imageSource} style={styles.exerciseImage} />
+                  ) : (
+                    <Ionicons name={iconName as any} size={36} color="#5F8F64" />
+                  )}
+                </View>
 
-              <View style={styles.cardContent}>
-                <Text style={styles.exerciseName}>{exerciseName}</Text>
-                <Text style={styles.exerciseMeta}>
-                  {item.bodyPart} · {targetMuscle}
-                </Text>
+                <View style={styles.cardContent}>
+                  <Text style={styles.exerciseName}>{exerciseName}</Text>
 
-                <View style={styles.badgeRow}>
-                  <View style={styles.levelBadge}>
-                    <Text style={styles.levelText}>{item.level ?? 'Intermediate'}</Text>
-                  </View>
+                  <Text style={styles.exerciseMeta}>
+                    {item.bodyPart} · {targetMuscle}
+                  </Text>
 
-                  <View style={styles.bodyBadge}>
-                    <Text style={styles.bodyText}>{item.bodyPart ?? 'Fitness'}</Text>
+                  <View style={styles.badgeRow}>
+                    <View style={styles.levelBadge}>
+                      <Text style={styles.levelText}>{item.level ?? 'Intermediate'}</Text>
+                    </View>
+
+                    <View style={styles.bodyBadge}>
+                      <Text style={styles.bodyText}>{item.bodyPart ?? 'Fitness'}</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
+              </Pressable>
+
+              <Pressable
+                style={styles.favoriteButton}
+                onPress={() => handleAddFavorite(item)}
+              >
+                <Ionicons
+                  name={isFavorite ? 'heart' : 'heart-outline'}
+                  size={23}
+                  color="#5F8F64"
+                />
+              </Pressable>
 
               <Ionicons name="chevron-forward" size={22} color="#B7B7B7" />
-            </Pressable>
+            </View>
           );
         }}
       />
@@ -315,12 +389,14 @@ const styles = StyleSheet.create({
   searchBox: {
     marginHorizontal: 22,
     marginTop: 24,
-    backgroundColor: '#E8E8E8',
+    backgroundColor: '#fff',
     borderRadius: 20,
     paddingHorizontal: 16,
     height: 54,
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E2E2',
   },
   searchInput: {
     flex: 1,
@@ -381,29 +457,35 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#E2E2E2',
-    padding: 10,
+    padding: 14,
     marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconBox: {
-    width: 86,
-    height: 86,
-    borderRadius: 16,
+  exerciseImageBox: {
+    width: 88,
+    height: 88,
+    borderRadius: 18,
     backgroundColor: '#C9DEC9',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
+    overflow: 'hidden',
+  },
+  exerciseImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   cardContent: {
     flex: 1,
   },
   exerciseName: {
     color: '#5F8F64',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     textTransform: 'capitalize',
   },
@@ -411,57 +493,37 @@ const styles = StyleSheet.create({
     color: '#7FAE83',
     fontSize: 13,
     fontWeight: '700',
-    marginTop: 3,
+    marginTop: 4,
     textTransform: 'capitalize',
   },
   badgeRow: {
     flexDirection: 'row',
     gap: 8,
     marginTop: 10,
+    flexWrap: 'wrap',
   },
   levelBadge: {
     backgroundColor: '#DCEADB',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 5,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   levelText: {
     color: '#6F9B73',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   bodyBadge: {
     backgroundColor: '#FFE1D0',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 5,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   bodyText: {
     color: '#D47A45',
     fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
-  exerciseImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 16,
-  },
-  workoutPlansButton: {
-    marginHorizontal: 22,
-    marginTop: 16,
-    backgroundColor: '#5F8F64',
-    borderRadius: 18,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  workoutPlansButtonText: {
-    color: '#fff',
-    fontSize: 15,
     fontWeight: '800',
+    textTransform: 'capitalize',
   },
   dropdownMenu: {
     marginHorizontal: 22,
@@ -488,5 +550,19 @@ const styles = StyleSheet.create({
     color: '#5F8F64',
     fontSize: 14,
     fontWeight: '800',
-},
+  },
+  favoriteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  cardPressArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 });
