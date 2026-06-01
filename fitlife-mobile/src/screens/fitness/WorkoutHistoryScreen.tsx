@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -42,6 +43,32 @@ export function WorkoutHistoryScreen() {
     return new Date(date).toLocaleDateString();
   };
 
+  const getPlanImage = (name?: string) => {
+    const planName = name?.toLowerCase() ?? '';
+
+    if (planName.includes('abs') || planName.includes('core')) {
+      return require('../../../assets/images/fitness-images/core.jpg');
+    }
+
+    if (planName.includes('chest') || planName.includes('upper')) {
+      return require('../../../assets/images/fitness-images/chest.jpg');
+    }
+
+    if (planName.includes('back') || planName.includes('pull')) {
+      return require('../../../assets/images/fitness-images/back.jpg');
+    }
+
+    if (planName.includes('legs') || planName.includes('lower')) {
+      return require('../../../assets/images/fitness-images/legs.jpg');
+    }
+
+    if (planName.includes('arms')) {
+      return require('../../../assets/images/fitness-images/arms.jpg');
+    }
+
+    return require('../../../assets/images/fitness-images/chest.jpg');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -73,37 +100,40 @@ export function WorkoutHistoryScreen() {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.iconBox}>
-                <Ionicons name="checkmark-done-outline" size={32} color="#5F8F64" />
-              </View>
+          renderItem={({ item }) => {
+            const sessionName = item.workoutPlanName ?? item.planName ?? 'Workout Session';
+            const imageSource = getPlanImage(sessionName);
 
-              <View style={styles.cardContent}>
-                <Text style={styles.sessionTitle}>
-                  {item.workoutPlanName ?? item.planName ?? 'Workout Session'}
-                </Text>
+            return (
+              <View style={styles.card}>
+                <View style={styles.historyImageBox}>
+                  <Image source={imageSource} style={styles.historyImage} />
+                </View>
 
-                <Text style={styles.sessionMeta}>
-                  Completed: {formatDate(item.completedAt)}
-                </Text>
+                <View style={styles.cardContent}>
+                  <Text style={styles.sessionTitle}>{sessionName}</Text>
 
-                <View style={styles.badgeRow}>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {item.durationMinutes ?? 0} min
-                    </Text>
-                  </View>
+                  <Text style={styles.sessionMeta}>
+                    Completed: {formatDate(item.completedAt)}
+                  </Text>
 
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {item.calories ?? 0} kcal
-                    </Text>
+                  <View style={styles.badgeRow}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {item.durationMinutes ?? 0} min
+                      </Text>
+                    </View>
+
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {item.calories ?? 0} kcal
+                      </Text>
+                    </View>
                   </View>
                 </View>
               </View>
-            </View>
-          )}
+            );
+          }}
         />
       )}
     </SafeAreaView>
@@ -220,5 +250,29 @@ const styles = StyleSheet.create({
     color: '#6F9B73',
     fontSize: 11,
     fontWeight: '800',
+  },
+  exerciseImageBox: {
+    width: 110,
+    height: 82,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#DDEBDC',
+    marginRight: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyImageBox: {
+    width: 86,
+    height: 74,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#DCEADB',
+    marginRight: 14,
+  },
+
+  historyImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
 });

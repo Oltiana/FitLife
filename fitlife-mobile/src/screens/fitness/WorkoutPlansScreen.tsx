@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -17,6 +18,7 @@ export function WorkoutPlansScreen() {
   const navigation = useNavigation<any>();
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedWeek, setSelectedWeek] = useState(1);
 
   const loadPlans = async () => {
     try {
@@ -57,6 +59,31 @@ export function WorkoutPlansScreen() {
       ]
     );
   };
+  const getPlanImage = (name?: string) => {
+    const planName = name?.toLowerCase() ?? '';
+
+    if (planName.includes('abs') || planName.includes('core')) {
+      return require('../../../assets/images/fitness-images/core.jpg');
+    }
+
+    if (planName.includes('chest') || planName.includes('upper')) {
+      return require('../../../assets/images/fitness-images/chest.jpg');
+    }
+
+    if (planName.includes('back') || planName.includes('pull')) {
+      return require('../../../assets/images/fitness-images/back.jpg');
+    }
+
+    if (planName.includes('legs') || planName.includes('lower')) {
+      return require('../../../assets/images/fitness-images/legs.jpg');
+    }
+
+    if (planName.includes('arms')) {
+      return require('../../../assets/images/fitness-images/arms.jpg');
+    }
+
+    return require('../../../assets/images/fitness-images/chest.jpg');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -68,13 +95,6 @@ export function WorkoutPlansScreen() {
           <Text style={styles.title}>Workout Plans</Text>
           <Text style={styles.subtitle}>Create and manage your fitness routines</Text>
         </View>
-
-        <Pressable
-          style={styles.addButton}
-          onPress={() => navigation.navigate('CreateWorkoutPlan')}
-        >
-          <Ionicons name="add" size={28} color="#fff" />
-        </Pressable>
       </View>
 
       {loading ? (
@@ -82,7 +102,30 @@ export function WorkoutPlansScreen() {
           <ActivityIndicator size="large" color="#7FAE83" />
         </View>
       ) : (
+
         <FlatList
+          ListHeaderComponent={
+            <View>
+              <Text style={styles.plannerTitle}>Planner · Week {selectedWeek}</Text>
+              <View style={styles.weekRow}>
+                {[1, 2, 3, 4].map((week) => {
+                  const isSelected = selectedWeek === week;
+
+                  return (
+                    <Pressable
+                      key={week}
+                      style={[styles.weekChip, isSelected && styles.weekChipActive]}
+                      onPress={() => setSelectedWeek(week)}
+                    >
+                      <Text style={[styles.weekText, isSelected && styles.weekTextActive]}>
+                        Week {week}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          }
           data={plans}
           keyExtractor={(item, index) => item.id?.toString() ?? index.toString()}
           contentContainerStyle={styles.listContent}
@@ -93,40 +136,57 @@ export function WorkoutPlansScreen() {
               <Text style={styles.emptyText}>Tap the plus button to create your first plan.</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.card}
-              onPress={() =>
-                navigation.navigate('WorkoutSession', {
-                  workoutPlanId: item.id,
-                })
-              }
-            >
-              <View style={styles.iconBox}>
-                <Ionicons name="fitness-outline" size={34} color="#5F8F64" />
-              </View>
+          renderItem={({ item, index }) => {
+            const imageSource = getPlanImage(item.name);
 
-              <View style={styles.cardContent}>
-                <Text style={styles.planName}>{item.name}</Text>
-                <Text style={styles.planDescription}>
-                  {item.description || 'No description'}
-                </Text>
+            return (
+              <View style={styles.daySection}>
+                <View style={styles.dayHeader}>
+                  <Text style={styles.dayTitle}>Day {index + 1}</Text>
 
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{item.level ?? 'Beginner'}</Text>
+                  <Pressable onPress={() => navigation.navigate('CreateWorkoutPlan')}>
+                    <Text style={styles.addWorkoutText}>+ Add Workout</Text>
+                  </Pressable>
                 </View>
+
+                <Pressable
+                  style={styles.plannerCard}
+                  onPress={() =>
+                    navigation.navigate('WorkoutSession', {
+                      workoutPlanId: item.id,
+                    })
+                  }
+                >
+                  <View style={styles.plannerImageBox}>
+                    <Image source={imageSource} style={styles.plannerImage} />
+                  </View>
+
+                  <View style={styles.cardContent}>
+                    <Text style={styles.planName}>{item.name}</Text>
+                    <Text style={styles.planDescription}>
+                      {item.description || 'Workout routine'}
+                    </Text>
+
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{item.level ?? 'Beginner'}</Text>
+                    </View>
+                  </View>
+
+                  <Pressable
+                    style={styles.deleteButton}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      handleDeletePlan(item.id);
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#D47A45" />
+                  </Pressable>
+
+                  <Ionicons name="chevron-forward" size={22} color="#B7B7B7" />
+                </Pressable>
               </View>
-
-              <Pressable
-                style={styles.deleteButton}
-                onPress={() => handleDeletePlan(item.id)}
-              >
-                <Ionicons name="trash-outline" size={21} color="#D47A45" />
-              </Pressable>
-
-              <Ionicons name="chevron-forward" size={22} color="#B7B7B7" />
-            </Pressable>
-          )}
+            );
+          }}
         />
       )}
     </SafeAreaView>
@@ -139,10 +199,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#86B587',
     paddingHorizontal: 22,
     paddingTop: 34,
-    paddingBottom: 22,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingBottom: 24,
   },
   title: { color: '#fff', fontSize: 24, fontWeight: '800' },
   subtitle: { color: '#F1FFF2', fontSize: 13, fontWeight: '700', marginTop: 4 },
@@ -197,15 +254,15 @@ const styles = StyleSheet.create({
   },
   cardContent: { flex: 1 },
   planName: {
-    color: '#5F8F64',
-    fontSize: 17,
+    color: '#245C32',
+    fontSize: 16,
     fontWeight: '800',
   },
   planDescription: {
     color: '#777',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: 2,
   },
   badge: {
     backgroundColor: '#DCEADB',
@@ -237,5 +294,104 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
+  },
+  currentPlanIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    backgroundColor: '#DCEADB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  plannerTitle: {
+    color: '#333',
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+
+  weekRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 18,
+  },
+
+  weekChip: {
+    backgroundColor: '#F4F4F4',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+
+  weekChipActive: {
+    backgroundColor: '#86B587',
+  },
+
+  weekText: {
+    color: '#555',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+
+  weekTextActive: {
+    color: '#fff',
+  },
+
+  daySection: {
+    marginBottom: 20,
+  },
+
+  dayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dayTitle: {
+    color: '#333',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  addWorkoutText: {
+    color: '#9A9A9A',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  plannerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    marginBottom: 10,
+  },
+  plannerIconBox: {
+    width: 76,
+    height: 76,
+    borderRadius: 16,
+    backgroundColor: '#DCEADB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  plannerImageBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#DCEADB',
+    marginRight: 12,
+  },
+
+  plannerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
 });

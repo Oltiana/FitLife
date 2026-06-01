@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -44,6 +45,25 @@ export function FavoritesScreen() {
     }
   };
 
+  const getExerciseImage = (bodyPart?: string) => {
+  const part = bodyPart?.toLowerCase() ?? '';
+
+  if (part.includes('chest')) return require('../../../assets/images/fitness-images/chest.jpg');
+  if (part.includes('back')) return require('../../../assets/images/fitness-images/back.jpg');
+
+  if (part.includes('upper legs') || part.includes('lower legs')) {
+    return require('../../../assets/images/fitness-images/legs.jpg');
+  }
+
+  if (part.includes('upper arms') || part.includes('lower arms')) {
+    return require('../../../assets/images/fitness-images/arms.jpg');
+  }
+
+  if (part.includes('waist')) return require('../../../assets/images/fitness-images/core.jpg');
+
+  return null;
+};
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -71,24 +91,45 @@ export function FavoritesScreen() {
               <Text style={styles.emptyText}>Add exercises to favorites from Exercise Details.</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.iconBox}>
-                <Ionicons name="heart" size={30} color="#5F8F64" />
-              </View>
+        renderItem={({ item }) => {
+  const imageSource = getExerciseImage(item.bodyPart);
 
-              <View style={styles.cardContent}>
-                <Text style={styles.exerciseName}>{item.exerciseName}</Text>
-                <Text style={styles.exerciseMeta}>
-                  {item.bodyPart} · {item.targetMuscle}
-                </Text>
-              </View>
+  return (
+    <View style={styles.card}>
+      <View style={styles.imageBox}>
+        {imageSource ? (
+          <Image source={imageSource} style={styles.exerciseImage} />
+        ) : (
+          <Ionicons name="fitness-outline" size={34} color="#5F8F64" />
+        )}
+      </View>
 
-              <Pressable onPress={() => handleDelete(item.id)}>
-                <Ionicons name="trash-outline" size={22} color="#D47A45" />
-              </Pressable>
-            </View>
-          )}
+      <View style={styles.cardContent}>
+        <Text style={styles.exerciseName} numberOfLines={2}>
+          {item.exerciseName}
+        </Text>
+
+        <Text style={styles.exerciseMeta}>
+          {item.bodyPart} · {item.targetMuscle}
+        </Text>
+
+        <View style={styles.badgeRow}>
+          <View style={styles.levelBadge}>
+            <Text style={styles.levelText}>Favorite</Text>
+          </View>
+
+          <View style={styles.bodyBadge}>
+            <Text style={styles.bodyText}>{item.bodyPart ?? 'Fitness'}</Text>
+          </View>
+        </View>
+      </View>
+
+      <Pressable style={styles.deleteButton} onPress={() => handleDelete(item.id)}>
+        <Ionicons name="trash-outline" size={22} color="#D47A45" />
+      </Pressable>
+    </View>
+   );
+          }}
         />
       )}
     </SafeAreaView>
@@ -127,36 +168,100 @@ const styles = StyleSheet.create({
   emptyTitle: { color: '#5F8F64', fontSize: 18, fontWeight: '800', marginTop: 12 },
   emptyText: { color: '#777', textAlign: 'center', marginTop: 6, fontWeight: '600' },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E2E2E2',
-    padding: 12,
-    marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+  backgroundColor: '#fff',
+  borderRadius: 24,
+  padding: 14,
+  marginBottom: 16,
+  flexDirection: 'row',
+  alignItems: 'center',
+
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 4,
   },
-  iconBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 16,
-    backgroundColor: '#DCEADB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  cardContent: { flex: 1 },
-  exerciseName: {
-    color: '#5F8F64',
-    fontSize: 16,
-    fontWeight: '800',
-    textTransform: 'capitalize',
-  },
-  exerciseMeta: {
-    color: '#7FAE83',
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 4,
-    textTransform: 'capitalize',
-  },
+  shadowOpacity: 0.08,
+  shadowRadius: 10,
+  elevation: 4,
+},
+
+imageBox: {
+  width: 110,
+  height: 82,
+  borderRadius: 18,
+  overflow: 'hidden',
+  backgroundColor: '#DCEADB',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: 16,
+},
+
+exerciseImage: {
+  width: '100%',
+  height: '100%',
+  resizeMode: 'cover',
+},
+
+cardContent: {
+  flex: 1,
+  paddingRight: 8,
+},
+
+exerciseName: {
+  color: '#245C32',
+  fontSize: 17,
+  fontWeight: '900',
+  textTransform: 'capitalize',
+  lineHeight: 22,
+},
+
+exerciseMeta: {
+  color: '#6F766F',
+  fontSize: 13,
+  marginTop: 4,
+  textTransform: 'capitalize',
+},
+
+badgeRow: {
+  flexDirection: 'row',
+  gap: 8,
+  marginTop: 10,
+  flexWrap: 'wrap',
+},
+
+levelBadge: {
+  backgroundColor: '#DCEADB',
+  paddingHorizontal: 10,
+  paddingVertical: 5,
+  borderRadius: 8,
+},
+
+levelText: {
+  color: '#5F8F64',
+  fontSize: 11,
+  fontWeight: '800',
+},
+
+bodyBadge: {
+  backgroundColor: '#FFE1D0',
+  paddingHorizontal: 10,
+  paddingVertical: 5,
+  borderRadius: 8,
+},
+
+bodyText: {
+  color: '#D47A45',
+  fontSize: 11,
+  fontWeight: '800',
+  textTransform: 'capitalize',
+},
+
+deleteButton: {
+  width: 48,
+  height: 48,
+  borderRadius: 24,
+  backgroundColor: '#FFF1E8',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
 });

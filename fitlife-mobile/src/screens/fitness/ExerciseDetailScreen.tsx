@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
   Keyboard,
+  Image,
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -81,7 +82,22 @@ export function ExerciseDetailScreen() {
       });
 
       setShowModal(false);
-      Alert.alert('Success', 'Exercise added to workout plan.');
+      Alert.alert(
+        'Exercise added',
+        'This exercise was added to your workout plan.',
+        [
+          {
+            text: 'Done',
+            style: 'cancel',
+          },
+          {
+            text: 'View Plan',
+            onPress: () => {
+              navigation.navigate('WorkoutPlans');
+            },
+          },
+        ]
+      );
     } catch (error) {
       Alert.alert('Error', 'Could not add exercise to workout plan.');
     } finally {
@@ -106,7 +122,31 @@ export function ExerciseDetailScreen() {
     }
   };
 
+  const getExerciseImage = (bodyPart?: string) => {
+    const part = bodyPart?.toLowerCase() ?? '';
+
+    if (part.includes('chest'))
+      return require('../../../assets/images/fitness-images/chest.jpg');
+
+    if (part.includes('back'))
+      return require('../../../assets/images/fitness-images/back.jpg');
+
+    if (part.includes('upper legs') || part.includes('lower legs')) {
+      return require('../../../assets/images/fitness-images/legs.jpg');
+    }
+
+    if (part.includes('upper arms') || part.includes('lower arms')) {
+      return require('../../../assets/images/fitness-images/arms.jpg');
+    }
+
+    if (part.includes('waist'))
+      return require('../../../assets/images/fitness-images/core.jpg');
+
+    return null;
+  };
+
   const iconName = getFitnessExerciseIcon(exercise?.bodyPart);
+  const imageSource = getExerciseImage(exercise?.bodyPart);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -121,11 +161,33 @@ export function ExerciseDetailScreen() {
 
         <View style={styles.content}>
           <View style={styles.imageBox}>
-            <Ionicons name={iconName as any} size={90} color="#5F8F64" />
+            {imageSource ? (
+              <Image
+                source={imageSource}
+                style={styles.heroImage}
+              />
+            ) : (
+              <Ionicons
+                name={iconName as any}
+                size={90}
+                color="#5F8F64"
+              />
+            )}
           </View>
 
           <Text style={styles.name}>{exerciseName ?? 'Exercise'}</Text>
 
+          <View style={styles.badgeRow}>
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelText}>Intermediate</Text>
+            </View>
+
+            <View style={styles.bodyBadge}>
+              <Text style={styles.bodyText}>
+                {exercise?.bodyPart ?? 'Fitness'}
+              </Text>
+            </View>
+          </View>
           <View style={styles.infoCard}>
             <Text style={styles.label}>Body Part</Text>
             <Text style={styles.value}>{exercise?.bodyPart ?? 'Not specified'}</Text>
@@ -246,13 +308,20 @@ const styles = StyleSheet.create({
   content: { padding: 22, alignItems: 'center' },
   imageBox: {
     width: '100%',
-    height: 260,
-    borderRadius: 24,
-    backgroundColor: '#C9DEC9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 22,
+    height: 240,
+    borderRadius: 28,
     overflow: 'hidden',
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 5,
+
+    marginBottom: 22,
   },
   name: {
     fontSize: 24,
@@ -393,5 +462,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 8,
     marginBottom: 4,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 18,
+  },
+
+  levelBadge: {
+    backgroundColor: '#DCEADB',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+
+  levelText: {
+    color: '#5F8F64',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  bodyBadge: {
+    backgroundColor: '#FFE1D0',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+
+  bodyText: {
+    color: '#D47A45',
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'capitalize',
   },
 });
