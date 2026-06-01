@@ -176,17 +176,17 @@ namespace FitLifeAPI.Controllers
         }
         [AllowAnonymous]
         [HttpGet("exercises")]
-        public async Task<IActionResult> GetExercises([FromQuery] int offset = 0, [FromQuery] int limit = 10)
+        public async Task<IActionResult> GetExercises(
+    [FromQuery] int offset = 0,
+    [FromQuery] int limit = 80)
         {
-            try
-            {
-                var result = await _exerciseApiService.GetExercisesAsync(offset, limit);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            Console.WriteLine($"FITNESS EXERCISES OFFSET={offset}, LIMIT={limit}");
+
+            var exercises = await _exerciseApiService.GetExercisesAsync(offset, limit);
+
+            Console.WriteLine($"FITNESS EXERCISES RETURNED={exercises.Count}");
+
+            return Ok(exercises);
         }
         [AllowAnonymous]
         [HttpGet("exercises/{id}")]

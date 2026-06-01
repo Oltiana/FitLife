@@ -11,7 +11,7 @@ async function authHeaders() {
   };
 }
 
-export async function getExercises(offset = 0, limit = 10) {
+export async function getExercises(offset = 0, limit = 80) {
   const response = await fetch(
     `${BASE_URL}/fitness/exercises?offset=${offset}&limit=${limit}`
   );

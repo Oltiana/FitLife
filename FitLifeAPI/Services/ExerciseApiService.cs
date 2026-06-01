@@ -25,7 +25,7 @@ namespace FitLifeAPI.Services
             return "Intermediate";
         }
 
-        public async Task<List<ExternalExerciseResponse>> GetExercisesAsync(int offset = 0, int limit = 10)
+        public async Task<List<ExternalExerciseResponse>> GetExercisesAsync(int offset = 0, int limit = 80)
         {
             var response = await _httpClient.GetAsync($"/exercises?offset={offset}&limit={limit}&includeGif=true");
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState , useCallback} from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { addFavoriteExercise, getExercises, getFavoriteExercises, deleteFavoriteExercise} from '../../api/fitnessApi';
+import { addFavoriteExercise, getExercises, getFavoriteExercises, deleteFavoriteExercise } from '../../api/fitnessApi';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const categories = ['All', 'Chest', 'Back', 'Legs', 'Arms', 'Waist'];
@@ -33,30 +33,40 @@ export function ExerciseListScreen() {
   const favoriteIds = favorites.map((f) => f.externalExerciseId);
 
 
-useEffect(() => {
-  loadExercises();
-  loadFavorites();
-}, []);
-
-useFocusEffect(
-  useCallback(() => {
+  useEffect(() => {
+    loadExercises();
     loadFavorites();
-  }, [])
-);
+  }, []);
 
-  const loadExercises = async () => {
-    try {
-      setLoading(true);
-      setError('');
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [])
+  );
 
-      const data = await getExercises(0, 20);
-      setExercises(data);
-    } catch (err) {
-      setError('Could not load exercises');
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadExercises = async () => {
+  try {
+    setLoading(true);
+    setError('');
+
+    const page1 = await getExercises(0, 10);
+    const page2 = await getExercises(10, 10);
+    const page3 = await getExercises(20, 10);
+    const page4 = await getExercises(30, 10);
+    const page5 = await getExercises(40, 10);
+    const page6 = await getExercises(50, 10);
+
+    const data = [...page1, ...page2, ...page3, ...page4, ...page5, ...page6];
+
+    console.log('EXERCISES FROM API:', data.length, data);
+
+    setExercises(data);
+  } catch (err) {
+    setError('Could not load exercises');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const loadFavorites = async () => {
     try {
@@ -199,7 +209,9 @@ useFocusEffect(
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Exercise Library</Text>
-          <Text style={styles.subtitle}>{filteredExercises.length} exercises available</Text>
+          <Text style={styles.subtitle}>
+            {filteredExercises.length} exercises available
+          </Text>
         </View>
 
         <Pressable style={styles.menuButton} onPress={() => setShowMenu(!showMenu)}>
