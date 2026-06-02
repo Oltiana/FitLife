@@ -366,10 +366,19 @@ export function WorkoutSessionScreen() {
         {exercises.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="barbell-outline" size={42} color="#86B587" />
+
             <Text style={styles.emptyTitle}>No exercises added yet</Text>
+
             <Text style={styles.emptyText}>
-              Go to Exercise Library and add exercises to this plan.
+              Add exercises to this plan.
             </Text>
+
+            <Pressable
+              style={styles.addExercisesButton}
+              onPress={() => navigation.navigate('ExerciseList')}
+            >
+              <Text style={styles.addExercisesButtonText}>Add Exercises</Text>
+            </Pressable>
           </View>
         ) : (
           exercises.map((item: any, index: number) => (
@@ -991,5 +1000,17 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#fff',
     fontWeight: '800',
+  },
+  addExercisesButton: {
+    backgroundColor: '#86B587',
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 18,
+    marginTop: 16,
+  },
+
+  addExercisesButtonText: {
+    color: '#fff',
+    fontWeight: '900',
   },
 });

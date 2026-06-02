@@ -1,5 +1,5 @@
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -36,9 +36,12 @@ export function ExerciseDetailScreen() {
   const targetMuscle = exercise?.targetMuscle || exercise?.target;
   const exerciseId = exercise?.externalExerciseId || exercise?.id;
   const [favoriteMessage, setFavoriteMessage] = useState('');
-  useEffect(() => {
+ 
+  useFocusEffect(
+  useCallback(() => {
     loadPlans();
-  }, []);
+  }, [])
+);
 
   const loadPlans = async () => {
     try {
@@ -221,9 +224,25 @@ export function ExerciseDetailScreen() {
                 <Text style={styles.modalTitle}>Add Exercise to Plan</Text>
 
                 {plans.length === 0 ? (
-                  <Text style={styles.emptyText}>
-                    You do not have any workout plans yet. Create one first.
-                  </Text>
+                  <View style={styles.emptyPlanBox}>
+                    <Ionicons name="barbell-outline" size={34} color="#86B587" />
+
+                    <Text style={styles.emptyPlanTitle}>No workout plans yet</Text>
+
+                    <Text style={styles.emptyPlanText}>
+                      Create a workout plan first, then add this exercise to it.
+                    </Text>
+
+                    <Pressable
+                      style={styles.createPlanButton}
+                      onPress={() => {
+                        setShowModal(false);
+                        navigation.navigate('CreateWorkoutPlan');
+                      }}
+                    >
+                      <Text style={styles.createPlanButtonText}>Create Workout Plan</Text>
+                    </Pressable>
+                  </View>
                 ) : (
                   plans.map((plan) => (
                     <Pressable
@@ -499,5 +518,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'capitalize',
+  },
+  emptyPlanBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 18,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E2E2',
+  },
+
+  emptyPlanTitle: {
+    color: '#5F8F64',
+    fontSize: 17,
+    fontWeight: '900',
+    marginTop: 10,
+  },
+
+  emptyPlanText: {
+    color: '#777',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 19,
+  },
+
+  createPlanButton: {
+    backgroundColor: '#86B587',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 18,
+    marginTop: 14,
+  },
+
+  createPlanButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
   },
 });

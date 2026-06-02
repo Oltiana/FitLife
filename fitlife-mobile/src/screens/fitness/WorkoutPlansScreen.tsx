@@ -91,6 +91,13 @@ export function WorkoutPlansScreen() {
         <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </Pressable>
+
+        <Pressable
+          style={styles.floatingAddButton}
+          onPress={() => navigation.navigate('CreateWorkoutPlan')}
+        >
+          <Ionicons name="add" size={32} color="#fff" />
+        </Pressable>
         <View>
           <Text style={styles.title}>Workout Plans</Text>
           <Text style={styles.subtitle}>Create and manage your fitness routines</Text>
@@ -394,4 +401,27 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
+  floatingAddButton: {
+  position: 'absolute',
+  right: 24,
+  bottom: 70, 
+  width: 64,
+  height: 64,
+  borderRadius: 32,
+  backgroundColor: '#5F8F64',
+
+  alignItems: 'center',
+  justifyContent: 'center',
+
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 4,
+  },
+  shadowOpacity: 0.2,
+  shadowRadius: 8,
+  elevation: 8,
+
+  zIndex: 999,
+},
 });
