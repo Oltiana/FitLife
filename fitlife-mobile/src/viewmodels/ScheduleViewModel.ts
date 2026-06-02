@@ -4,6 +4,7 @@ import { tokenStorage } from "../storage/tokenStorage";
 
 export function useScheduleViewModel(selectedDate: string) {
   const [sessions, setSessions] = useState<any[]>([]);
+  const [allSessions, setAllSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadSessions = async () => {
@@ -12,7 +13,11 @@ export function useScheduleViewModel(selectedDate: string) {
 
       const data = await api.getSessions();
 
-      const filtered = (data.sessions || []).filter(
+      const all = data.sessions || [];
+
+      setAllSessions(all);
+
+      const filtered = all.filter(
         (s: any) =>
           s.sessionDate?.slice(0, 10) === selectedDate
       );
@@ -21,6 +26,7 @@ export function useScheduleViewModel(selectedDate: string) {
     } catch (err) {
       console.log(err);
       setSessions([]);
+      setAllSessions([]);
     } finally {
       setLoading(false);
     }
@@ -50,6 +56,17 @@ export function useScheduleViewModel(selectedDate: string) {
             : s
         )
       );
+
+      setAllSessions((prev) =>
+        prev.map((s) =>
+          s.id === id && s.capacity > 0
+            ? {
+                ...s,
+                capacity: s.capacity - 1,
+              }
+            : s
+        )
+      );
     } catch (err) {
       console.log(err);
     }
@@ -67,6 +84,7 @@ export function useScheduleViewModel(selectedDate: string) {
 
   return {
     sessions,
+    allSessions,
     loading,
     bookSession,
     instructors,

@@ -20,8 +20,6 @@ const pad2 = (n: number): string => String(n).padStart(2, "0");
 const toYMD = (y: number, m: number, d: number): string =>
   `${y}-${pad2(m)}-${pad2(d)}`;
 
-/* ---------- TYPES ---------- */
-
 type MarkedDate = {
   selected?: boolean;
   marked?: boolean;
@@ -36,8 +34,6 @@ type Props = {
   onVisibleMonthChange?: (month: string) => void;
   initialMonth?: string;
 };
-
-/* ---------- COMPONENT ---------- */
 
 const SimpleMonthCalendar: React.FC<Props> = ({
   selectedDate,
@@ -111,7 +107,6 @@ const SimpleMonthCalendar: React.FC<Props> = ({
 
   return (
     <View style={styles.wrap}>
-      {/* HEADER */}
       <View style={styles.header}>
         <Pressable onPress={() => shiftMonth(-1)} style={styles.arrowBtn}>
           <Text style={styles.arrow}>‹</Text>
@@ -126,7 +121,6 @@ const SimpleMonthCalendar: React.FC<Props> = ({
         </Pressable>
       </View>
 
-      {/* WEEK DAYS */}
       <View style={styles.weekRow}>
         {WEEK.map((w, i) => (
           <View key={i} style={[styles.weekCell, { width: cellW }]}>
@@ -137,7 +131,6 @@ const SimpleMonthCalendar: React.FC<Props> = ({
         ))}
       </View>
 
-      {/* GRID */}
       <View style={styles.grid}>
         {cells.map((c) => {
           if (c.type === "empty") {
@@ -186,7 +179,6 @@ const SimpleMonthCalendar: React.FC<Props> = ({
 
 export default SimpleMonthCalendar;
 
-/* ---------- STYLES ---------- */
 
 const styles = StyleSheet.create({
   wrap: {

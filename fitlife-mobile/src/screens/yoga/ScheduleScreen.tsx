@@ -42,22 +42,38 @@ export default function ScheduleScreen() {
     useState("");
 
   const {
-    sessions,
-    loading,
-    bookSession,
-    instructors,
-  } = useScheduleViewModel(selected);
+  sessions,
+  allSessions,
+  loading,
+  bookSession,
+  instructors,
+} = useScheduleViewModel(selected);
 
-  const marked = useMemo(
-    () => ({
-      [selected]: {
-        selected: true,
-        selectedColor: colors.primary,
+  const marked = useMemo(() => {
+  const dates: any = {};
+
+  allSessions.forEach((s: any) => {
+    const date = s.sessionDate?.slice(0, 10);
+
+    if (!date) return;
+
+    if (s.capacity > 0) {
+      dates[date] = {
         marked: true,
-      },
-    }),
-    [selected]
-  );
+        dotColor: "#22C55E",
+      };
+    }
+  });
+
+  dates[selected] = {
+    ...dates[selected],
+    selected: true,
+    marked: true,
+    dotColor: "#22C55E",
+  };
+
+  return dates;
+}, [allSessions, selected]);
 
   const filteredSessions = sessions.filter(
     (s: any) => {
