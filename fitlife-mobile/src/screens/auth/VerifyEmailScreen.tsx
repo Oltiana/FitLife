@@ -4,7 +4,7 @@ import {
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useVerifyEmailViewModel } from '../../viewmodels/useVerifyEmailViewModel';
+import { useVerifyEmailViewModel } from './viewmodels/useVerifyEmailViewModel';
 
 export default function VerifyEmailScreen({
   email,

@@ -24,7 +24,7 @@ import type {
   PilatesSectionTabParamList,
   PilatesStackParamList,
 } from '../../navigation/PilatesNavigationTypes';
-import { usePilatesListViewModel } from '../../viewmodels/PilatesViewModel';
+import { usePilatesListViewModel } from './viewmodels/PilatesViewModel';
 import {
   formatPilatesLevelLabel,
   type PilatesCategory,

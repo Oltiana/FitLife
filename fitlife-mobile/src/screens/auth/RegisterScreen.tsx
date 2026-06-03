@@ -5,7 +5,7 @@ import {
   Platform, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRegisterViewModel } from '../../viewmodels/useRegisterViewModel';
+import { useRegisterViewModel } from './viewmodels/useRegisterViewModel';
 
 export default function RegisterScreen({
   onRegisterSuccess,

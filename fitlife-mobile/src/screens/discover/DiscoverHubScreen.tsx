@@ -21,7 +21,7 @@ import type { PilatesStackParamList } from '../../navigation/PilatesNavigationTy
 import type { PilatesWorkout } from '../../domain/PilatesDomainTypes';
 import type { AppColors } from '../../theme/PilatesColors';
 import { useTheme } from '../../theme/PilatesThemeContext';
-import { usePilatesListViewModel } from '../../viewmodels/PilatesViewModel';
+import { usePilatesListViewModel } from '../pilates/viewmodels/PilatesViewModel';
 
 type Props = NativeStackScreenProps<PilatesStackParamList, 'DiscoverHub'>;
 

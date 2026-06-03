@@ -28,7 +28,7 @@ import type {
   MainTabParamList,
   PilatesStackParamList,
 } from '../../navigation/PilatesNavigationTypes';
-import { usePilatesWorkoutViewModel } from '../../viewmodels/PilatesViewModel';
+import { usePilatesWorkoutViewModel } from './viewmodels/PilatesViewModel';
 import type { AppColors } from '../../theme/PilatesColors';
 import { useTheme } from '../../theme/PilatesThemeContext';
 

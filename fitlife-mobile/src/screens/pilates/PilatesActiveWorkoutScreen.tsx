@@ -15,7 +15,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ImageBanner } from '../../components/PilatesImageBanner';
 import { PilatesModel } from '../../models/PilatesModel';
-import { usePilatesWorkoutViewModel } from '../../viewmodels/PilatesViewModel';
+import { usePilatesWorkoutViewModel } from './viewmodels/PilatesViewModel';
 import { appendCompletion } from '../../data/pilates';
 import { BASE_URL } from '../../constants/apiConfig';
 import { estimatePilatesCalories } from '../../domain/PilatesCaloriesEstimate';

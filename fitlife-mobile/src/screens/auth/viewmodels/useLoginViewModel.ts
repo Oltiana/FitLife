@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { authApi } from '../api/authApi';
-import { useAuth } from '../hooks/useAuth';
+import { authApi } from '../../../api/authApi';
+import { useAuth } from '../../../hooks/useAuth';
 
 export const useLoginViewModel = (onSuccess: () => void) => {
   const { login } = useAuth();

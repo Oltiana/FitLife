@@ -5,8 +5,8 @@ import {
   loadUserPreferences,
   resolvePilatesApiUserId,
   saveUserPreferences,
-} from '../data/pilates';
-import type { WorkoutCompletion } from '../domain/PilatesDomainTypes';
+} from '../../../data/pilates';
+import type { WorkoutCompletion } from '../../../domain/PilatesDomainTypes';
 
 export function usePilatesAnalyticsViewModel() {
   const [loading, setLoading] = useState(true);

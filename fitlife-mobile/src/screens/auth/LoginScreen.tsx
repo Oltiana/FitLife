@@ -5,7 +5,7 @@ import {
   Platform, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLoginViewModel } from '../../viewmodels/useLoginViewModel';
+import { useLoginViewModel } from './viewmodels/useLoginViewModel';
 
 export default function LoginScreen({
   onLoginSuccess,

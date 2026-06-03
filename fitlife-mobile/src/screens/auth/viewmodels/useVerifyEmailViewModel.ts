@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { authApi } from '../api/authApi';
+import { authApi } from '../../../api/authApi';
 
 export const useVerifyEmailViewModel = (onSuccess: () => void) => {
   const [loading, setLoading] = useState(false);

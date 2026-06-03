@@ -26,7 +26,7 @@ import {
   loadWeightEntries,
   pickMotivationalMessage,
 } from '../../data/pilates';
-import { usePilatesAnalyticsViewModel } from '../../viewmodels/PilatesAnalyticsViewModel';
+import { usePilatesAnalyticsViewModel } from './viewmodels/PilatesAnalyticsViewModel';
 import type { AppColors } from '../../theme/PilatesColors';
 import { useTheme } from '../../theme/PilatesThemeContext';
 import { cardShadowThemed } from '../../theme/PilatesShadows';

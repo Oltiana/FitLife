@@ -17,7 +17,7 @@ import {
 } from "@react-navigation/native";
 import SimpleMonthCalendar from "../../components/SimpleMonthCalendar";
 import { colors } from "../../theme/colors";
-import { useScheduleViewModel } from "../../viewmodels/ScheduleViewModel";
+import { useScheduleViewModel } from "./viewmodels/ScheduleViewModel";
 import { api } from "../../services/api";
 import { IMAGE_BASE_URL } from "../../constants/apiConfig";
 

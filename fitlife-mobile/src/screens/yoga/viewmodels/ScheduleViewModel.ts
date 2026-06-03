@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { api } from "../services/api";
-import { tokenStorage } from "../storage/tokenStorage";
+import { api } from "../../../services/api";
+import { tokenStorage } from "../../../storage/tokenStorage";
 
 export function useScheduleViewModel(selectedDate: string) {
   const [sessions, setSessions] = useState<any[]>([]);

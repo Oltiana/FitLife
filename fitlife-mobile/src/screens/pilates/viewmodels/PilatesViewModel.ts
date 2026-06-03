@@ -2,13 +2,13 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { useCallback, useMemo, useState } from 'react';
 
-import { loadPrograms, reloadPilatesProgramsFromApi } from '../data/pilates';
+import { loadPrograms, reloadPilatesProgramsFromApi } from '../../../data/pilates';
 
-import { hydratePilatesModelFromPrograms, PilatesModel } from '../models/PilatesModel';
+import { hydratePilatesModelFromPrograms, PilatesModel } from '../../../models/PilatesModel';
 
-import { hasAuthToken } from '../api/pilatesApi';
+import { hasAuthToken } from '../../../api/pilatesApi';
 
-import type { PilatesWorkout } from '../domain/PilatesDomainTypes';
+import type { PilatesWorkout } from '../../../domain/PilatesDomainTypes';
 
 
 
