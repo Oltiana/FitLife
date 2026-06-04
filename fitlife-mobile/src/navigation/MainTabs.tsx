@@ -1,21 +1,29 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FitLifeProfileScreen } from '../screens/profile/view/FitLifeProfileScreen';
 import { HomeScreen } from '../screens/shared/view/HomeScreen';
+import { AdminDashboard } from '../screens/admin/view/AdminDashboard';
 import { useTheme } from '../theme/PilatesThemeContext';
 import { FitnessStack } from './FitnessStack';
 import type { MainTabParamList } from './PilatesNavigationTypes';
 import { PilatesStack } from './PilatesStack';
 import YogaStack from './YogaStack';
+import { tokenStorage } from '../storage/tokenStorage';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export function MainTabs({ onLogout }: { onLogout: () => void }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    tokenStorage.getRole().then(setRole);
+  }, []);
+
   const tabBarExtraBottom =
     Platform.OS === 'ios' ? Math.max(insets.bottom, 10) : Math.max(insets.bottom, 12);
 
@@ -46,6 +54,10 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
     [colors, tabBarExtraBottom],
   );
 
+  if (role === 'Admin' || role === 'Inspector' || role === 'FitnessManager') {
+    return <AdminDashboard onLogout={onLogout} />;
+  }
+
   return (
     <Tab.Navigator screenOptions={screenOptions} initialRouteName="Home">
       <Tab.Screen
@@ -58,16 +70,16 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
           ),
         }}
       />
-       <Tab.Screen
-              name="Fitness"
-              component={FitnessStack}
-              options={{
-                title: 'Fitness',
-                tabBarIcon: ({ color, size }) => (
-                  <Ionicons name="barbell-outline" size={size + 2} color={color} />
-                ),
-              }}
-            />
+      <Tab.Screen
+        name="Fitness"
+        component={FitnessStack}
+        options={{
+          title: 'Fitness',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="barbell-outline" size={size + 2} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="Search"
         component={PilatesStack}
@@ -99,7 +111,6 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
       >
         {() => <FitLifeProfileScreen onLogout={onLogout} />}
       </Tab.Screen>
-      
     </Tab.Navigator>
   );
 }

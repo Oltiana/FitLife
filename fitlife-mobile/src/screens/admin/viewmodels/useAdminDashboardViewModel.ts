@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { type ReactNode } from 'react';
-import { getAdminStats } from '../../../api/adminApi';
+import { getAdminStats, getAdminUsers, getAdminAnalytics, type AdminUser } from '../../../api/adminApi';
+import { tokenStorage } from '../../../storage/tokenStorage';
 
 export type Section = 'home' | 'users' | 'pilates' | 'yoga' | 'fitness' | 'analytics';
+export type UserRole = 'Admin' | 'Inspector' | 'FitnessManager' | 'User';
 
 type AdminStats = {
   totalUsers: number;
@@ -14,6 +16,7 @@ type AdminStats = {
 export function useAdminDashboardViewModel() {
   const [activeSection, setActiveSection] = useState<Section>('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [role, setRole] = useState<UserRole>('Admin');
   const [rawStats, setRawStats] = useState<AdminStats>({
     totalUsers: 0,
     totalPilatesPrograms: 0,
@@ -22,16 +25,55 @@ export function useAdminDashboardViewModel() {
   });
   const [loadingStats, setLoadingStats] = useState(true);
   const [popupContent, setPopupContent] = useState<ReactNode>(null);
+  const [recentUsers, setRecentUsers] = useState<AdminUser[]>([]);
+  const [weeklyTrend, setWeeklyTrend] = useState<number>(0);
 
   const loadStats = useCallback(() => {
     getAdminStats().then(setRawStats).catch(console.warn);
   }, []);
 
   useEffect(() => {
-    getAdminStats()
-      .then(setRawStats)
-      .catch(console.warn)
-      .finally(() => setLoadingStats(false));
+    const loadAll = async () => {
+      try {
+        const savedRole = (await tokenStorage.getRole()) as UserRole ?? 'Admin';
+        setRole(savedRole);
+
+        const [stats, analytics] = await Promise.all([
+          getAdminStats(),
+          getAdminAnalytics(),
+        ]);
+
+        setRawStats(stats);
+
+        if (savedRole === 'Admin') {
+          const users = await getAdminUsers();
+          const sorted = [...users].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          setRecentUsers(sorted.slice(0, 5));
+        }
+
+        const regs = analytics.userRegistrations;
+        const last7 = regs.slice(-7);
+        const prev7 = regs.slice(-14, -7);
+        const last7Total = last7.reduce((s, d) => s + d.count, 0);
+        const prev7Total = prev7.reduce((s, d) => s + d.count, 0);
+        if (prev7Total > 0) {
+          setWeeklyTrend(Math.round(((last7Total - prev7Total) / prev7Total) * 100));
+        } else {
+          setWeeklyTrend(last7Total > 0 ? 100 : 0);
+        }
+
+        if (savedRole === 'Inspector') setActiveSection('home');
+        if (savedRole === 'FitnessManager') setActiveSection('home');
+
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    void loadAll();
   }, []);
 
   const handleNavPress = useCallback((id: Section) => {
@@ -57,5 +99,8 @@ export function useAdminDashboardViewModel() {
     refreshStats: loadStats,
     popupContent,
     setPopupContent,
+    recentUsers,
+    weeklyTrend,
+    role,
   };
 }

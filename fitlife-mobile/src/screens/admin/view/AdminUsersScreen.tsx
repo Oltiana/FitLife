@@ -22,6 +22,16 @@ import {
 
 type Tab = 'info' | 'bookings';
 
+const ROLES = ['User', 'Admin', 'Inspector', 'FitnessManager'] as const;
+type Role = typeof ROLES[number];
+
+const ROLE_STYLES: Record<Role, { bg: string; text: string; icon: string }> = {
+  User:           { bg: '#EEF2F9', text: '#4A6FA5', icon: 'person-outline' },
+  Admin:          { bg: '#D6EAF8', text: '#1A5276', icon: 'shield-checkmark-outline' },
+  Inspector:      { bg: '#FFF3CD', text: '#856404', icon: 'eye-outline' },
+  FitnessManager: { bg: '#D4EDDA', text: '#155724', icon: 'barbell-outline' },
+};
+
 const screenWidth = Dimensions.get('window').width;
 const isWide = Platform.OS === 'web' && screenWidth >= 768;
 
@@ -60,9 +70,7 @@ export function AdminUsersScreen({
     }
   };
 
-  useEffect(() => {
-    void loadUsers();
-  }, []);
+  useEffect(() => { void loadUsers(); }, []);
 
   const showPopupForUser = (user: AdminUserDetails, tab: Tab = 'info') => {
     onShowPopup(
@@ -70,9 +78,8 @@ export function AdminUsersScreen({
         user={user}
         initialTab={tab}
         onClose={onHidePopup}
-        onRoleChange={async (u) => {
-          const newRole = u.role === 'Admin' ? 'User' : 'Admin';
-          confirmAction(`Change ${u.fullName} to ${newRole}?`, async () => {
+        onRoleChange={async (u, newRole) => {
+          confirmAction(`Change ${u.fullName}'s role to ${newRole}?`, async () => {
             await updateUserRole(u.id, newRole);
             await loadUsers();
             const updated = await getAdminUserDetails(u.id);
@@ -91,9 +98,7 @@ export function AdminUsersScreen({
   };
 
   const openUserDetail = async (user: AdminUser) => {
-    onShowPopup(
-      <ActivityIndicator size="large" color="#4A6FA5" style={{ marginVertical: 40 }} />
-    );
+    onShowPopup(<ActivityIndicator size="large" color="#4A6FA5" style={{ marginVertical: 40 }} />);
     try {
       const details = await getAdminUserDetails(user.id);
       showPopupForUser(details);
@@ -116,32 +121,34 @@ export function AdminUsersScreen({
         </Pressable>
       )}
       <ScrollView contentContainerStyle={styles.list}>
-        {users.map((user) => (
-          <Pressable
-            key={user.id}
-            style={({ pressed }) => [styles.userCard, pressed && { opacity: 0.85 }]}
-            onPress={() => openUserDetail(user)}
-          >
-            <View style={styles.avatarWrap}>
-              <Text style={styles.avatarText}>
-                {user.fullName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{user.fullName}</Text>
-              <Text style={styles.userEmail}>{user.email}</Text>
-              <View style={styles.badgeRow}>
-                <View style={[styles.badge, user.role === 'Admin' ? styles.badgeAdmin : styles.badgeUser]}>
-                  <Text style={styles.badgeText}>{user.role}</Text>
-                </View>
-                <View style={[styles.badge, user.isVerified ? styles.badgeVerified : styles.badgeUnverified]}>
-                  <Text style={styles.badgeText}>{user.isVerified ? 'Verified' : 'Unverified'}</Text>
+        {users.map((user) => {
+          const roleStyle = ROLE_STYLES[user.role as Role] ?? ROLE_STYLES.User;
+          return (
+            <Pressable
+              key={user.id}
+              style={({ pressed }) => [styles.userCard, pressed && { opacity: 0.85 }]}
+              onPress={() => openUserDetail(user)}
+            >
+              <View style={styles.avatarWrap}>
+                <Text style={styles.avatarText}>{user.fullName.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{user.fullName}</Text>
+                <Text style={styles.userEmail}>{user.email}</Text>
+                <View style={styles.badgeRow}>
+                  <View style={[styles.badge, { backgroundColor: roleStyle.bg }]}>
+                    <Ionicons name={roleStyle.icon as any} size={10} color={roleStyle.text} />
+                    <Text style={[styles.badgeText, { color: roleStyle.text }]}>{user.role}</Text>
+                  </View>
+                  <View style={[styles.badge, user.isVerified ? styles.badgeVerified : styles.badgeUnverified]}>
+                    <Text style={styles.badgeText}>{user.isVerified ? 'Verified' : 'Unverified'}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#A8BDD6" />
-          </Pressable>
-        ))}
+              <Ionicons name="chevron-forward" size={18} color="#A8BDD6" />
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </>
   );
@@ -157,10 +164,11 @@ function PopupContent({
   user: AdminUserDetails;
   initialTab: Tab;
   onClose: () => void;
-  onRoleChange: (user: AdminUserDetails) => Promise<void>;
+  onRoleChange: (user: AdminUserDetails, newRole: Role) => Promise<void>;
   onDelete: (user: AdminUserDetails) => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+  const [showRoleMenu, setShowRoleMenu] = useState(false);
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -174,12 +182,19 @@ function PopupContent({
 
         <View style={styles.modalHeader}>
           <View style={styles.avatarWrapLarge}>
-            <Text style={styles.avatarTextLarge}>
-              {user.fullName.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarTextLarge}>{user.fullName.charAt(0).toUpperCase()}</Text>
           </View>
           <Text style={styles.modalName}>{user.fullName}</Text>
           <Text style={styles.modalEmail}>{user.email}</Text>
+          {(() => {
+            const rs = ROLE_STYLES[user.role as Role] ?? ROLE_STYLES.User;
+            return (
+              <View style={[styles.currentRoleBadge, { backgroundColor: rs.bg }]}>
+                <Ionicons name={rs.icon as any} size={12} color={rs.text} />
+                <Text style={[styles.currentRoleText, { color: rs.text }]}>{user.role}</Text>
+              </View>
+            );
+          })()}
         </View>
 
         <View style={styles.tabRow}>
@@ -192,14 +207,8 @@ function PopupContent({
               style={[styles.tab, activeTab === tab.id && styles.tabActive]}
               onPress={() => setActiveTab(tab.id)}
             >
-              <Ionicons
-                name={tab.icon as any}
-                size={14}
-                color={activeTab === tab.id ? '#4A6FA5' : '#7A90A8'}
-              />
-              <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
-                {tab.label}
-              </Text>
+              <Ionicons name={tab.icon as any} size={14} color={activeTab === tab.id ? '#4A6FA5' : '#7A90A8'} />
+              <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>{tab.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -222,9 +231,7 @@ function PopupContent({
                   <Ionicons name="calendar-outline" size={16} color="#4A6FA5" />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.listItemTitle}>Booking #{b.id}</Text>
-                    <Text style={styles.listItemSub}>
-                      Session #{b.sessionId} · {new Date(b.bookingDate).toLocaleDateString()}
-                    </Text>
+                    <Text style={styles.listItemSub}>Session #{b.sessionId} · {new Date(b.bookingDate).toLocaleDateString()}</Text>
                   </View>
                 </View>
               ))
@@ -235,13 +242,33 @@ function PopupContent({
         <View style={styles.modalActions}>
           <Pressable
             style={[styles.actionBtn, styles.actionBtnRole]}
-            onPress={() => onRoleChange(user)}
+            onPress={() => setShowRoleMenu(!showRoleMenu)}
           >
             <Ionicons name="swap-horizontal-outline" size={18} color="#4A6FA5" />
-            <Text style={[styles.actionBtnText, { color: '#4A6FA5' }]}>
-              Make {user.role === 'Admin' ? 'User' : 'Admin'}
-            </Text>
+            <Text style={[styles.actionBtnText, { color: '#4A6FA5' }]}>Change Role</Text>
+            <Ionicons name={showRoleMenu ? 'chevron-up' : 'chevron-down'} size={16} color="#4A6FA5" />
           </Pressable>
+
+          {showRoleMenu && (
+            <View style={styles.roleMenu}>
+              {ROLES.filter(r => r !== user.role).map((r) => {
+                const rs = ROLE_STYLES[r];
+                return (
+                  <Pressable
+                    key={r}
+                    style={[styles.roleMenuItem, { backgroundColor: rs.bg }]}
+                    onPress={() => {
+                      setShowRoleMenu(false);
+                      onRoleChange(user, r);
+                    }}
+                  >
+                    <Ionicons name={rs.icon as any} size={16} color={rs.text} />
+                    <Text style={[styles.roleMenuItemText, { color: rs.text }]}>Make {r}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
 
           <Pressable
             style={[styles.actionBtn, styles.actionBtnDelete]}
@@ -268,121 +295,47 @@ function DetailItem({ icon, label, value }: { icon: string; label: string; value
 
 const styles = StyleSheet.create({
   list: { gap: 10, paddingBottom: 20 },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: '#EEF2F9',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    marginBottom: 12,
-  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: '#EEF2F9', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, marginBottom: 12 },
   backText: { fontSize: 13, fontWeight: '700', color: '#4A6FA5' },
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#D0DCF0',
-    gap: 12,
-  },
-  avatarWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#EEF2F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  userCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#D0DCF0', gap: 12 },
+  avatarWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#EEF2F9', alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 18, fontWeight: '800', color: '#4A6FA5' },
   userInfo: { flex: 1, gap: 4 },
   userName: { fontSize: 14, fontWeight: '700', color: '#0F1D2E' },
   userEmail: { fontSize: 12, color: '#7A90A8' },
   badgeRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  badgeAdmin: { backgroundColor: '#D0DCF0' },
-  badgeUser: { backgroundColor: '#EEF2F9' },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   badgeVerified: { backgroundColor: '#D6EAF8' },
   badgeUnverified: { backgroundColor: '#FDEDF5' },
   badgeText: { fontSize: 10, fontWeight: '700', color: '#0F1D2E' },
-  popupTopBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  popupTopBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   popupTitle: { fontSize: 16, fontWeight: '800', color: '#0F1D2E' },
   modalHeader: { alignItems: 'center', gap: 6 },
-  avatarWrapLarge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#EEF2F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
+  avatarWrapLarge: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#EEF2F9', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   avatarTextLarge: { fontSize: 28, fontWeight: '800', color: '#4A6FA5' },
   modalName: { fontSize: 18, fontWeight: '800', color: '#0F1D2E' },
   modalEmail: { fontSize: 13, color: '#7A90A8' },
-  tabRow: {
-    flexDirection: 'row',
-    backgroundColor: '#EEF2F9',
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
+  currentRoleBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, marginTop: 4 },
+  currentRoleText: { fontSize: 12, fontWeight: '700' },
+  tabRow: { flexDirection: 'row', backgroundColor: '#EEF2F9', borderRadius: 12, padding: 4, gap: 4 },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8, borderRadius: 10 },
   tabActive: { backgroundColor: '#fff' },
   tabText: { fontSize: 11, fontWeight: '600', color: '#7A90A8' },
   tabTextActive: { color: '#4A6FA5', fontWeight: '700' },
-  detailGrid: {
-    gap: 10,
-    backgroundColor: '#EEF2F9',
-    borderRadius: 16,
-    padding: 16,
-  },
+  detailGrid: { gap: 10, backgroundColor: '#EEF2F9', borderRadius: 16, padding: 16 },
   detailItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   detailLabel: { fontSize: 13, color: '#7A90A8', flex: 1 },
   detailValue: { fontSize: 13, fontWeight: '700', color: '#0F1D2E' },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#D0DCF0',
-  },
+  listItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#D0DCF0' },
   listItemTitle: { fontSize: 13, fontWeight: '700', color: '#0F1D2E' },
   listItemSub: { fontSize: 11, color: '#7A90A8', marginTop: 2 },
-  emptyText: {
-    fontSize: 13,
-    color: '#7A90A8',
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
+  emptyText: { fontSize: 13, color: '#7A90A8', textAlign: 'center', paddingVertical: 20 },
   modalActions: { gap: 10 },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, borderWidth: 1 },
   actionBtnRole: { borderColor: '#A8BDD6', backgroundColor: '#EEF2F9' },
   actionBtnDelete: { borderColor: '#c94444', backgroundColor: '#fdecef' },
-  actionBtnText: { fontSize: 14, fontWeight: '700' },
+  actionBtnText: { fontSize: 14, fontWeight: '700', flex: 1, textAlign: 'center' },
+  roleMenu: { gap: 8 },
+  roleMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12 },
+  roleMenuItemText: { fontSize: 14, fontWeight: '700' },
 });

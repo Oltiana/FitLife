@@ -9,7 +9,7 @@ namespace FitLifeAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Inspector,FitnessManager")]
     public class AdminController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -20,6 +20,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("stats")]
+        [Authorize(Roles = "Admin,Inspector,FitnessManager")]
         public async Task<IActionResult> GetStats()
         {
             var totalUsers = await _context.Users.CountAsync();
@@ -37,6 +38,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("users")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetUsers()
         {
             var users = await _context.Users
@@ -59,6 +61,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("users/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetUser(int id)
         {
             var user = await _context.Users
@@ -82,6 +85,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("users/{id}/details")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetUserDetails(int id)
         {
             var user = await _context.Users
@@ -134,6 +138,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("pilates/progress")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetPilatesProgress([FromQuery] int? programId)
         {
             var query = _context.UserPilatesProgresses
@@ -167,6 +172,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("pilates/enrollments")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetPilatesEnrollments([FromQuery] int? programId)
         {
             var query = _context.UserPilatesEnrollments
@@ -198,6 +204,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("pilates/progress-content")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetPilatesProgressContentAdmin()
         {
             await PilatesProgressContentHelper.EnsureSeedAsync(_context);
@@ -205,6 +212,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpPut("pilates/progress-ui")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdatePilatesProgressUi(
             [FromBody] UpdatePilatesProgressUiConfigRequest request)
         {
@@ -221,6 +229,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpPut("pilates/progress-periods/{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdatePilatesProgressPeriod(
             int id,
             [FromBody] UpdatePilatesProgressPeriodRequest request)
@@ -246,6 +255,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("pilates/motivation-messages")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetMotivationMessages()
         {
             await PilatesProgressContentHelper.EnsureSeedAsync(_context);
@@ -257,6 +267,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpPost("pilates/motivation-messages")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateMotivationMessage(
             [FromBody] UpsertPilatesMotivationMessageRequest request)
         {
@@ -275,6 +286,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpPut("pilates/motivation-messages/{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateMotivationMessage(
             int id,
             [FromBody] UpsertPilatesMotivationMessageRequest request)
@@ -292,6 +304,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpDelete("pilates/motivation-messages/{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteMotivationMessage(int id)
         {
             var row = await _context.PilatesMotivationMessages.FindAsync(id);
@@ -302,6 +315,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpPatch("users/{id}/role")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UpdateRoleRequest request)
         {
             var user = await _context.Users.FindAsync(id);
@@ -313,6 +327,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpDelete("users/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteUser(int id)
         {
             var user = await _context.Users.FindAsync(id);
@@ -322,7 +337,9 @@ namespace FitLifeAPI.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { message = "User deleted successfully" });
         }
+
         [HttpGet("analytics")]
+        [Authorize(Roles = "Admin,Inspector,FitnessManager")]
         public async Task<IActionResult> GetAnalytics()
         {
             var users = await _context.Users
@@ -350,6 +367,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpGet("fitness/workout-plans")]
+        [Authorize(Roles = "Admin,FitnessManager")]
         public async Task<IActionResult> GetFitnessWorkoutPlans()
         {
             var plans = await _context.WorkoutPlans
@@ -389,9 +407,10 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpPut("fitness/workout-plans/{id}")]
+        [Authorize(Roles = "Admin,FitnessManager")]
         public async Task<IActionResult> UpdateFitnessWorkoutPlan(
-    int id,
-    [FromBody] CreateWorkoutPlanRequest request)
+            int id,
+            [FromBody] CreateWorkoutPlanRequest request)
         {
             var plan = await _context.WorkoutPlans.FindAsync(id);
             if (plan == null) return NotFound();
@@ -406,6 +425,7 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpDelete("fitness/workout-plans/{id}")]
+        [Authorize(Roles = "Admin,FitnessManager")]
         public async Task<IActionResult> DeleteFitnessWorkoutPlan(int id)
         {
             var plan = await _context.WorkoutPlans.FindAsync(id);
@@ -416,6 +436,5 @@ namespace FitLifeAPI.Controllers
 
             return Ok(new { message = "Workout plan deleted successfully" });
         }
-
     }
 }
