@@ -2,8 +2,8 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { MainTabs } from './MainTabs';
-import LoginScreen from "../screens/auth/LoginScreen";
-import RegisterScreen from "../screens/auth/RegisterScreen";
+import LoginScreen from "../screens/auth/view/LoginScreen";
+import RegisterScreen from "../screens/auth/view/RegisterScreen";
 import { tokenStorage } from "../storage/tokenStorage";
 
 const Stack = createNativeStackNavigator();

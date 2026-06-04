@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { loadPrograms, reloadPilatesProgramsFromApi } from '../../../data/pilates';
 
-import { hydratePilatesModelFromPrograms, PilatesModel } from '../../../models/PilatesModel';
+import { hydratePilatesModelFromPrograms, PilatesModel } from '../models/PilatesModel';
 
 import { hasAuthToken } from '../../../api/pilatesApi';
 

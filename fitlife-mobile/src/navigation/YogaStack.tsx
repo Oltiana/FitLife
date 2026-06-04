@@ -4,10 +4,10 @@ import {
 } from "@react-navigation/native-stack";
 
 
-import YogaHomeScreen from "../screens/yoga/YogaHomeScreen";
-import WorkoutDetailScreen from "../screens/yoga/WorkoutDetailScreen";
-import UpcomingScreen from "../screens/yoga/UpcomingScreen";
-import ScheduleScreen from "../screens/yoga/ScheduleScreen";
+import YogaHomeScreen from "../screens/yoga/view/YogaHomeScreen";
+import WorkoutDetailScreen from "../screens/yoga/view/WorkoutDetailScreen";
+import UpcomingScreen from "../screens/yoga/view/UpcomingScreen";
+import ScheduleScreen from "../screens/yoga/view/ScheduleScreen";
 
 
 const Stack = createNativeStackNavigator();

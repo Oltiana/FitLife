@@ -13,7 +13,7 @@ import {
   normalizePilatesLevel,
   type WorkoutCompletion,
 } from '../domain/PilatesDomainTypes';
-import { hydratePilatesModelFromPrograms } from '../models/PilatesModel';
+import { hydratePilatesModelFromPrograms } from '../screens/pilates/models/PilatesModel';
 import { tokenStorage } from '../storage/tokenStorage';
 
 const ROUTES = {

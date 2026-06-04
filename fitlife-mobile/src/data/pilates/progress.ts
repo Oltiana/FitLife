@@ -10,7 +10,7 @@ import {
 } from '../../api/pilatesApi';
 import { BASE_URL } from '../../constants/apiConfig';
 import type { WorkoutCompletion } from '../../domain/PilatesDomainTypes';
-import { hydratePilatesModelFromPrograms } from '../../models/PilatesModel';
+import { hydratePilatesModelFromPrograms } from '../../screens/pilates/models/PilatesModel';
 import { readCachedPilatesPrograms } from './cache';
 import { resolvePilatesApiUserId } from './programs';
 

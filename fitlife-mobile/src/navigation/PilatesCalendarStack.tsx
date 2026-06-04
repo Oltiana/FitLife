@@ -1,6 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { PilatesCalendarHubScreen } from '../screens/pilates/PilatesCalendarHubScreen';
-import { PilatesProgramScheduleScreen } from '../screens/pilates/PilatesProgramScheduleScreen';
+import { PilatesCalendarHubScreen } from '../screens/pilates/view/PilatesCalendarHubScreen';
+import { PilatesProgramScheduleScreen } from '../screens/pilates/view/PilatesProgramScheduleScreen';
 import { useTheme } from '../theme/PilatesThemeContext';
 import type { CalendarStackParamList } from './PilatesNavigationTypes';
 

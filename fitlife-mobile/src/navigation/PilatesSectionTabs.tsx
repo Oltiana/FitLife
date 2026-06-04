@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PilatesListScreen } from '../screens/pilates/PilatesListScreen';
-import { PilatesProgressScreen } from '../screens/pilates/PilatesProgressScreen';
+import { PilatesListScreen } from '../screens/pilates/view/PilatesListScreen';
+import { PilatesProgressScreen } from '../screens/pilates/view/PilatesProgressScreen';
 import { useTheme } from '../theme/PilatesThemeContext';
 import type { PilatesSectionTabParamList } from './PilatesNavigationTypes';
 

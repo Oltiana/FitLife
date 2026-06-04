@@ -1,10 +1,10 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Platform } from 'react-native';
-import { BrowseModalityDetailScreen } from '../screens/discover/BrowseModalityDetailScreen';
-import { DiscoverHubScreen } from '../screens/discover/DiscoverHubScreen';
-import { ActiveWorkoutScreen } from '../screens/pilates/PilatesActiveWorkoutScreen';
-import { PilatesProgramScheduleScreen } from '../screens/pilates/PilatesProgramScheduleScreen';
-import { WorkoutDetailScreen } from '../screens/pilates/PilatesWorkoutDetailScreen';
+import { BrowseModalityDetailScreen } from '../screens/shared/view/BrowseModalityDetailScreen';
+import { DiscoverHubScreen } from '../screens/shared/view/DiscoverHubScreen';
+import { ActiveWorkoutScreen } from '../screens/pilates/view/PilatesActiveWorkoutScreen';
+import { PilatesProgramScheduleScreen } from '../screens/pilates/view/PilatesProgramScheduleScreen';
+import { WorkoutDetailScreen } from '../screens/pilates/view/PilatesWorkoutDetailScreen';
 import { useTheme } from '../theme/PilatesThemeContext';
 import { PilatesSectionTabs } from './PilatesSectionTabs';
 import type { PilatesStackParamList } from './PilatesNavigationTypes';

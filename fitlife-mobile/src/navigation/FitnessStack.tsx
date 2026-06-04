@@ -1,11 +1,11 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ExerciseListScreen } from '../screens/fitness/ExerciseListScreen';
-import { ExerciseDetailScreen } from '../screens/fitness/ExerciseDetailScreen';
-import { WorkoutPlansScreen } from '../screens/fitness/WorkoutPlansScreen';
-import { WorkoutSessionScreen } from '../screens/fitness/WorkoutSessionScreen';
-import { FavoritesScreen } from '../screens/fitness/FavoritesScreen';
-import { CreateWorkoutPlanScreen } from '../screens/fitness/CreateWorkoutPlanScreen';
-import { WorkoutHistoryScreen } from '../screens/fitness/WorkoutHistoryScreen';
+import { ExerciseListScreen } from '../screens/fitness/view/ExerciseListScreen';
+import { ExerciseDetailScreen } from '../screens/fitness/view/ExerciseDetailScreen';
+import { WorkoutPlansScreen } from '../screens/fitness/view/WorkoutPlansScreen';
+import { WorkoutSessionScreen } from '../screens/fitness/view/WorkoutSessionScreen';
+import { FavoritesScreen } from '../screens/fitness/view/FavoritesScreen';
+import { CreateWorkoutPlanScreen } from '../screens/fitness/view/CreateWorkoutPlanScreen';
+import { WorkoutHistoryScreen } from '../screens/fitness/view/WorkoutHistoryScreen';
 
 export type FitnessStackParamList = {
     ExerciseList: undefined;

@@ -18,15 +18,15 @@ import {
   loadThemePreference,
   type ColorSchemePreference,
 } from './src/data/pilates';
-import { hydratePilatesModelFromPrograms } from './src/models/PilatesModel';
+import { hydratePilatesModelFromPrograms } from './src/screens/pilates/models/PilatesModel';
 import { MainTabs } from './src/navigation/MainTabs';
 import type { MainTabParamList } from './src/navigation/PilatesNavigationTypes';
 import { ThemeProvider, useTheme } from './src/theme/PilatesThemeContext';
 import { tokenStorage } from './src/storage/tokenStorage';
-import LoginScreen from './src/screens/auth/LoginScreen';
-import RegisterScreen from './src/screens/auth/RegisterScreen';
-import VerifyEmailScreen from './src/screens/auth/VerifyEmailScreen';
-import { AdminDashboard } from './src/screens/admin/AdminDashboard';
+import LoginScreen from './src/screens/auth/view/LoginScreen';
+import RegisterScreen from './src/screens/auth/view/RegisterScreen';
+import VerifyEmailScreen from './src/screens/auth/view/VerifyEmailScreen';
+import { AdminDashboard } from './src/screens/admin/view/AdminDashboard';
 import { AuthProvider, useAuth } from './src/hooks/useAuth';
 
 function Root({ children }: { children: React.ReactNode }) {
