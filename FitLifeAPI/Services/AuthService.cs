@@ -126,7 +126,7 @@ namespace FitLifeAPI.Services
                 return false;
 
             user.ResetPasswordToken = new Random().Next(100000, 999999).ToString();
-            user.ResetTokenExpiry = DateTime.UtcNow.AddHours(1);
+            user.ResetTokenExpiry = DateTime.UtcNow.AddMinutes(2);
             await _authRepository.UpdateAsync(user);
 
             try
@@ -137,7 +137,7 @@ namespace FitLifeAPI.Services
                     $@"<h2>Reset Password</h2>
                        <p>Your password reset code is:</p>
                        <h1 style='letter-spacing: 8px;'>{user.ResetPasswordToken}</h1>
-                       <p>This code expires in 1 hour.</p>
+                       <p>This code expires in 2 minutes.</p>
                        <p>If you did not request a password reset, ignore this email.</p>"
                 );
             }
@@ -204,5 +204,12 @@ namespace FitLifeAPI.Services
             await _authRepository.SaveRefreshTokenAsync(refreshToken);
             return refreshToken.Token;
         }
+        public async Task<bool> VerifyResetCodeAsync(string token)
+{
+    var user = await _authRepository.GetByResetTokenAsync(token);
+    if (user == null || user.ResetTokenExpiry < DateTime.UtcNow)
+        return false;
+    return true;
+}
     }
 }

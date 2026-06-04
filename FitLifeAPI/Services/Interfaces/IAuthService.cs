@@ -12,5 +12,6 @@ namespace FitLifeAPI.Services.Interfaces
         Task<bool> ForgotPasswordAsync(string email);
         Task<bool> ResetPasswordAsync(string token, string newPassword);
         Task LogoutAsync(string refreshToken);
+        Task<bool> VerifyResetCodeAsync(string token);
     }
 }

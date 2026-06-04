@@ -26,6 +26,7 @@ import { tokenStorage } from './src/storage/tokenStorage';
 import LoginScreen from './src/screens/auth/view/LoginScreen';
 import RegisterScreen from './src/screens/auth/view/RegisterScreen';
 import VerifyEmailScreen from './src/screens/auth/view/VerifyEmailScreen';
+import ForgotPasswordScreen from './src/screens/auth/view/ForgotPasswordScreen';
 import { AdminDashboard } from './src/screens/admin/view/AdminDashboard';
 import { AuthProvider, useAuth } from './src/hooks/useAuth';
 
@@ -55,12 +56,13 @@ function ThemedNavigation() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showVerify, setShowVerify] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
 
   useEffect(() => {
     const checkRole = async () => {
       const role = await tokenStorage.getRole();
-      setIsAdmin(role === 'Admin');
+      setIsAdmin(role === 'Admin' || role === 'Inspector' || role === 'FitnessManager');
     };
     if (isAuthenticated) void checkRole();
     else setIsAdmin(false);
@@ -68,7 +70,7 @@ function ThemedNavigation() {
 
   const handleLoginSuccess = async () => {
     const role = await tokenStorage.getRole();
-    setIsAdmin(role === 'Admin');
+    setIsAdmin(role === 'Admin' || role === 'Inspector' || role === 'FitnessManager');
     await syncPilatesAfterAuth();
   };
 
@@ -145,6 +147,15 @@ function ThemedNavigation() {
       );
     }
 
+    if (showForgotPassword) {
+      return (
+        <ForgotPasswordScreen
+          onNavigateToLogin={() => setShowForgotPassword(false)}
+          onResetSuccess={() => setShowForgotPassword(false)}
+        />
+      );
+    }
+
     if (showRegister) {
       return (
         <RegisterScreen
@@ -162,6 +173,7 @@ function ThemedNavigation() {
       <LoginScreen
         onLoginSuccess={() => void handleLoginSuccess()}
         onNavigateToRegister={() => setShowRegister(true)}
+        onNavigateToForgotPassword={() => setShowForgotPassword(true)}
       />
     );
   }

@@ -10,9 +10,11 @@ import { useLoginViewModel } from '../viewmodels/useLoginViewModel';
 export default function LoginScreen({
   onLoginSuccess,
   onNavigateToRegister,
+  onNavigateToForgotPassword,
 }: {
   onLoginSuccess: () => void;
   onNavigateToRegister: () => void;
+  onNavigateToForgotPassword: () => void;
 }) {
   const {
     email, setEmail,
@@ -30,8 +32,11 @@ export default function LoginScreen({
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
-
+      <ScrollView
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="always"
+        scrollEnabled={false}
+      >
         <View style={styles.iconContainer}>
           <Ionicons name="cube-outline" size={40} color="#5A8A5A" />
         </View>
@@ -81,7 +86,11 @@ export default function LoginScreen({
         </View>
         {errors.password ? <Text style={styles.fieldError}>{errors.password}</Text> : null}
 
-        <TouchableOpacity style={styles.forgotWrapper}>
+        <TouchableOpacity
+          style={styles.forgotWrapper}
+          onPress={onNavigateToForgotPassword}
+          activeOpacity={0.6}
+        >
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
@@ -95,6 +104,7 @@ export default function LoginScreen({
             : <Text style={styles.buttonText}>Sign In</Text>
           }
         </TouchableOpacity>
+        
 
         <TouchableOpacity onPress={onNavigateToRegister}>
           <Text style={styles.registerText}>
@@ -102,16 +112,15 @@ export default function LoginScreen({
             <Text style={styles.registerLink}>Sign Up</Text>
           </Text>
         </TouchableOpacity>
-
       </ScrollView>
     </KeyboardAvoidingView>
+    
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   inner: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
-
   iconContainer: {
     width: 72, height: 72,
     backgroundColor: '#E8F5E9',
@@ -121,12 +130,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-
   appName: { fontSize: 24, fontWeight: '700', textAlign: 'center', color: '#1A1A1A' },
   welcome: { fontSize: 16, textAlign: 'center', color: '#555', marginBottom: 32, marginTop: 4 },
-
   label: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 6, marginTop: 14 },
-
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -137,23 +143,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-
-  inputFocused: {
-    borderColor: '#7DBF7A',
-    borderWidth: 1,
-  },
-
-  inputError: {
-    borderColor: '#E53935',
-    borderWidth: 1,
-  },
-
+  inputFocused: { borderColor: '#7DBF7A', borderWidth: 1 },
+  inputError: { borderColor: '#E53935', borderWidth: 1 },
   inputIcon: { marginRight: 8 },
   input: { flex: 1, color: '#1A1A1A', fontSize: 14 },
-
   forgotWrapper: { alignItems: 'flex-end', marginTop: 8 },
   forgotText: { color: '#7DBF7A', fontSize: 13, fontWeight: '600' },
-
   button: {
     backgroundColor: '#7DBF7A',
     borderRadius: 12,
@@ -164,10 +159,8 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
   errorText: { color: '#E53935', fontSize: 13, textAlign: 'center', marginBottom: 8 },
   fieldError: { color: '#E53935', fontSize: 11, marginTop: 4 },
-
   registerText: { textAlign: 'center', color: '#555', marginTop: 20, fontSize: 13 },
   registerLink: { color: '#7DBF7A', fontWeight: '700' },
 });

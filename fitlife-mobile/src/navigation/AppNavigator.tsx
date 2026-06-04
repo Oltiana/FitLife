@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MainTabs } from './MainTabs';
 import LoginScreen from "../screens/auth/view/LoginScreen";
 import RegisterScreen from "../screens/auth/view/RegisterScreen";
+import ForgotPasswordScreen from "../screens/auth/view/ForgotPasswordScreen";
 import { tokenStorage } from "../storage/tokenStorage";
 
 const Stack = createNativeStackNavigator();
@@ -11,6 +12,7 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigator() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [showRegister, setShowRegister] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -29,24 +31,34 @@ export default function AppNavigator() {
           <Stack.Screen name="MainTabs">
             {() => <MainTabs onLogout={() => setIsLoggedIn(false)} />}
           </Stack.Screen>
-        ) : showRegister ? (
-          <Stack.Screen name="Register">
-  {() => (
-    <RegisterScreen
-      onRegisterSuccess={() => setShowRegister(false)}
-      onNavigateToLogin={() => setShowRegister(false)}
-    />
-  )}
-</Stack.Screen>
-        ) : (
-          <Stack.Screen name="Login">
+        ) : showForgotPassword ? (
+          <Stack.Screen name="ForgotPassword">
             {() => (
-              <LoginScreen
-                onLoginSuccess={() => setIsLoggedIn(true)}
-                onNavigateToRegister={() => setShowRegister(true)}
+              <ForgotPasswordScreen
+                onNavigateToLogin={() => setShowForgotPassword(false)}
+                onResetSuccess={() => setShowForgotPassword(false)}
               />
             )}
           </Stack.Screen>
+        ) : showRegister ? (
+          <Stack.Screen name="Register">
+            {() => (
+              <RegisterScreen
+                onRegisterSuccess={() => setShowRegister(false)}
+                onNavigateToLogin={() => setShowRegister(false)}
+              />
+            )}
+          </Stack.Screen>
+        ) : (
+          <Stack.Screen name="Login">
+  {() => (
+    <LoginScreen
+      onLoginSuccess={() => setIsLoggedIn(true)}
+      onNavigateToRegister={() => setShowRegister(true)}
+      onNavigateToForgotPassword={() => setShowForgotPassword(true)}
+    />
+  )}
+</Stack.Screen>
         )}
       </Stack.Navigator>
     </NavigationContainer>

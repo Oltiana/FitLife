@@ -82,5 +82,13 @@ public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
     await _authService.LogoutAsync(request.RefreshToken);
     return Ok("Logged out successfully.");
 }
+[HttpPost("verify-reset-code")]
+public async Task<IActionResult> VerifyResetCode([FromBody] string token)
+{
+    var result = await _authService.VerifyResetCodeAsync(token);
+    if (!result)
+        return BadRequest("Invalid or expired code.");
+    return Ok("Code verified.");
+}
     }
 }

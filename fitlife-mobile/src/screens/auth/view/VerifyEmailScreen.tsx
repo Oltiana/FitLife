@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView,
+  Platform, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useVerifyEmailViewModel } from '../viewmodels/useVerifyEmailViewModel';
@@ -22,13 +23,11 @@ export default function VerifyEmailScreen({
   const inputs = useRef<TextInput[]>([]);
 
   const handleChange = (val: string, index: number) => {
-    if (!/^\d*$/.test(val)) return; 
+    if (!/^\d*$/.test(val)) return;
     const newCode = [...code];
     newCode[index] = val;
     setCode(newCode);
-
     if (val && index < 5) inputs.current[index + 1]?.focus();
-
     if (index === 5 && val) {
       const fullCode = [...newCode].join('');
       if (fullCode.length === 6) handleVerify(fullCode);
@@ -46,8 +45,11 @@ export default function VerifyEmailScreen({
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.inner}>
-
+      <ScrollView
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="always"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.iconContainer}>
           <Ionicons name="mail-open-outline" size={40} color="#5A8A5A" />
         </View>
@@ -76,39 +78,46 @@ export default function VerifyEmailScreen({
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        {success ? <Text style={styles.successText}>Email verified! Redirecting...</Text> : null}
+        {success ? <Text style={styles.successText}>✓ Email verified! Redirecting...</Text> : null}
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, (loading || code.join('').length < 6) && styles.buttonDisabled]}
           onPress={() => handleVerify(code.join(''))}
           disabled={loading || code.join('').length < 6}
         >
           {loading
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.buttonText}>Verify Email</Text>
+            : (
+              <View style={styles.btnInner}>
+                <Text style={styles.buttonText}>Verify Email</Text>
+                <Ionicons name="checkmark" size={18} color="#fff" />
+              </View>
+            )
           }
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.resendWrapper} onPress={() => handleResend(email)}>
+        <TouchableOpacity
+          style={styles.resendBtn}
+          onPress={() => handleResend(email)}
+        >
           <Text style={styles.resendText}>
             Didn't receive the code?{' '}
             <Text style={styles.resendLink}>Resend</Text>
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={onNavigateToLogin}>
+        <TouchableOpacity onPress={onNavigateToLogin} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={16} color="#999" />
           <Text style={styles.loginText}>Back to Login</Text>
         </TouchableOpacity>
-
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  inner: { flex: 1, paddingHorizontal: 24, paddingTop: 80, alignItems: 'center' },
-
+  inner: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40, alignItems: 'center' },
   iconContainer: {
     width: 72, height: 72,
     backgroundColor: '#E8F5E9',
@@ -117,17 +126,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-
-  title: { fontSize: 24, fontWeight: '700', color: '#1A1A1A', marginBottom: 12 },
+  title: { fontSize: 24, fontWeight: '700', color: '#1A1A1A', marginBottom: 12, textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 32, lineHeight: 22 },
   email: { fontWeight: '700', color: '#1A1A1A' },
-
-  codeContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 24,
-  },
-
+  codeContainer: { flexDirection: 'row', gap: 10, marginBottom: 24 },
   codeInput: {
     width: 48, height: 56,
     backgroundColor: '#F2F2F2',
@@ -138,12 +140,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-
-  codeInputFilled: {
-    borderColor: '#7DBF7A',
-    backgroundColor: '#F0FAF0',
-  },
-
+  codeInputFilled: { borderColor: '#7DBF7A', backgroundColor: '#F0FAF0' },
   button: {
     backgroundColor: '#7DBF7A',
     borderRadius: 12,
@@ -154,14 +151,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   buttonDisabled: { opacity: 0.5 },
+  btnInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
   errorText: { color: '#E53935', fontSize: 13, marginBottom: 12 },
-  successText: { color: '#1A6B3A', fontSize: 13, marginBottom: 12 },
-
-  resendWrapper: { marginBottom: 16 },
+  successText: { color: '#1A6B3A', fontSize: 13, marginBottom: 12, fontWeight: '600' },
+  resendBtn: { marginBottom: 16 },
   resendText: { color: '#555', fontSize: 13 },
   resendLink: { color: '#7DBF7A', fontWeight: '700' },
-
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   loginText: { color: '#999', fontSize: 13 },
 });

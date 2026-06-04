@@ -9,12 +9,10 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(errorText);
     }
-
     return await res.json();
   },
 
@@ -24,12 +22,10 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fullName, email, password }),
     });
-
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(errorText);
     }
-
     return await res.json();
   },
 
@@ -39,34 +35,54 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     });
-
     if (!res.ok) throw new Error('Request failed');
   },
 
-  refreshToken: async (refreshToken: string) => {
-  const res = await fetch(`${BASE_URL}/auth/refresh-token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
-  });
-  if (!res.ok) throw new Error('Refresh failed');
-  return await res.json();
-},
+  resetPassword: async (token: string, newPassword: string) => {
+    const res = await fetch(`${BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText);
+    }
+  },
 
-logout: async (refreshToken: string) => {
-  const res = await fetch(`${BASE_URL}/auth/logout`, {
+  refreshToken: async (refreshToken: string) => {
+    const res = await fetch(`${BASE_URL}/auth/refresh-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) throw new Error('Refresh failed');
+    return await res.json();
+  },
+
+  logout: async (refreshToken: string) => {
+    const res = await fetch(`${BASE_URL}/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) throw new Error('Logout failed');
+  },
+
+  verifyEmail: async (code: string) => {
+    const res = await fetch(`${BASE_URL}/auth/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(code),
+    });
+    if (!res.ok) throw new Error('Verification failed');
+  },
+  verifyResetCode: async (token: string) => {
+  const res = await fetch(`${BASE_URL}/auth/verify-reset-code`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
+    body: JSON.stringify(token),
   });
-  if (!res.ok) throw new Error('Logout failed');
-},
-verifyEmail: async (code: string) => {
-  const res = await fetch(`${BASE_URL}/auth/verify-email`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(code),
-  });
-  if (!res.ok) throw new Error('Verification failed');
+  if (!res.ok) throw new Error('Invalid or expired code.');
 },
 };
