@@ -8,6 +8,9 @@ import {
 
 import {
   ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
   Platform,
   Pressable,
   ScrollView,
@@ -47,6 +50,16 @@ import {
   type CreateYogaStepPayload,
 } from '../../../api/adminYogaApi';
 
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
+const isWide =
+  Platform.OS === 'web' && screenWidth >= 768;
+/** List viewport inside Sessions / Upcoming / Bookings popups */
+const managerPopupListHeight =
+  Platform.OS === 'web'
+    ? Math.min(440, screenHeight * 0.55)
+    : Math.max(280, screenHeight * 0.5);
+
 type Tab =
   | 'details'
   | 'steps';
@@ -62,17 +75,57 @@ function confirmAction(message: string): boolean {
   return true;
 }
 
+function confirmBookingDelete(
+  message: string,
+  onConfirm: () => void | Promise<void>,
+) {
+  if (
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined'
+  ) {
+    if (window.confirm(message)) {
+      void onConfirm();
+    }
+    return;
+  }
+
+  Alert.alert('Konfirmo', message, [
+    { text: 'Anulo', style: 'cancel' },
+    {
+      text: 'Fshi',
+      style: 'destructive',
+      onPress: () => void onConfirm(),
+    },
+  ]);
+}
+
+function showBookingDeletedNotice(userName: string) {
+  const message = `Booking për "${userName}" u fshi.`;
+
+  if (
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined'
+  ) {
+    window.alert(message);
+    return;
+  }
+
+  Alert.alert('U fshi', message);
+}
+
 export function AdminYogaScreen({
   onShowPopup,
   onHidePopup,
   onProgramsChanged,
+  onBack,
+  readOnly = false,
 }: {
-    onProgramsChanged?: () => void;
-  onShowPopup: (
-    content: ReactNode,
-  ) => void;
-
+  onProgramsChanged?: () => void;
+  onShowPopup: (content: ReactNode) => void;
   onHidePopup: () => void;
+  onBack?: () => void;
+  /** Admin: view only. Inspector: full CRUD. */
+  readOnly?: boolean;
 }) {
   const [classes, setClasses] =
     useState<
@@ -177,8 +230,21 @@ export function AdminYogaScreen({
     yogaClass: AdminYogaClass,
     yogaSteps: AdminYogaStep[],
   ) => {
+    if (readOnly) {
+      onShowPopup(
+        <YogaPopupContent
+          readOnly
+          yogaClass={yogaClass}
+          steps={yogaSteps}
+          onClose={onHidePopup}
+        />,
+      );
+      return;
+    }
+
     onShowPopup(
       <YogaPopupContent
+        readOnly={false}
         yogaClass={yogaClass}
         steps={yogaSteps}
         sessions={sessions.filter(
@@ -444,56 +510,70 @@ export function AdminYogaScreen({
     );
   };
 
+  const backButton =
+    onBack && !isWide ? (
+      <Pressable
+        style={styles.backBtn}
+        onPress={onBack}>
+        <Ionicons
+          name="arrow-back-outline"
+          size={18}
+          color="#3d6b42"
+        />
+        <Text style={styles.backText}>
+          Dashboard
+        </Text>
+      </Pressable>
+    ) : null;
+
   if (loading) {
     return (
-      <ActivityIndicator
-        size="large"
-        color="#3d6b42"
-        style={{
-          marginTop: 60,
-        }}
-      />
+      <>
+        {backButton}
+        <ActivityIndicator
+          size="large"
+          color="#3d6b42"
+          style={{
+            marginTop: 60,
+          }}
+        />
+      </>
     );
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={
-        styles.list
-      }>
+    <>
+      {backButton}
+      <ScrollView
+        contentContainerStyle={
+          styles.list
+        }>
 
-      <Pressable
-        style={
-          styles.addBar
-        }
-        onPress={() => {
-          onShowPopup(
-            <YogaFormPopup
-              onClose={
-                onHidePopup
-              }
-              onSaved={async () => {
-                onHidePopup();
-
-                await loadData();
-              }}
-            />,
-          );
-        }}>
-
-        <Ionicons
-          name="add-circle-outline"
-          size={20}
-          color="#3d6b42"
-        />
-
-        <Text
-          style={
-            styles.addBarText
-          }>
-          Add Yoga
-        </Text>
-      </Pressable>
+      {!readOnly ? (
+        <Pressable
+          style={styles.addBar}
+          onPress={() => {
+            onShowPopup(
+              <YogaFormPopup
+                onClose={onHidePopup}
+                onSaved={async () => {
+                  onHidePopup();
+                  await loadData();
+                  onProgramsChanged?.();
+                }}
+              />,
+            );
+          }}>
+          <Ionicons
+            name="add-circle-outline"
+            size={20}
+            color="#3d6b42"
+          />
+          <Text style={styles.addBarText}>
+            Add Yoga
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View
         style={{
@@ -509,18 +589,11 @@ export function AdminYogaScreen({
           onPress={() => {
             onShowPopup(
               <SessionsManagerPopup
-                sessions={
-                  sessions
-                }
-                onClose={
-                  onHidePopup
-                }
-                onRefresh={
-                  loadData
-                }
-                onShowPopup={
-                  onShowPopup
-                }
+                readOnly={readOnly}
+                sessions={sessions}
+                onClose={onHidePopup}
+                onRefresh={loadData}
+                onShowPopup={onShowPopup}
               />,
             );
           }}>
@@ -540,18 +613,11 @@ export function AdminYogaScreen({
           onPress={() => {
             onShowPopup(
               <UpcomingManagerPopup
-                upcoming={
-                  upcoming
-                }
-                onClose={
-                  onHidePopup
-                }
-                onRefresh={
-                  loadData
-                }
-                onShowPopup={
-                  onShowPopup
-                }
+                readOnly={readOnly}
+                upcoming={upcoming}
+                onClose={onHidePopup}
+                onRefresh={loadData}
+                onShowPopup={onShowPopup}
               />,
             );
           }}>
@@ -571,14 +637,15 @@ export function AdminYogaScreen({
           onPress={() => {
             onShowPopup(
               <BookingsManagerPopup
-                bookings={
-                  bookings
-                }
-                onClose={
-                  onHidePopup
-                }
-                onRefresh={
-                  loadData
+                readOnly={readOnly}
+                bookings={bookings}
+                sessions={sessions}
+                classes={classes}
+                onClose={onHidePopup}
+                onBookingDeleted={bookingId =>
+                  setBookings(prev =>
+                    prev.filter(b => b.id !== bookingId),
+                  )
                 }
               />,
             );
@@ -665,10 +732,12 @@ export function AdminYogaScreen({
         ),
       )}
     </ScrollView>
+    </>
   );
 }
 
 function YogaPopupContent({
+  readOnly = false,
   yogaClass,
   steps,
   sessions,
@@ -687,7 +756,27 @@ function YogaPopupContent({
   onEditUpcoming,
   onDeleteUpcoming,
   onDeleteBooking,
-}: any) {
+}: {
+  readOnly?: boolean;
+  yogaClass: AdminYogaClass;
+  steps: AdminYogaStep[];
+  sessions?: AdminSession[];
+  upcoming?: AdminUpcomingClass[];
+  bookings?: AdminBooking[];
+  onClose: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void | Promise<void>;
+  onAddStep?: () => void;
+  onEditStep?: (step: AdminYogaStep) => void;
+  onDeleteStep?: (step: AdminYogaStep) => void | Promise<void>;
+  onAddSession?: () => void;
+  onEditSession?: (session: AdminSession) => void;
+  onDeleteSession?: (session: AdminSession) => void | Promise<void>;
+  onAddUpcoming?: () => void;
+  onEditUpcoming?: (item: AdminUpcomingClass) => void;
+  onDeleteUpcoming?: (item: AdminUpcomingClass) => void | Promise<void>;
+  onDeleteBooking?: (booking: AdminBooking) => void | Promise<void>;
+}) {
   const [activeTab, setActiveTab] =
     useState<Tab>(
       'details',
@@ -785,31 +874,21 @@ function YogaPopupContent({
             min
           </Text>
 
-          <Pressable
-            style={
-              styles.actionBtn
-            }
-            onPress={
-              onEdit
-            }>
+          {!readOnly ? (
+            <>
+              <Pressable
+                style={styles.actionBtn}
+                onPress={onEdit}>
+                <Text>Edit</Text>
+              </Pressable>
 
-            <Text>
-              Edit
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={
-              styles.actionBtnDelete
-            }
-            onPress={() =>
-              void onDelete()
-            }>
-
-            <Text>
-              Delete
-            </Text>
-          </Pressable>
+              <Pressable
+                style={styles.actionBtnDelete}
+                onPress={() => void onDelete?.()}>
+                <Text>Delete</Text>
+              </Pressable>
+            </>
+          ) : null}
         </View>
       )}
 
@@ -820,18 +899,13 @@ function YogaPopupContent({
             styles.detailGrid
           }>
 
-          <Pressable
-            style={
-              styles.addWorkoutLink
-            }
-            onPress={
-              onAddStep
-            }>
-
-            <Text>
-              Add Step
-            </Text>
-          </Pressable>
+          {!readOnly ? (
+            <Pressable
+              style={styles.addWorkoutLink}
+              onPress={onAddStep}>
+              <Text>Add Step</Text>
+            </Pressable>
+          ) : null}
 
           {steps.map(
             (
@@ -870,33 +944,31 @@ function YogaPopupContent({
                   </Text>
                 </View>
 
-                <Pressable
-                  onPress={() =>
-                    onEditStep(
-                      step,
-                    )
-                  }>
+                {!readOnly ? (
+                  <>
+                    <Pressable
+                      onPress={() =>
+                        onEditStep?.(step)
+                      }>
+                      <Ionicons
+                        name="create-outline"
+                        size={18}
+                        color="#3b7ec8"
+                      />
+                    </Pressable>
 
-                  <Ionicons
-                    name="create-outline"
-                    size={18}
-                    color="#3b7ec8"
-                  />
-                </Pressable>
-
-                <Pressable
-                  onPress={() =>
-                    void onDeleteStep(
-                      step,
-                    )
-                  }>
-
-                  <Ionicons
-                    name="trash-outline"
-                    size={18}
-                    color="#c94444"
-                  />
-                </Pressable>
+                    <Pressable
+                      onPress={() =>
+                        void onDeleteStep?.(step)
+                      }>
+                      <Ionicons
+                        name="trash-outline"
+                        size={18}
+                        color="#c94444"
+                      />
+                    </Pressable>
+                  </>
+                ) : null}
               </View>
             ),
           )}
@@ -1547,6 +1619,22 @@ function SaveButton({
 }
 
 const styles = StyleSheet.create({
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: '#e8f5eb',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    marginBottom: 12,
+  },
+  backText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3d6b42',
+  },
   popupBody: { gap: 16 },
   list: { gap: 10, paddingBottom: 20 },
   addBar: {
@@ -1631,6 +1719,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6b7a6b',
   },
+  bookingMeta: {
+    fontSize: 10,
+    color: '#9aa89a',
+    marginTop: 2,
+  },
+  bookingSuccessBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#e8f5eb',
+    padding: 12,
+    borderRadius: 12,
+  },
+  bookingSuccessText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3d6b42',
+  },
+  emptyBookingsText: {
+    fontSize: 13,
+    color: '#6b7a6b',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
   addWorkoutLink: {
     paddingVertical: 10,
   },
@@ -1693,11 +1806,18 @@ const styles = StyleSheet.create({
 });
 
 function SessionsManagerPopup({
+  readOnly = false,
   sessions,
   onClose,
   onRefresh,
   onShowPopup,
-}: any) {
+}: {
+  readOnly?: boolean;
+  sessions: AdminSession[];
+  onClose: () => void;
+  onRefresh?: () => void | Promise<void>;
+  onShowPopup?: (content: ReactNode) => void;
+}) {
   return (
     <View style={styles.popupBody}>
       <View style={styles.popupTopBar}>
@@ -1714,26 +1834,26 @@ function SessionsManagerPopup({
         </Pressable>
       </View>
 
-      <Pressable
-        style={styles.actionBtn}
-        onPress={() => {
-          onShowPopup(
-            <SessionFormPopup
-              yogaClassId={1}
-              onClose={onClose}
-              onSaved={async () => {
-                if (onRefresh) {
-                  await onRefresh();
-                }
-              }}
-            />,
-          );
-        }}>
-        <Text>Add Session</Text>
-      </Pressable>
+      {!readOnly ? (
+        <Pressable
+          style={styles.actionBtn}
+          onPress={() => {
+            onShowPopup?.(
+              <SessionFormPopup
+                yogaClassId={1}
+                onClose={onClose}
+                onSaved={async () => {
+                  await onRefresh?.();
+                }}
+              />,
+            );
+          }}>
+          <Text>Add Session</Text>
+        </Pressable>
+      ) : null}
 
       <ScrollView>
-        {sessions.map((session: any) => (
+        {sessions.map(session => (
           <View
             key={session.id}
             style={styles.listItem}>
@@ -1742,49 +1862,49 @@ function SessionsManagerPopup({
                 {session.instructorName}
               </Text>
 
-              <Text style={styles.listItemSub}>
-                {session.sessionDate}
-              </Text>
-            </View>
+        <Text style={styles.listItemSub}>
+          {session.sessionDate}
+          {session.startTime
+            ? ` · ${session.startTime}`
+            : ''}
+        </Text>
+      </View>
 
-            <Pressable
-              onPress={() => {
-                onShowPopup(
-                  <SessionFormPopup
-                    yogaClassId={
-                      session.yogaClassId
-                    }
-                    session={session}
-                    onClose={onClose}
-                    onSaved={async () => {
-                      if (onRefresh) {
-                        await onRefresh();
-                      }
-                    }}
-                  />,
-                );
-              }}>
-              <Ionicons
-                name="create-outline"
-                size={20}
-                color="#3b7ec8"
-              />
-            </Pressable>
+      {!readOnly ? (
+        <>
+          <Pressable
+            onPress={() => {
+              onShowPopup?.(
+                <SessionFormPopup
+                  yogaClassId={session.yogaClassId}
+                  session={session}
+                  onClose={onClose}
+                  onSaved={async () => {
+                    await onRefresh?.();
+                  }}
+                />,
+              );
+            }}>
+            <Ionicons
+              name="create-outline"
+              size={20}
+              color="#3b7ec8"
+            />
+          </Pressable>
 
-            <Pressable
-              onPress={async () => {
-                await deleteSession(
-                  session.id,
-                );
-
-                if (onRefresh) await onRefresh();
-              }}>
-              <Ionicons
-                name="trash-outline"
-                size={20}
-                color="#c94444"
-              />
-            </Pressable>
+                <Pressable
+                  onPress={async () => {
+                    await deleteSession(session.id);
+                    await onRefresh?.();
+                  }}>
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color="#c94444"
+                  />
+                </Pressable>
+              </>
+            ) : null}
           </View>
         ))}
       </ScrollView>
@@ -1793,11 +1913,18 @@ function SessionsManagerPopup({
 }
 
 function UpcomingManagerPopup({
+  readOnly = false,
   upcoming,
   onClose,
   onRefresh,
   onShowPopup,
-}: any) {
+}: {
+  readOnly?: boolean;
+  upcoming: AdminUpcomingClass[];
+  onClose: () => void;
+  onRefresh?: () => void | Promise<void>;
+  onShowPopup?: (content: ReactNode) => void;
+}) {
   return (
     <View style={styles.popupBody}>
       <View style={styles.popupTopBar}>
@@ -1814,26 +1941,26 @@ function UpcomingManagerPopup({
         </Pressable>
       </View>
 
-      <Pressable
-        style={styles.actionBtn}
-        onPress={() => {
-          onShowPopup(
-            <UpcomingFormPopup
-              yogaClassId={1}
-              onClose={onClose}
-              onSaved={async () => {
-                if (onRefresh) {
-                  await onRefresh();
-                }
-              }}
-            />,
-          );
-        }}>
-        <Text>Add Upcoming</Text>
-      </Pressable>
+      {!readOnly ? (
+        <Pressable
+          style={styles.actionBtn}
+          onPress={() => {
+            onShowPopup?.(
+              <UpcomingFormPopup
+                yogaClassId={1}
+                onClose={onClose}
+                onSaved={async () => {
+                  await onRefresh?.();
+                }}
+              />,
+            );
+          }}>
+          <Text>Add Upcoming</Text>
+        </Pressable>
+      ) : null}
 
       <ScrollView>
-        {upcoming.map((item: any) => (
+        {upcoming.map(item => (
           <View
             key={item.id}
             style={styles.listItem}>
@@ -1841,46 +1968,53 @@ function UpcomingManagerPopup({
               <Text style={styles.listItemTitle}>
                 {item.title}
               </Text>
-            </View>
 
-            <Pressable
-              onPress={() => {
-                onShowPopup(
-                  <UpcomingFormPopup
-                    yogaClassId={
-                      item.yogaClassId
-                    }
-                    item={item}
-                    onClose={onClose}
-                    onSaved={async () => {
-                      if (onRefresh) {
-                        await onRefresh();
-                      }
-                    }}
-                  />,
-                );
-              }}>
-              <Ionicons
-                name="create-outline"
-                size={20}
-                color="#3b7ec8"
-              />
-            </Pressable>
+        <Text style={styles.listItemSub}>
+          {item.instructorName}
+          {item.startDate
+            ? ` · ${item.startDate}`
+            : ''}
+          {item.startTime
+            ? ` ${item.startTime}`
+            : ''}
+        </Text>
+      </View>
 
-            <Pressable
-              onPress={async () => {
-                await deleteUpcomingClass(
-                  item.id,
-                );
+      {!readOnly ? (
+        <>
+          <Pressable
+            onPress={() => {
+              onShowPopup?.(
+                <UpcomingFormPopup
+                  yogaClassId={item.yogaClassId}
+                  item={item}
+                  onClose={onClose}
+                  onSaved={async () => {
+                    await onRefresh?.();
+                  }}
+                />,
+              );
+            }}>
+            <Ionicons
+              name="create-outline"
+              size={20}
+              color="#3b7ec8"
+            />
+          </Pressable>
 
-                if (onRefresh) await onRefresh();
-              }}>
-              <Ionicons
-                name="trash-outline"
-                size={20}
-                color="#c94444"
-              />
-            </Pressable>
+                <Pressable
+                  onPress={async () => {
+                    await deleteUpcomingClass(item.id);
+                    await onRefresh?.();
+                  }}>
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color="#c94444"
+                  />
+                </Pressable>
+              </>
+            ) : null}
           </View>
         ))}
       </ScrollView>
@@ -1888,11 +2022,117 @@ function UpcomingManagerPopup({
   );
 }
 
+function formatBookingDate(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleDateString();
+}
+
+function resolveBookingDisplay(
+  booking: AdminBooking,
+  sessions: AdminSession[],
+  classes: AdminYogaClass[],
+) {
+  const session = sessions.find(
+    s => s.id === booking.sessionId,
+  );
+  const yogaClass = session
+    ? classes.find(c => c.id === session.yogaClassId)
+    : undefined;
+
+  return {
+    yogaTitle:
+      yogaClass?.title ??
+      (session
+        ? `Yoga #${session.yogaClassId}`
+        : 'Yoga e panjohur'),
+    sessionDate: session?.sessionDate,
+    sessionTime: session?.startTime,
+    bookedAt: booking.bookingDate,
+  };
+}
+
 function BookingsManagerPopup({
+  readOnly = false,
   bookings,
+  sessions,
+  classes,
   onClose,
-  onRefresh,
-}: any) {
+  onBookingDeleted,
+}: {
+  readOnly?: boolean;
+  bookings: AdminBooking[];
+  sessions: AdminSession[];
+  classes: AdminYogaClass[];
+  onClose: () => void;
+  onBookingDeleted?: (bookingId: number) => void;
+}) {
+  const [localBookings, setLocalBookings] =
+    useState(bookings);
+
+  const [deletingId, setDeletingId] =
+    useState<number | null>(null);
+
+  const [successMessage, setSuccessMessage] =
+    useState<string | null>(null);
+
+  useEffect(() => {
+    setLocalBookings(bookings);
+  }, [bookings]);
+
+  useEffect(() => {
+    if (!successMessage) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setSuccessMessage(null);
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [successMessage]);
+
+  const handleDelete = (booking: AdminBooking) => {
+    if (deletingId !== null) {
+      return;
+    }
+
+    confirmBookingDelete(
+      `Fshi booking për "${booking.userName}"?`,
+      async () => {
+        try {
+          setDeletingId(booking.id);
+          await deleteBooking(booking.id);
+          setLocalBookings(prev =>
+            prev.filter(b => b.id !== booking.id),
+          );
+          onBookingDeleted?.(booking.id);
+          setSuccessMessage(
+            `Booking për "${booking.userName}" u fshi.`,
+          );
+          showBookingDeletedNotice(booking.userName);
+        } catch (e) {
+          const msg =
+            e instanceof Error
+              ? e.message
+              : 'Nuk u fshi booking.';
+          if (
+            Platform.OS === 'web' &&
+            typeof window !== 'undefined'
+          ) {
+            window.alert(msg);
+          } else {
+            Alert.alert('Gabim', msg);
+          }
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    );
+  };
+
   return (
     <View style={styles.popupBody}>
       <View style={styles.popupTopBar}>
@@ -1909,33 +2149,90 @@ function BookingsManagerPopup({
         </Pressable>
       </View>
 
+      {successMessage ? (
+        <View style={styles.bookingSuccessBanner}>
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={18}
+            color="#3d6b42"
+          />
+          <Text style={styles.bookingSuccessText}>
+            {successMessage}
+          </Text>
+        </View>
+      ) : null}
+
       <ScrollView>
-        {bookings.map((booking: any) => (
-          <View
-            key={booking.id}
-            style={styles.listItem}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.listItemTitle}>
-                {booking.userName}
-              </Text>
-            </View>
+        {localBookings.length === 0 ? (
+          <Text style={styles.emptyBookingsText}>
+            Nuk ka booking.
+          </Text>
+        ) : (
+          localBookings.map(booking => {
+            const info = resolveBookingDisplay(
+              booking,
+              sessions,
+              classes,
+            );
+            const isDeleting =
+              deletingId === booking.id;
 
-            <Pressable
-              onPress={async () => {
-                await deleteBooking(
-                  booking.id,
-                );
+            return (
+              <View
+                key={booking.id}
+                style={styles.listItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.listItemTitle}>
+                    {booking.userName}
+                  </Text>
 
-                if (onRefresh) await onRefresh();
-              }}>
-              <Ionicons
-                name="trash-outline"
-                size={20}
-                color="#c94444"
-              />
-            </Pressable>
-          </View>
-        ))}
+          <Text style={styles.listItemSub}>
+            {info.yogaTitle}
+          </Text>
+
+                  <Text style={styles.listItemSub}>
+                    {info.sessionDate
+                      ? formatBookingDate(
+                          info.sessionDate,
+                        )
+                      : '—'}
+                    {info.sessionTime
+                      ? ` · ${info.sessionTime}`
+                      : ''}
+                  </Text>
+
+          {info.bookedAt ? (
+            <Text style={styles.bookingMeta}>
+              Rezervuar:{' '}
+              {formatBookingDate(info.bookedAt)}
+            </Text>
+          ) : null}
+        </View>
+
+                {!readOnly ? (
+                  <Pressable
+                    onPress={() =>
+                      handleDelete(booking)
+                    }
+                    disabled={isDeleting}>
+                    {isDeleting ? (
+                      <ActivityIndicator
+                        size="small"
+                        color="#c94444"
+                      />
+                    ) : (
+                      <Ionicons
+                        name="trash-outline"
+                        size={20}
+                        color="#c94444"
+                      />
+                    )}
+                  </Pressable>
+                ) : null}
+              </View>
+            );
+          })
+        )}
       </ScrollView>
     </View>
   );

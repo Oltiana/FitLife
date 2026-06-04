@@ -165,6 +165,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           )}
           {activeSection === 'yoga' && (
             <AdminYogaScreen
+              readOnly={role === 'Admin'}
+              onBack={() => handleNavPress('home')}
               onShowPopup={(content) => setPopupContent(content)}
               onHidePopup={() => setPopupContent(null)}
               onProgramsChanged={refreshStats}
@@ -181,9 +183,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
       {popupContent && (
         <Pressable style={styles.overlay} onPress={() => setPopupContent(null)}>
-          <Pressable style={styles.popup} onPress={(e) => e.stopPropagation()}>
+          <View
+            style={styles.popup}
+            onStartShouldSetResponder={() => true}
+          >
             {popupContent}
-          </Pressable>
+          </View>
         </Pressable>
       )}
     </SafeAreaView>
@@ -420,5 +425,24 @@ const styles = StyleSheet.create({
   actionIconWrap: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   actionLabel: { fontSize: 12, fontWeight: '700', color: '#142210', textAlign: 'center' },
   overlay: { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', zIndex: 9999, ...Platform.select({ web: { position: 'fixed' as any }, default: {} }) },
-  popup: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '90%', maxWidth: 520, maxHeight: '85%', ...Platform.select({ web: { boxShadow: '0px 8px 32px rgba(0,0,0,0.18)', overflowY: 'auto' as const }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 32, elevation: 10 } }) },
+  popup: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    width: '90%',
+    maxWidth: 520,
+    maxHeight: '85%',
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 8px 32px rgba(0,0,0,0.18)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.18,
+        shadowRadius: 32,
+        elevation: 10,
+      },
+    }),
+  },
 });
