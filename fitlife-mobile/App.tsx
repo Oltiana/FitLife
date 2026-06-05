@@ -28,6 +28,8 @@ import RegisterScreen from './src/screens/auth/view/RegisterScreen';
 import VerifyEmailScreen from './src/screens/auth/view/VerifyEmailScreen';
 import ForgotPasswordScreen from './src/screens/auth/view/ForgotPasswordScreen';
 import { AdminDashboard } from './src/screens/admin/view/AdminDashboard';
+import { FitnessManagerDashboard } from './src/screens/admin/view/FitnessManagerDashboard';
+import { InspectorDashboard } from './src/screens/admin/view/InspectorDashboard';
 import { AuthProvider, useAuth } from './src/hooks/useAuth';
 
 function Root({ children }: { children: React.ReactNode }) {
@@ -53,7 +55,7 @@ function BootSpinner() {
 function ThemedNavigation() {
   const { colors, colorScheme } = useTheme();
   const { isAuthenticated, isLoading, logout } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
   const [showVerify, setShowVerify] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -61,22 +63,22 @@ function ThemedNavigation() {
 
   useEffect(() => {
     const checkRole = async () => {
-      const role = await tokenStorage.getRole();
-      setIsAdmin(role === 'Admin' || role === 'Inspector' || role === 'FitnessManager');
+      const r = await tokenStorage.getRole();
+      setRole(r);
     };
     if (isAuthenticated) void checkRole();
-    else setIsAdmin(false);
+    else setRole(null);
   }, [isAuthenticated]);
 
   const handleLoginSuccess = async () => {
-    const role = await tokenStorage.getRole();
-    setIsAdmin(role === 'Admin' || role === 'Inspector' || role === 'FitnessManager');
+    const r = await tokenStorage.getRole();
+    setRole(r);
     await syncPilatesAfterAuth();
   };
 
   const handleLogout = async () => {
     await logout();
-    setIsAdmin(false);
+    setRole(null);
   };
 
   const linking = useMemo<LinkingOptions<MainTabParamList>>(
@@ -178,8 +180,20 @@ function ThemedNavigation() {
     );
   }
 
-  if (isAdmin) {
+  if (role === 'Admin') {
     return <AdminDashboard onLogout={handleLogout} />;
+  }
+
+  if (role === 'FitnessManager') {
+    return <FitnessManagerDashboard onLogout={handleLogout} />;
+  }
+
+  if (role === 'Inspector') {
+    return <InspectorDashboard onLogout={handleLogout} />;
+  }
+
+  if (role === null && isAuthenticated) {
+    return <BootSpinner />;
   }
 
   return (

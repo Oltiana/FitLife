@@ -436,5 +436,91 @@ namespace FitLifeAPI.Controllers
 
             return Ok(new { message = "Workout plan deleted successfully" });
         }
+        [HttpGet("activity-logs")]
+[Authorize(Roles = "Admin")]
+public async Task<IActionResult> GetActivityLogs(
+    [FromQuery] int? userId = null,
+    [FromQuery] string? entityType = null,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 50)
+{
+    var query = _context.ActivityLogs
+        .Include(a => a.User)
+        .AsQueryable();
+
+    if (userId.HasValue)
+        query = query.Where(a => a.UserId == userId.Value);
+
+    if (!string.IsNullOrEmpty(entityType))
+        query = query.Where(a => a.EntityType == entityType);
+
+    var total = await query.CountAsync();
+
+    var logs = await query
+        .OrderByDescending(a => a.CreatedAt)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(a => new
+        {
+            a.Id,
+            a.UserId,
+            UserFullName = a.User.FullName,
+            UserEmail = a.User.Email,
+            a.Action,
+            a.EntityType,
+            a.EntityId,
+            a.Description,
+            a.IpAddress,
+            a.CreatedAt
+        })
+        .ToListAsync();
+
+    return Ok(new { total, page, pageSize, logs });
+}
+
+[HttpGet("enrollments")]
+[Authorize(Roles = "Admin")]
+public async Task<IActionResult> GetAllEnrollments()
+{
+    var users = await _context.Users
+        .Select(u => new
+        {
+            u.Id,
+            u.FullName,
+            u.Email,
+            PilatesEnrollments = _context.UserPilatesEnrollments
+                .Where(e => e.UserId == u.Id)
+                .Select(e => new
+                {
+                    e.Id,
+                    ProgramName = e.Program.Name,
+                    e.EnrolledAt,
+                    e.CompletedAt
+                })
+                .ToList(),
+            YogaBookings = _context.Bookings
+                .Where(b => b.UserName == u.Email)
+                .Select(b => new
+                {
+                    b.Id,
+                    b.BookingDate,
+                    b.SessionId
+                })
+                .ToList(),
+            FitnessPlans = _context.WorkoutPlans
+                .Where(w => w.UserId == u.Id)
+                .Select(w => new
+                {
+                    w.Id,
+                    w.Name,
+                    w.Level,
+                    w.CreatedAt
+                })
+                .ToList()
+        })
+        .ToListAsync();
+
+    return Ok(users);
+}
     }
 }

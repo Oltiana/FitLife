@@ -27,6 +27,7 @@ builder.Services.AddScoped<IPilatesRepository, PilatesRepository>();
 builder.Services.AddScoped<IPilatesService, PilatesService>();
 builder.Services.AddScoped<IYogaRepository, YogaRepository>();
 builder.Services.AddScoped<IYogaService, YogaService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 
 
 builder.Services.AddHttpClient<IExerciseApiService, ExerciseApiService>((sp, client) =>

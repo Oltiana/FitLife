@@ -54,14 +54,15 @@ namespace FitLifeAPI.Services
     catch { }
 
     return new AuthResponse
-    {
-        Token = string.Empty,
-        RefreshToken = string.Empty,
-        FullName = user.FullName,
-        Email = user.Email,
-        IsVerified = false,
-        Role = "User"
-    };
+{
+    UserId = user.Id,
+    Token = string.Empty,
+    RefreshToken = string.Empty,
+    FullName = user.FullName,
+    Email = user.Email,
+    IsVerified = false,
+    Role = "User"
+};
 }
 
         public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -75,15 +76,16 @@ namespace FitLifeAPI.Services
 
             var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id);
 
-            return new AuthResponse
-            {
-                Token = GenerateJwtToken(user),
-                RefreshToken = refreshToken,
-                FullName = user.FullName,
-                Email = user.Email,
-                IsVerified = user.IsVerified,
-                Role = user.Role ?? "User",
-            };
+           return new AuthResponse
+{
+    UserId = user.Id,
+    Token = GenerateJwtToken(user),
+    RefreshToken = refreshToken,
+    FullName = user.FullName,
+    Email = user.Email,
+    IsVerified = user.IsVerified,
+    Role = user.Role ?? "User",
+};
         }
 
         public async Task<AuthResponse?> RefreshTokenAsync(string refreshToken)

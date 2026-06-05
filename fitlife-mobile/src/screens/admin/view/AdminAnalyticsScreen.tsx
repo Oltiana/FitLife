@@ -108,12 +108,7 @@ export function AdminAnalyticsScreen({ onBack }: { onBack?: () => void }) {
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      {!isWide && onBack && (
-        <Pressable style={styles.backBtn} onPress={onBack}>
-          <Ionicons name="arrow-back-outline" size={18} color="#4A6FA5" />
-          <Text style={styles.backText}>Dashboard</Text>
-        </Pressable>
-      )}
+  
 
       <View style={styles.summaryRow}>
         {isAdmin && (

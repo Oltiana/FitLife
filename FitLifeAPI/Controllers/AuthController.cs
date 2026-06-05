@@ -9,10 +9,12 @@ namespace FitLifeAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IActivityLogService _activityLogService;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IActivityLogService activityLogService)
         {
             _authService = authService;
+            _activityLogService = activityLogService;
         }
 
         [HttpPost("register")]
@@ -21,6 +23,7 @@ namespace FitLifeAPI.Controllers
             try
             {
                 var response = await _authService.RegisterAsync(request);
+                await _activityLogService.LogAsync(response.UserId, "REGISTER", "Auth", null, $"New user registered: {request.Email}", HttpContext.Connection.RemoteIpAddress?.ToString());
                 return Ok(response);
             }
             catch (Exception ex)
@@ -35,6 +38,7 @@ namespace FitLifeAPI.Controllers
             try
             {
                 var response = await _authService.LoginAsync(request);
+                await _activityLogService.LogAsync(response.UserId, "LOGIN", "Auth", null, $"User logged in: {request.Email}", HttpContext.Connection.RemoteIpAddress?.ToString());
                 return Ok(response);
             }
             catch (Exception ex)
@@ -44,13 +48,13 @@ namespace FitLifeAPI.Controllers
         }
 
         [HttpPost("refresh-token")]
-public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
-{
-    var result = await _authService.RefreshTokenAsync(request.RefreshToken);
-    if (result == null)
-        return Unauthorized("Refresh token invalid or expired.");
-    return Ok(result);
-}
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            var result = await _authService.RefreshTokenAsync(request.RefreshToken);
+            if (result == null)
+                return Unauthorized("Refresh token invalid or expired.");
+            return Ok(result);
+        }
 
         [HttpPost("verify-email")]
         public async Task<IActionResult> VerifyEmail([FromBody] string code)
@@ -76,19 +80,21 @@ public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest req
                 return BadRequest("Invalid or expired code.");
             return Ok("Password reset successfully.");
         }
+
         [HttpPost("logout")]
-public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
-{
-    await _authService.LogoutAsync(request.RefreshToken);
-    return Ok("Logged out successfully.");
-}
-[HttpPost("verify-reset-code")]
-public async Task<IActionResult> VerifyResetCode([FromBody] string token)
-{
-    var result = await _authService.VerifyResetCodeAsync(token);
-    if (!result)
-        return BadRequest("Invalid or expired code.");
-    return Ok("Code verified.");
-}
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
+        {
+            await _authService.LogoutAsync(request.RefreshToken);
+            return Ok("Logged out successfully.");
+        }
+
+        [HttpPost("verify-reset-code")]
+        public async Task<IActionResult> VerifyResetCode([FromBody] string token)
+        {
+            var result = await _authService.VerifyResetCodeAsync(token);
+            if (!result)
+                return BadRequest("Invalid or expired code.");
+            return Ok("Code verified.");
+        }
     }
 }

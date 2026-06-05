@@ -25,6 +25,7 @@ namespace FitLifeAPI.Data
         public DbSet<PilatesProgressUiConfig> PilatesProgressUiConfigs { get; set; }
         public DbSet<PilatesProgressPeriodSetting> PilatesProgressPeriodSettings { get; set; }
         public DbSet<PilatesMotivationMessage> PilatesMotivationMessages { get; set; }
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)  
@@ -93,6 +94,11 @@ namespace FitLifeAPI.Data
                 .HasOne(p => p.Workout)
                 .WithMany(w => w.Progresses)
                 .HasForeignKey(p => p.PilatesWorkoutId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<UserPilatesProgress>(e =>

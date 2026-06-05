@@ -19,6 +19,50 @@ type AdminStats = {
   totalYogaClasses: number;
   totalFitnessExercises: number;
 };
+
+export type ActivityLog = {
+  id: number;
+  userId: number;
+  userFullName: string;
+  userEmail: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  description: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+};
+
+export type ActivityLogsResponse = {
+  total: number;
+  page: number;
+  pageSize: number;
+  logs: ActivityLog[];
+};
+
+export type UserEnrollment = {
+  id: number;
+  fullName: string;
+  email: string;
+  pilatesEnrollments: {
+    id: number;
+    programName: string;
+    enrolledAt: string;
+    completedAt: string | null;
+  }[];
+  yogaBookings: {
+    id: number;
+    bookingDate: string;
+    sessionId: number;
+  }[];
+  fitnessPlans: {
+    id: number;
+    name: string;
+    level: string;
+    createdAt: string;
+  }[];
+};
+
 async function authHeaders() {
   const token = await tokenStorage.getToken();
   return {
@@ -27,7 +71,6 @@ async function authHeaders() {
     'Content-Type': 'application/json',
   };
 }
-
 
 export async function getAdminStats(): Promise<AdminStats> {
   const res = await fetch(`${BASE_URL}/Admin/stats`, {
@@ -52,6 +95,7 @@ export async function getAdminUser(id: number): Promise<AdminUser> {
   if (!res.ok) throw new Error('Failed to fetch user');
   return res.json();
 }
+
 export async function updateUserRole(id: number, role: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/Admin/users/${id}/role`, {
     method: 'PATCH',
@@ -68,6 +112,7 @@ export async function deleteUser(id: number): Promise<void> {
   });
   if (!res.ok) throw new Error('Failed to delete user');
 }
+
 export type PilatesEnrollment = {
   id: number;
   programName: string;
@@ -102,7 +147,6 @@ export async function getAdminUserDetails(id: number): Promise<AdminUserDetails>
   return res.json();
 }
 
-
 export type DailyCount = {
   date: string;
   count: number;
@@ -123,5 +167,22 @@ export async function getAdminAnalytics(): Promise<AnalyticsData> {
     headers: await authHeaders(),
   });
   if (!res.ok) throw new Error('Failed to fetch analytics');
+  return res.json();
+}
+
+export async function getActivityLogs(page = 1, pageSize = 50, userId?: number, entityType?: string): Promise<ActivityLogsResponse> {
+  let url = `${BASE_URL}/Admin/activity-logs?page=${page}&pageSize=${pageSize}`;
+  if (userId) url += `&userId=${userId}`;
+  if (entityType) url += `&entityType=${entityType}`;
+  const res = await fetch(url, { headers: await authHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch activity logs');
+  return res.json();
+}
+
+export async function getAllEnrollments(): Promise<UserEnrollment[]> {
+  const res = await fetch(`${BASE_URL}/Admin/enrollments`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch enrollments');
   return res.json();
 }

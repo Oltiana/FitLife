@@ -512,40 +512,12 @@ export function AdminYogaScreen({
     );
   };
 
-  const backButton =
-    onBack && !isWide ? (
-      <Pressable
-        style={styles.backBtn}
-        onPress={onBack}>
-        <Ionicons
-          name="arrow-back-outline"
-          size={18}
-          color="#3d6b42"
-        />
-        <Text style={styles.backText}>
-          Dashboard
-        </Text>
-      </Pressable>
-    ) : null;
+  
 
-  if (loading) {
-    return (
-      <>
-        {backButton}
-        <ActivityIndicator
-          size="large"
-          color="#3d6b42"
-          style={{
-            marginTop: 60,
-          }}
-        />
-      </>
-    );
-  }
 
   return (
     <>
-      {backButton}
+     
       <ScrollView
         contentContainerStyle={
           styles.list

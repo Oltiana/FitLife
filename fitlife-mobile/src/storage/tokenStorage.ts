@@ -6,10 +6,27 @@ const REFRESH_KEY = 'fitlife_refresh_token';
 const USER_KEY = 'fitlife_user';
 const ROLE_KEY = 'fitlife_role';
 
+const cookieStorage = {
+  set(key: string, value: string) {
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7);
+    document.cookie = `${key}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+  },
+
+  get(key: string): string | null {
+    const match = document.cookie.match(new RegExp('(^| )' + key + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  },
+
+  delete(key: string) {
+    document.cookie = `${key}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
+  },
+};
+
 const storage = {
   async set(key: string, value: string) {
     if (Platform.OS === 'web') {
-      localStorage.setItem(key, value);
+      cookieStorage.set(key, value);
     } else {
       await SecureStore.setItemAsync(key, value);
     }
@@ -17,14 +34,14 @@ const storage = {
 
   async get(key: string): Promise<string | null> {
     if (Platform.OS === 'web') {
-      return localStorage.getItem(key);
+      return cookieStorage.get(key);
     }
     return await SecureStore.getItemAsync(key);
   },
 
   async delete(key: string) {
     if (Platform.OS === 'web') {
-      localStorage.removeItem(key);
+      cookieStorage.delete(key);
     } else {
       await SecureStore.deleteItemAsync(key);
     }

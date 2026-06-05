@@ -114,12 +114,7 @@ export function AdminUsersScreen({
 
   return (
     <>
-      {!isWide && onBack && (
-        <Pressable style={styles.backBtn} onPress={onBack}>
-          <Ionicons name="arrow-back-outline" size={18} color="#4A6FA5" />
-          <Text style={styles.backText}>Dashboard</Text>
-        </Pressable>
-      )}
+      
       <ScrollView contentContainerStyle={styles.list}>
         {users.map((user) => {
           const roleStyle = ROLE_STYLES[user.role as Role] ?? ROLE_STYLES.User;

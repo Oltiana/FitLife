@@ -3,7 +3,7 @@ import { type ReactNode } from 'react';
 import { getAdminStats, getAdminUsers, getAdminAnalytics, type AdminUser } from '../../../api/adminApi';
 import { tokenStorage } from '../../../storage/tokenStorage';
 
-export type Section = 'home' | 'users' | 'pilates' | 'yoga' | 'fitness' | 'analytics';
+export type Section = 'home' | 'users' | 'pilates' | 'yoga' | 'fitness' | 'analytics' | 'enrollments' | 'activityLog' | 'notifications' | 'settings';
 export type UserRole = 'Admin' | 'Inspector' | 'FitnessManager' | 'User';
 
 type AdminStats = {
@@ -11,6 +11,11 @@ type AdminStats = {
   totalPilatesPrograms: number;
   totalYogaClasses: number;
   totalFitnessExercises: number;
+};
+
+type AnalyticsData = {
+  userRegistrations: { date: string; count: number }[];
+  moduleStats: { module: string; count: number }[];
 };
 
 export function useAdminDashboardViewModel() {
@@ -27,6 +32,7 @@ export function useAdminDashboardViewModel() {
   const [popupContent, setPopupContent] = useState<ReactNode>(null);
   const [recentUsers, setRecentUsers] = useState<AdminUser[]>([]);
   const [weeklyTrend, setWeeklyTrend] = useState<number>(0);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   const loadStats = useCallback(() => {
     getAdminStats().then(setRawStats).catch(console.warn);
@@ -38,22 +44,23 @@ export function useAdminDashboardViewModel() {
         const savedRole = (await tokenStorage.getRole()) as UserRole ?? 'Admin';
         setRole(savedRole);
 
-        const [stats, analytics] = await Promise.all([
+        const [stats, analyticsData] = await Promise.all([
           getAdminStats(),
           getAdminAnalytics(),
         ]);
 
         setRawStats(stats);
+        setAnalytics(analyticsData);
 
         if (savedRole === 'Admin') {
           const users = await getAdminUsers();
           const sorted = [...users].sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
-          setRecentUsers(sorted.slice(0, 5));
+          setRecentUsers(sorted.slice(0, 3));
         }
 
-        const regs = analytics.userRegistrations;
+        const regs = analyticsData.userRegistrations;
         const last7 = regs.slice(-7);
         const prev7 = regs.slice(-14, -7);
         const last7Total = last7.reduce((s, d) => s + d.count, 0);
@@ -102,5 +109,6 @@ export function useAdminDashboardViewModel() {
     recentUsers,
     weeklyTrend,
     role,
+    analytics,
   };
 }

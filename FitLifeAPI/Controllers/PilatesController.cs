@@ -15,12 +15,16 @@ namespace FitLifeAPI.Controllers
     {
         private readonly IPilatesService _pilatesService;
         private readonly AppDbContext _context;
+        private readonly IActivityLogService _activityLogService;
 
-        public PilatesController(IPilatesService pilatesService, AppDbContext context)
+        public PilatesController(IPilatesService pilatesService, AppDbContext context, IActivityLogService activityLogService)
         {
             _pilatesService = pilatesService;
             _context = context;
+            _activityLogService = activityLogService;
         }
+
+        private int GetUserId() => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         [HttpGet("progress-content")]
         public async Task<IActionResult> GetProgressContent()
@@ -28,9 +32,6 @@ namespace FitLifeAPI.Controllers
             await PilatesProgressContentHelper.EnsureSeedAsync(_context);
             return Ok(await PilatesProgressContentHelper.GetContentAsync(_context));
         }
-
-        private int GetUserId() =>
-            int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         [HttpGet("programs")]
         public async Task<IActionResult> GetAllPrograms()
@@ -110,9 +111,11 @@ namespace FitLifeAPI.Controllers
         [HttpPost("enroll")]
         public async Task<IActionResult> Enroll([FromBody] EnrollPilatesProgramRequest request)
         {
+            var userId = GetUserId();
             try
             {
-                var result = await _pilatesService.EnrollAsync(GetUserId(), request);
+                var result = await _pilatesService.EnrollAsync(userId, request);
+                await _activityLogService.LogAsync(userId, "ENROLL", "PilatesEnrollment", request.PilatesProgramId.ToString(), $"Enrolled in pilates program #{request.PilatesProgramId}", HttpContext.Connection.RemoteIpAddress?.ToString());
                 return Ok(result);
             }
             catch (Exception ex)
@@ -131,8 +134,10 @@ namespace FitLifeAPI.Controllers
         [HttpDelete("my-enrollments/{pilatesProgramId:int}")]
         public async Task<IActionResult> Unenroll(int pilatesProgramId)
         {
-            var ok = await _pilatesService.UnenrollAsync(GetUserId(), pilatesProgramId);
+            var userId = GetUserId();
+            var ok = await _pilatesService.UnenrollAsync(userId, pilatesProgramId);
             if (!ok) return NotFound("Enrollment not found");
+            await _activityLogService.LogAsync(userId, "UNENROLL", "PilatesEnrollment", pilatesProgramId.ToString(), $"Unenrolled from pilates program #{pilatesProgramId}", HttpContext.Connection.RemoteIpAddress?.ToString());
             return NoContent();
         }
 
@@ -146,10 +151,11 @@ namespace FitLifeAPI.Controllers
         [HttpPost("complete-workout")]
         public async Task<IActionResult> CompleteWorkout([FromBody] CompletePilatesWorkoutRequest request)
         {
-            var result = await _pilatesService.CompleteWorkoutAsync(GetUserId(), request);
+            var userId = GetUserId();
+            var result = await _pilatesService.CompleteWorkoutAsync(userId, request);
             if (result == null) return NotFound("Workout not found");
+            await _activityLogService.LogAsync(userId, "COMPLETE", "PilatesWorkout", request.PilatesWorkoutId.ToString(), $"Completed pilates workout #{request.PilatesWorkoutId}", HttpContext.Connection.RemoteIpAddress?.ToString());
             return Ok(result);
         }
     }
 }
-
