@@ -4,8 +4,8 @@ export const profileApi = {
   getProfile: () =>
     apiClient.get('/User/profile'),
 
-  updateProfile: (fullName: string) =>
-    apiClient.put('/User/profile', { fullName }),
+  updateProfile: (fullName: string, email: string) =>
+    apiClient.put('/User/profile', { fullName, email }),
 
   changePassword: (
     currentPassword: string,

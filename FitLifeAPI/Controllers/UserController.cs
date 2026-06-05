@@ -43,8 +43,8 @@ namespace FitLifeAPI.Controllers
             var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
             var result = await _userService.ChangePasswordAsync(userId, request);
             if (!result)
-                return BadRequest("Current password is incorrect");
-            return Ok("Password changed successfully");
+                 return BadRequest(new { error = "Current password is incorrect" });
+            return Ok(new { message = "Password changed successfully" });
         }
         [HttpDelete("account")]
 public async Task<IActionResult> DeleteAccount()

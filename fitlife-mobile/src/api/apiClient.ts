@@ -6,6 +6,15 @@ type ApiResponse<T> = {
   data: T | null;
   error: string | null;
 };
+const parseResponseBody = async (res: Response) => {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
 
 const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const token = await tokenStorage.getToken();
@@ -57,8 +66,11 @@ export const apiClient = {
   get: async <T>(path: string): Promise<ApiResponse<T>> => {
     try {
       const res = await authFetch(`${API_BASE_URL}${path}`);
-      if (!res.ok) return { data: null, error: await res.text() };
-      return { data: await res.json(), error: null };
+      if (!res.ok) {
+        const errorBody = await parseResponseBody(res);
+        return { data: null, error: typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody) };
+      }
+      return { data: await parseResponseBody(res), error: null };
     } catch (err: any) {
       return { data: null, error: err.message };
     }
@@ -70,8 +82,11 @@ export const apiClient = {
         method: 'POST',
         body: JSON.stringify(body),
       });
-      if (!res.ok) return { data: null, error: await res.text() };
-      return { data: await res.json(), error: null };
+      if (!res.ok) {
+        const errorBody = await parseResponseBody(res);
+        return { data: null, error: typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody) };
+      }
+      return { data: await parseResponseBody(res), error: null };
     } catch (err: any) {
       return { data: null, error: err.message };
     }
@@ -83,8 +98,11 @@ export const apiClient = {
         method: 'PUT',
         body: JSON.stringify(body),
       });
-      if (!res.ok) return { data: null, error: await res.text() };
-      return { data: await res.json(), error: null };
+      if (!res.ok) {
+        const errorBody = await parseResponseBody(res);
+        return { data: null, error: typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody) };
+      }
+      return { data: await parseResponseBody(res), error: null };
     } catch (err: any) {
       return { data: null, error: err.message };
     }

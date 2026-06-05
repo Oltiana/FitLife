@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useState,
+  useRef,
   type ReactNode,
 } from 'react';
 
@@ -11,6 +12,7 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -1635,7 +1637,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#3d6b42',
   },
-  popupBody: { gap: 16 },
+  popupBody: { gap: 16, position: 'relative' as const },
   list: { gap: 10, paddingBottom: 20 },
   addBar: {
     backgroundColor: '#e8f5eb',
@@ -1803,6 +1805,71 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#3d6b42',
   },
+
+  popupList: {
+    maxHeight: managerPopupListHeight,
+    height: managerPopupListHeight,
+  },
+  popupListContent: {
+    paddingBottom: 8,
+    paddingRight: 56,
+  },
+  scrollbarTrack: {
+    position: 'absolute',
+    right: 8,
+    top: 6,
+    bottom: 6,
+    width: 18,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 10,
+  },
+  scrollbarHitbox: {
+    position: 'absolute',
+    right: 0,
+    width: 36,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  scrollbarThumb: {
+    position: 'absolute',
+    width: 10,
+    right: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.32)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  scrollbarArrowUp: {
+    position: 'absolute',
+    right: 6,
+    top: 8,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderBottomWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(0,0,0,0.28)',
+  },
+  scrollbarArrowDown: {
+    position: 'absolute',
+    right: 6,
+    bottom: 8,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: 'rgba(0,0,0,0.28)',
+  },
 });
 
 function SessionsManagerPopup({
@@ -1818,6 +1885,70 @@ function SessionsManagerPopup({
   onRefresh?: () => void | Promise<void>;
   onShowPopup?: (content: ReactNode) => void;
 }) {
+  const [scrollY, setScrollY] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const startScrollRef = useRef(0);
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponderCapture: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponderCapture: () => true,
+    onPanResponderGrant: () => {
+      startScrollRef.current = scrollY;
+    },
+    onPanResponderMove: (_e, gs) => {
+      const delta = gs.dy;
+      const trackHeight = Math.max(containerHeight - thumbHeight, 1);
+      const scrollDelta = (delta / trackHeight) * maxScroll;
+      const target = Math.min(Math.max(startScrollRef.current + scrollDelta, 0), maxScroll);
+      if (scrollRef.current && typeof scrollRef.current.scrollTo === 'function') {
+        scrollRef.current.scrollTo({ y: target, animated: true });
+      }
+    },
+    onPanResponderRelease: () => {},
+  });
+
+  const scrollToY = (y: number, animated = true) => {
+    const target = Math.min(Math.max(y, 0), maxScroll);
+    if (scrollRef.current && typeof scrollRef.current.scrollTo === 'function') {
+      scrollRef.current.scrollTo({ y: target, animated });
+    }
+  };
+
+  const scrollBy = (dy: number, animated = true) => {
+    scrollToY(scrollY + dy, animated);
+  };
+
+  useEffect(() => {
+    setContainerHeight(managerPopupListHeight);
+  }, []);
+
+  const onScroll = (e: any) => {
+    setScrollY(e.nativeEvent.contentOffset.y || 0);
+  };
+
+  const onContentSizeChange = (_w: number, h: number) => {
+    setContentHeight(h);
+  };
+
+  const onLayout = (e: any) => {
+    setContainerHeight(e.nativeEvent.layout.height || 0);
+  };
+
+  const thumbHeight =
+    contentHeight > 0
+      ? Math.max((containerHeight / contentHeight) * containerHeight, 30)
+      : 0;
+
+  const maxScroll = Math.max(contentHeight - containerHeight, 1);
+
+  const thumbTop = Math.max(
+    0,
+    Math.min((scrollY / maxScroll) * (containerHeight - thumbHeight), containerHeight - thumbHeight),
+  );
   return (
     <View style={styles.popupBody}>
       <View style={styles.popupTopBar}>
@@ -1852,62 +1983,87 @@ function SessionsManagerPopup({
         </Pressable>
       ) : null}
 
-      <ScrollView>
-        {sessions.map(session => (
-          <View
-            key={session.id}
-            style={styles.listItem}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.listItemTitle}>
-                {session.instructorName}
-              </Text>
+      <View style={{ position: 'relative' }} onLayout={onLayout}>
+        <ScrollView
+          style={styles.popupList}
+          contentContainerStyle={styles.popupListContent}
+          ref={scrollRef}
+          showsVerticalScrollIndicator={Platform.OS === 'web'}
+          nestedScrollEnabled
+          onScroll={onScroll}
+          onContentSizeChange={onContentSizeChange}
+          scrollEventThrottle={16}
+          scrollIndicatorInsets={
+            Platform.OS === 'ios' ? { right: 1 } : undefined
+          }
+          persistentScrollbar={Platform.OS === 'web'}
+          indicatorStyle={Platform.OS === 'web' ? 'black' : 'default'}>
+          {sessions.map(session => (
+            <View key={session.id} style={styles.listItem}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.listItemTitle}>
+                  {session.instructorName}
+                </Text>
 
-        <Text style={styles.listItemSub}>
-          {session.sessionDate}
-          {session.startTime
-            ? ` · ${session.startTime}`
-            : ''}
-        </Text>
-      </View>
+                <Text style={styles.listItemSub}>
+                  {session.sessionDate}
+                  {session.startTime ? ` · ${session.startTime}` : ''}
+                </Text>
+              </View>
 
-      {!readOnly ? (
-        <>
-          <Pressable
-            onPress={() => {
-              onShowPopup?.(
-                <SessionFormPopup
-                  yogaClassId={session.yogaClassId}
-                  session={session}
-                  onClose={onClose}
-                  onSaved={async () => {
-                    await onRefresh?.();
-                  }}
-                />,
-              );
-            }}>
-            <Ionicons
-              name="create-outline"
-              size={20}
-              color="#3b7ec8"
-            />
-          </Pressable>
+              {!readOnly ? (
+                <>
+                  <Pressable
+                    onPress={() => {
+                      onShowPopup?.(
+                        <SessionFormPopup
+                          yogaClassId={session.yogaClassId}
+                          session={session}
+                          onClose={onClose}
+                          onSaved={async () => {
+                            await onRefresh?.();
+                          }}
+                        />,
+                      );
+                    }}>
+                    <Ionicons name="create-outline" size={20} color="#3b7ec8" />
+                  </Pressable>
 
-                <Pressable
-                  onPress={async () => {
-                    await deleteSession(session.id);
-                    await onRefresh?.();
-                  }}>
-                  <Ionicons
-                    name="trash-outline"
-                    size={20}
-                    color="#c94444"
-                  />
-                </Pressable>
-              </>
-            ) : null}
+                  <Pressable
+                    onPress={async () => {
+                      await deleteSession(session.id);
+                      await onRefresh?.();
+                    }}>
+                    <Ionicons name="trash-outline" size={20} color="#c94444" />
+                  </Pressable>
+                </>
+              ) : null}
+            </View>
+          ))}
+        </ScrollView>
+
+        {Platform.OS !== 'web' && contentHeight > containerHeight ? (
+          <View style={styles.scrollbarTrack} pointerEvents="box-none">
+            <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 36 }} pointerEvents="box-none">
+              <Pressable onPress={() => scrollBy(-containerHeight * 0.9)} style={{ position: 'absolute', right: 6, top: 6, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={styles.scrollbarArrowUp} />
+              </Pressable>
+
+              <View
+                {...panResponder.panHandlers}
+                pointerEvents="auto"
+                style={[styles.scrollbarHitbox, { top: thumbTop, height: thumbHeight }]}
+              >
+                <View style={[styles.scrollbarThumb, { height: thumbHeight }]} />
+              </View>
+
+              <Pressable onPress={() => scrollBy(containerHeight * 0.9)} style={{ position: 'absolute', right: 6, bottom: 6, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={styles.scrollbarArrowDown} />
+              </Pressable>
+            </View>
           </View>
-        ))}
-      </ScrollView>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -1959,7 +2115,8 @@ function UpcomingManagerPopup({
         </Pressable>
       ) : null}
 
-      <ScrollView>
+      <ScrollView
+        showsVerticalScrollIndicator>
         {upcoming.map(item => (
           <View
             key={item.id}
@@ -2162,7 +2319,8 @@ function BookingsManagerPopup({
         </View>
       ) : null}
 
-      <ScrollView>
+      <ScrollView
+        showsVerticalScrollIndicator>
         {localBookings.length === 0 ? (
           <Text style={styles.emptyBookingsText}>
             Nuk ka booking.

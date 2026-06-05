@@ -1,6 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,7 @@ import { tokenStorage } from '../../../storage/tokenStorage';
 import { useTheme } from '../../../theme/PilatesThemeContext';
 import { apiClient } from '../../../api/apiClient';
 import { Modal, TextInput } from 'react-native';
+import { profileApi } from '../../../api/profileApi';
 
 export function FitLifeProfileScreen({
   onLogout,
@@ -101,10 +103,56 @@ const [favorites, setFavorites] = useState<string[]>([]);
   };
 
   const openEditProfile = () => {
-  setEditName(fullName);
-  setEditEmail(email);
-  setShowEditProfile(true);
-};
+    setEditName(fullName);
+    setEditEmail(email);
+    setShowEditProfile(true);
+  };
+
+   const handleSaveProfile = async () => {
+    try {
+      const updateRes = await profileApi.updateProfile(editName, editEmail);
+      if (updateRes.error) throw new Error(updateRes.error);
+
+      const profileRes = await profileApi.getProfile();
+      if (profileRes.error) throw new Error(profileRes.error);
+      const updated = profileRes.data as any;
+
+      const token = await tokenStorage.getToken();
+      const refresh = await tokenStorage.getRefreshToken();
+      const role = await tokenStorage.getRole();
+      if (token && refresh) {
+        await tokenStorage.saveAuth(
+          token as string,
+          refresh as string,
+          updated as object,
+          (role as string) ?? 'User',
+        );
+      }
+
+      setFullName((updated && updated.fullName) ?? editName);
+      setEmail((updated && updated.email) ?? editEmail);
+      setShowEditProfile(false);
+      Alert.alert('U ruajt', 'Profile u përditësua.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error';
+      Alert.alert('Gabim', msg);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    try {
+      const result = await profileApi.changePassword(currentPassword, newPassword);
+      if (result.error) throw new Error(result.error);
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setShowChangePassword(false);
+      Alert.alert('U përditësua', 'Fjalëkalimi u ndryshua.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error';
+      Alert.alert('Gabim', msg);
+    }
+  };
 
   return (
     <SafeAreaView
@@ -332,11 +380,7 @@ const [favorites, setFavorites] = useState<string[]>([]);
       />
 
       <Pressable
-        onPress={() => {
-          setFullName(editName);
-          setEmail(editEmail);
-          setShowEditProfile(false);
-        }}
+        onPress={() => void handleSaveProfile()}
         style={styles.modalButton}
       >
         <Text style={{ color: '#fff' }}>Save Changes</Text>
@@ -378,16 +422,7 @@ const [favorites, setFavorites] = useState<string[]>([]);
       />
 
       <Pressable
-        onPress={() => {
-          console.log('Change password:', {
-            currentPassword,
-            newPassword,
-          });
-
-          setCurrentPassword('');
-          setNewPassword('');
-          setShowChangePassword(false);
-        }}
+        onPress={() => void handleChangePassword()}
         style={styles.modalButton}
       >
         <Text style={{ color: '#fff' }}>Update Password</Text>
