@@ -177,7 +177,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           )}
           {activeSection === 'yoga' && (
             <AdminYogaScreen
-              readOnly={false}
+              readOnly={true}
               onBack={() => handleNavPress('home')}
               onShowPopup={c => setPopupContent(c)}
               onHidePopup={() => setPopupContent(null)}
