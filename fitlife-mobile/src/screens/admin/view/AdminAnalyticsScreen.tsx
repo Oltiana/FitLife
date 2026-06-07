@@ -13,32 +13,52 @@ import { LineChart, BarChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import { getAdminAnalytics } from '../../../api/adminApi';
 import { tokenStorage } from '../../../storage/tokenStorage';
+import { getAdminFitnessWorkoutPlans } from '../../../api/adminFitnessApi';
 
 const screenWidth = Dimensions.get('window').width;
 const isWide = Platform.OS === 'web' && screenWidth >= 768;
 
+
 const MODULE_COLORS = {
   Pilates: { line: '#E91E8C', bar: 'rgba(233,30,140,', bg: '#FDE8F4', text: '#E91E8C', icon: 'body-outline' },
-  Yoga:    { line: '#F57C00', bar: 'rgba(245,124,0,',  bg: '#FFF3E0', text: '#F57C00', icon: 'leaf-outline' },
-  Fitness: { line: '#2E7D32', bar: 'rgba(46,125,50,',  bg: '#E8F5E9', text: '#2E7D32', icon: 'barbell-outline' },
+  Yoga: { line: '#F57C00', bar: 'rgba(245,124,0,', bg: '#FFF3E0', text: '#F57C00', icon: 'leaf-outline' },
+  Fitness: { line: '#2E7D32', bar: 'rgba(46,125,50,', bg: '#E8F5E9', text: '#2E7D32', icon: 'barbell-outline' },
 };
 
 export function AdminAnalyticsScreen({ onBack }: { onBack?: () => void }) {
   const [loading, setLoading] = useState(true);
   const [userRegistrations, setUserRegistrations] = useState<{ date: string; count: number }[]>([]);
   const [moduleStats, setModuleStats] = useState<{ module: string; count: number }[]>([]);
+  const [fitnessDetails, setFitnessDetails] = useState({
+    plans: 0,
+    exercises: 0,
+    sessions: 0,
+  });
   const [role, setRole] = useState<string>('Admin');
+
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [data, savedRole] = await Promise.all([
+        const [data, savedRole, fitnessPlans] = await Promise.all([
           getAdminAnalytics(),
           tokenStorage.getRole(),
+          getAdminFitnessWorkoutPlans(),
         ]);
         setUserRegistrations(data.userRegistrations);
         setModuleStats(data.moduleStats);
         setRole(savedRole ?? 'Admin');
+        setFitnessDetails({
+          plans: fitnessPlans.length,
+          exercises: fitnessPlans.reduce(
+            (sum, plan) => sum + plan.exercisesCount,
+            0
+          ),
+          sessions: fitnessPlans.reduce(
+            (sum, plan) => sum + plan.sessionsCount,
+            0
+          ),
+        });
       } catch (e) {
         console.warn(e);
       } finally {
@@ -108,7 +128,7 @@ export function AdminAnalyticsScreen({ onBack }: { onBack?: () => void }) {
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-  
+
 
       <View style={styles.summaryRow}>
         {isAdmin && (
@@ -134,6 +154,40 @@ export function AdminAnalyticsScreen({ onBack }: { onBack?: () => void }) {
           </Text>
         </View>
       </View>
+
+      {role === 'FitnessManager' && (
+        <View style={styles.fitnessStatsGrid}>
+          <View style={styles.fitnessStatCard}>
+            <Ionicons name="layers-outline" size={22} color="#2E7D32" />
+            <Text style={styles.fitnessStatValue}>
+              {fitnessDetails.plans}
+            </Text>
+            <Text style={styles.fitnessStatLabel}>
+              Plans
+            </Text>
+          </View>
+
+          <View style={styles.fitnessStatCard}>
+            <Ionicons name="fitness-outline" size={22} color="#2E7D32" />
+            <Text style={styles.fitnessStatValue}>
+              {fitnessDetails.exercises}
+            </Text>
+            <Text style={styles.fitnessStatLabel}>
+              Exercises
+            </Text>
+          </View>
+
+          <View style={styles.fitnessStatCard}>
+            <Ionicons name="time-outline" size={22} color="#2E7D32" />
+            <Text style={styles.fitnessStatValue}>
+              {fitnessDetails.sessions}
+            </Text>
+            <Text style={styles.fitnessStatLabel}>
+              Sessions
+            </Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.moduleRow}>
         {filteredModuleStats.map((m) => {
@@ -286,4 +340,33 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 999 },
   legendText: { fontSize: 11, fontWeight: '600', color: '#0F1D2E' },
+  fitnessStatsGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+
+  fitnessStatCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D0DCF0',
+    gap: 4,
+  },
+
+  fitnessStatValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#2E7D32',
+  },
+
+  fitnessStatLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0F1D2E',
+    textAlign: 'center',
+  },
 });

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,11 +11,9 @@ import {
   View,
 } from 'react-native';
 import {
-  deleteAdminFitnessWorkoutPlan,
-  getAdminFitnessWorkoutPlans,
-  updateAdminFitnessWorkoutPlan,
   type AdminFitnessWorkoutPlan,
 } from '../../../api/adminFitnessApi';
+import { useAdminFitnessViewModel } from '../viewmodels/useAdminFitnessViewModel';
 
 export function AdminFitnessScreen({
   onShowPopup,
@@ -24,26 +22,14 @@ export function AdminFitnessScreen({
   onShowPopup: (content: ReactNode) => void;
   onHidePopup: () => void;
 }) {
-  const [plans, setPlans] = useState<AdminFitnessWorkoutPlan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    plans,
+    loading,
+    handleDeletePlan,
+    handleUpdatePlan,
+  } = useAdminFitnessViewModel();
 
-  const loadPlans = async () => {
-    try {
-      setLoading(true);
-      const data = await getAdminFitnessWorkoutPlans();
-      setPlans(data);
-    } catch (error) {
-      console.warn('Failed to load fitness plans', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadPlans();
-  }, []);
-
-  const handleDeletePlan = async (id: number) => {
+  const confirmDeletePlan = (id: number) => {
     Alert.alert(
       'Delete workout plan',
       'Are you sure you want to delete this workout plan?',
@@ -57,16 +43,14 @@ export function AdminFitnessScreen({
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteAdminFitnessWorkoutPlan(id);
-
+              await handleDeletePlan(id);
               onHidePopup();
-              await loadPlans();
             } catch (error) {
               console.warn('Failed to delete workout plan', error);
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -91,7 +75,9 @@ export function AdminFitnessScreen({
 
             <TextInput
               defaultValue={plan.name}
-              onChangeText={(text) => (name = text)}
+              onChangeText={(text) => {
+                name = text;
+              }}
               style={styles.input}
               placeholder="Workout plan name"
             />
@@ -102,7 +88,9 @@ export function AdminFitnessScreen({
 
             <TextInput
               defaultValue={plan.description}
-              onChangeText={(text) => (description = text)}
+              onChangeText={(text) => {
+                description = text;
+              }}
               style={[styles.input, styles.textArea]}
               multiline
               placeholder="Description"
@@ -114,7 +102,9 @@ export function AdminFitnessScreen({
 
             <TextInput
               defaultValue={plan.level}
-              onChangeText={(text) => (level = text)}
+              onChangeText={(text) => {
+                level = text;
+              }}
               style={styles.input}
               placeholder="Beginner"
             />
@@ -124,14 +114,13 @@ export function AdminFitnessScreen({
             style={styles.saveButton}
             onPress={async () => {
               try {
-                await updateAdminFitnessWorkoutPlan(plan.id, {
+                await handleUpdatePlan(plan.id, {
                   name,
                   description,
                   level,
                 });
 
                 onHidePopup();
-                await loadPlans();
               } catch (error) {
                 console.warn('Failed to update workout plan', error);
               }
@@ -141,7 +130,7 @@ export function AdminFitnessScreen({
             <Text style={styles.saveButtonText}>Save Changes</Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </ScrollView>,
     );
   };
 
@@ -151,6 +140,7 @@ export function AdminFitnessScreen({
         <View style={{ gap: 16 }}>
           <View style={styles.popupTopBar}>
             <Text style={styles.popupTitle}>Workout Plan Details</Text>
+
             <Pressable onPress={onHidePopup}>
               <Ionicons name="close-circle-outline" size={26} color="#6b7a6b" />
             </Pressable>
@@ -159,14 +149,32 @@ export function AdminFitnessScreen({
           <View style={styles.modalHeader}>
             <Ionicons name="barbell-outline" size={42} color="#3d6b42" />
             <Text style={styles.modalName}>{plan.name}</Text>
-            <Text style={styles.modalSub}>{plan.userName} · {plan.userEmail}</Text>
+            <Text style={styles.modalSub}>
+              {plan.userName} · {plan.userEmail}
+            </Text>
           </View>
 
           <View style={styles.detailGrid}>
-            <DetailItem icon="speedometer-outline" label="Level" value={plan.level} />
-            <DetailItem icon="fitness-outline" label="Exercises" value={String(plan.exercisesCount)} />
-            <DetailItem icon="time-outline" label="Sessions" value={String(plan.sessionsCount)} />
-            <DetailItem icon="calendar-outline" label="Created" value={new Date(plan.createdAt).toLocaleDateString()} />
+            <DetailItem
+              icon="speedometer-outline"
+              label="Level"
+              value={plan.level}
+            />
+            <DetailItem
+              icon="fitness-outline"
+              label="Exercises"
+              value={String(plan.exercisesCount)}
+            />
+            <DetailItem
+              icon="time-outline"
+              label="Sessions"
+              value={String(plan.sessionsCount)}
+            />
+            <DetailItem
+              icon="calendar-outline"
+              label="Created"
+              value={new Date(plan.createdAt).toLocaleDateString()}
+            />
           </View>
 
           <Text style={styles.sectionTitle}>Exercises</Text>
@@ -181,10 +189,13 @@ export function AdminFitnessScreen({
                 </View>
 
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.exerciseName}>{exercise.exerciseName}</Text>
+                  <Text style={styles.exerciseName}>
+                    {exercise.exerciseName}
+                  </Text>
 
                   <Text style={styles.exerciseMeta}>
-                    {exercise.bodyPart ?? 'Fitness'} · {exercise.targetMuscle ?? 'Target'}
+                    {exercise.bodyPart ?? 'Fitness'} ·{' '}
+                    {exercise.targetMuscle ?? 'Target'}
                   </Text>
 
                   <Text style={styles.exerciseSets}>
@@ -206,22 +217,25 @@ export function AdminFitnessScreen({
 
             <Pressable
               style={styles.deleteButton}
-              onPress={() => handleDeletePlan(plan.id)}
-            >
+              onPress={() => handleDeletePlan(plan.id)}            >
               <Ionicons name="trash-outline" size={18} color="#E14D4D" />
               <Text style={styles.deleteButtonText}>Delete Plan</Text>
             </Pressable>
           </View>
-
         </View>
-      </ScrollView>
+      </ScrollView>,
     );
   };
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#3d6b42" style={{ marginTop: 60 }} />;
+    return (
+      <ActivityIndicator
+        size="large"
+        color="#3d6b42"
+        style={{ marginTop: 60 }}
+      />
+    );
   }
-
   return (
     <ScrollView contentContainerStyle={styles.list}>
       {plans.length === 0 ? (

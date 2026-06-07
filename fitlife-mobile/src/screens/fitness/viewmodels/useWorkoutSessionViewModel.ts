@@ -101,9 +101,11 @@ export function useWorkoutSessionViewModel(
             : 1;
 
         try {
+            const calories = durationMinutes * 6;
+
             await completeWorkoutSession(activeSessionId, {
                 durationMinutes,
-                calories: 0,
+                calories,
             });
 
             setStatusMessage(

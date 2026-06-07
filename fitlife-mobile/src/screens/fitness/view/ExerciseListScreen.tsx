@@ -1,5 +1,8 @@
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { localExercises } from '../../../data/fitness/localExercises';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -11,73 +14,140 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { addFavoriteExercise, getExercises, getFavoriteExercises, deleteFavoriteExercise } from '../../../api/fitnessApi';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
-import {
-  categories,
-  levels,
-  useExerciseListViewModel,
-} from '../viewmodels/useExerciseListViewModel';
+const categories = ['All', 'Chest', 'Back', 'Legs', 'Arms', 'Waist'];
+const levels = ['Beginner', 'Intermediate'];
 
 export function ExerciseListScreen() {
   const navigation = useNavigation<any>();
+  const [exercises, setExercises] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedLevel, setSelectedLevel] = useState<'Beginner' | 'Intermediate'>('Intermediate');
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const favoriteIds = favorites.map((f) => f.externalExerciseId);
 
-  const {
-    loading,
-    error,
-    searchText,
-    setSearchText,
-    selectedCategory,
-    setSelectedCategory,
-    selectedLevel,
-    setSelectedLevel,
-    favoriteIds,
-    filteredExercises,
-    loadExercises,
-    handleToggleFavorite,
-    clearFilters,
-  } = useExerciseListViewModel();
+  useEffect(() => {
+    loadExercises();
+    loadFavorites();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [])
+  );
+
+  const loadExercises = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const page1 = await getExercises(0, 10);
+      const page2 = await getExercises(10, 10);
+      const page3 = await getExercises(20, 10);
+      const page4 = await getExercises(30, 10);
+      const page5 = await getExercises(40, 10);
+
+      const data = [...page1, ...page2, ...page3, ...page4, ...page5];
+
+      setExercises(data);
+    } catch (err) {
+      setExercises(localExercises);
+      setError('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFavorites = async () => {
+    try {
+      const data = await getFavoriteExercises();
+      setFavorites(data);
+    } catch (error) {
+      console.log('Failed to load favorites');
+    }
+  };
 
   const getFitnessExerciseIcon = (bodyPart?: string) => {
     const part = bodyPart?.toLowerCase() ?? '';
-
     if (part.includes('waist')) return 'body-outline';
     if (part.includes('chest')) return 'barbell-outline';
     if (part.includes('back')) return 'add-circle-outline';
-    if (part.includes('upper legs') || part.includes('lower legs')) {
-      return 'walk-outline';
-    }
-    if (part.includes('upper arms') || part.includes('lower arms')) {
-      return 'barbell-outline';
-    }
-
+    if (part.includes('upper legs') || part.includes('lower legs')) return 'walk-outline';
+    if (part.includes('upper arms') || part.includes('lower arms')) return 'barbell-outline';
     return 'fitness-outline';
   };
 
   const getExerciseImage = (bodyPart?: string) => {
     const part = bodyPart?.toLowerCase() ?? '';
-
-    if (part.includes('chest')) {
-      return require('../../../../assets/images/fitness-images/chest.jpg');
-    }
-
-    if (part.includes('back')) {
-      return require('../../../../assets/images/fitness-images/back.jpg');
-    }
-
+    if (part.includes('chest')) return require('../../../../assets/images/fitness-images/chest.jpg');
+    if (part.includes('back')) return require('../../../../assets/images/fitness-images/back.jpg');
     if (part.includes('upper legs') || part.includes('lower legs')) {
       return require('../../../../assets/images/fitness-images/legs.jpg');
     }
-
     if (part.includes('upper arms') || part.includes('lower arms')) {
       return require('../../../../assets/images/fitness-images/arms.jpg');
     }
-
-    if (part.includes('waist')) {
-      return require('../../../../assets/images/fitness-images/core.jpg');
-    }
-
+    if (part.includes('waist')) return require('../../../../assets/images/fitness-images/core.jpg');
     return null;
+  };
+
+  const handleToggleFavorite = async (exercise: any) => {
+    const exerciseId = exercise.externalExerciseId ?? exercise.id?.toString();
+    const existingFavorite = favorites.find((f) => f.externalExerciseId === exerciseId);
+    try {
+      if (existingFavorite) {
+        await deleteFavoriteExercise(existingFavorite.id);
+        setFavorites((prev) => prev.filter((f) => f.externalExerciseId !== exerciseId));
+        return;
+      }
+      const newFavorite = await addFavoriteExercise({
+        externalExerciseId: exerciseId,
+        exerciseName: exercise.exerciseName || exercise.name,
+        bodyPart: exercise.bodyPart,
+        targetMuscle: exercise.targetMuscle || exercise.target,
+        equipment: exercise.equipment,
+        gifUrl: exercise.gifUrl ?? null,
+      });
+      setFavorites((prev) => [...prev, newFavorite]);
+    } catch (error) {
+      Alert.alert('Error', 'Could not update favorite.');
+    }
+  };
+
+  const filteredExercises = useMemo(() => {
+    return exercises.filter((exercise) => {
+      const exerciseName = exercise.exerciseName || exercise.name || '';
+      const bodyPart = exercise.bodyPart?.toLowerCase() ?? '';
+      const targetMuscle = exercise.targetMuscle || exercise.target || '';
+      const level = exercise.level?.toLowerCase();
+      const matchesLevel = !level || level === selectedLevel.toLowerCase();
+      const matchesSearch =
+        exerciseName.toLowerCase().includes(searchText.toLowerCase()) ||
+        bodyPart.includes(searchText.toLowerCase()) ||
+        targetMuscle.toLowerCase().includes(searchText.toLowerCase());
+      const matchesCategory =
+        selectedCategory === 'All' ||
+        bodyPart.includes(selectedCategory.toLowerCase()) ||
+        targetMuscle.toLowerCase().includes(selectedCategory.toLowerCase());
+      return matchesSearch && matchesCategory && matchesLevel;
+    });
+  }, [exercises, searchText, selectedCategory, selectedLevel]);
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Chest': return 'barbell-outline';
+      case 'Back': return 'body-outline';
+      case 'Legs': return 'walk-outline';
+      case 'Arms': return 'fitness-outline';
+      case 'Waist': return 'body-outline';
+      default: return null;
+    }
   };
 
   if (loading) {
@@ -251,17 +321,17 @@ const styles = StyleSheet.create({
   retryButton: { backgroundColor: '#2F3A34', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 18 },
   retryText: { color: '#fff', fontWeight: '700' },
   header: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E6E2D8', paddingHorizontal: 22, paddingTop: 34, paddingBottom: 22, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: {
-    fontSize: 38,
-    fontWeight: '900',
-    color: '#1F2420',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#6F756E',
-    marginTop: 6,
-    fontWeight: '600',
-  },
+title: {
+  fontSize: 42,
+  fontWeight: '900',
+  color: '#1F2420',
+},
+subtitle: {
+  fontSize: 13,
+  color: '#6F756E',
+  marginTop: 6,
+  fontWeight: '600',
+},
   searchBox: {
     marginHorizontal: 22,
     marginTop: 22,
