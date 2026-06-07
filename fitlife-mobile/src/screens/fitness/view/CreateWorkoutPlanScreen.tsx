@@ -1,7 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,30 +11,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { createWorkoutPlan } from '../../../api/fitnessApi';
+import { useCreateWorkoutPlanViewModel } from '../viewmodels/useCreateWorkoutPlanViewModel';
 
 export function CreateWorkoutPlanScreen() {
   const navigation = useNavigation<any>();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [level, setLevel] = useState<'Beginner' | 'Intermediate'>('Beginner');
-  const [saving, setSaving] = useState(false);
 
-  const handleCreate = async () => {
-    if (!name.trim()) {
-      Alert.alert('Validation', 'Please enter workout plan name.');
-      return;
-    }
-    try {
-      setSaving(true);
-      await createWorkoutPlan({ name, description, level });
-      navigation.goBack();
-    } catch (error) {
-      Alert.alert('Error', 'Could not create workout plan.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const {
+    name,
+    setName,
+    description,
+    setDescription,
+    level,
+    setLevel,
+    saving,
+    handleCreate,
+  } = useCreateWorkoutPlanViewModel(() => navigation.goBack());
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -44,7 +33,7 @@ export function CreateWorkoutPlanScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color="#fff" />
+              <Ionicons name="arrow-back" size={24} color="#2F3A34" />
             </Pressable>
             <Text style={styles.title}>Create Plan</Text>
             <Text style={styles.subtitle}>Build your own workout routine</Text>
@@ -73,21 +62,89 @@ export function CreateWorkoutPlanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAF7' },
-  header: { backgroundColor: '#86B587', paddingHorizontal: 22, paddingTop: 34, paddingBottom: 24 },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  title: { color: '#fff', fontSize: 24, fontWeight: '800' },
-  subtitle: { color: '#F1FFF2', marginTop: 6, fontWeight: '700' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F7F6F2',
+  },
+
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 22,
+    paddingTop: 34,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E6E2D8',
+  },
+
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F2F1EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+
+  title: {
+    color: '#1F2420',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+
+  subtitle: {
+    color: '#6F756E',
+    marginTop: 6,
+    fontWeight: '700',
+  },
   content: { padding: 22 },
-  label: { color: '#5F8F64', fontSize: 14, fontWeight: '800', marginBottom: 8, marginTop: 14 },
-  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E2E2E2', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 13, fontSize: 15, color: '#333' },
+  label: {
+    color: '#2F3A34',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 8,
+    marginTop: 14,
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E6E2D8',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    fontSize: 15,
+    color: '#1F2420',
+  },
   textArea: { minHeight: 100, textAlignVertical: 'top' },
   levelRow: { flexDirection: 'row', gap: 12 },
-  levelChip: { flex: 1, backgroundColor: '#D9D9D9', paddingVertical: 12, borderRadius: 18, alignItems: 'center' },
-  levelChipActive: { backgroundColor: '#86B587' },
-  levelText: { color: '#6F9B73', fontWeight: '800' },
-  levelTextActive: { color: '#fff' },
-  button: { marginTop: 28, backgroundColor: '#86B587', paddingVertical: 15, borderRadius: 20, alignItems: 'center' },
+  levelChip: {
+    flex: 1,
+    backgroundColor: '#ECEAE3',
+    paddingVertical: 12,
+    borderRadius: 18,
+    alignItems: 'center',
+  },
+
+  levelChipActive: {
+    backgroundColor: '#2F3A34',
+  },
+
+  levelText: {
+    color: '#6F756E',
+    fontWeight: '800',
+  },
+
+  levelTextActive: {
+    color: '#FFFFFF',
+  },
+
+  button: {
+    marginTop: 28,
+    backgroundColor: '#2F3A34',
+    paddingVertical: 15,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
   buttonText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   keyboardView: { flex: 1 },
   scrollContent: { flexGrow: 1 },

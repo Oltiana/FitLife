@@ -30,8 +30,8 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
   const screenOptions = useMemo(
     () => ({
       headerShown: false,
-      tabBarActiveTintColor: colors.primary,
-      tabBarInactiveTintColor: colors.textSecondary,
+      tabBarActiveTintColor: '#2F3A34',
+      tabBarInactiveTintColor: '#7A7F78',
       tabBarShowLabel: true,
       tabBarHideOnKeyboard: true,
       tabBarIconStyle: { marginTop: 2 },
@@ -42,9 +42,9 @@ export function MainTabs({ onLogout }: { onLogout: () => void }) {
         marginBottom: 0,
       },
       tabBarStyle: {
-        backgroundColor: colors.surface,
+        backgroundColor: '#FFFFFF',
         borderTopWidth: 1,
-        borderTopColor: colors.border,
+        borderTopColor: '#E6E2D8',
         paddingTop: 8,
         paddingBottom: tabBarExtraBottom,
         minHeight: 56 + tabBarExtraBottom,

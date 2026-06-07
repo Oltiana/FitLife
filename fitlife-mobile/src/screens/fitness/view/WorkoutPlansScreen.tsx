@@ -1,9 +1,7 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Pressable,
@@ -12,53 +10,15 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { deleteWorkoutPlan, getWorkoutPlans } from '../../../api/fitnessApi';
+import { useWorkoutPlansViewModel } from '../viewmodels/useWorkoutPlansViewModel';
 
 export function WorkoutPlansScreen() {
   const navigation = useNavigation<any>();
-  const [plans, setPlans] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedWeek, setSelectedWeek] = useState(1);
-
-  const loadPlans = async () => {
-    try {
-      setLoading(true);
-      const data = await getWorkoutPlans();
-      setPlans(data);
-    } catch (error) {
-      console.log('Failed to load workout plans', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      loadPlans();
-    }, [])
-  );
-
-  const handleDeletePlan = (id: number) => {
-    Alert.alert(
-      'Delete Workout Plan',
-      'Are you sure you want to delete this workout plan?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteWorkoutPlan(id);
-              loadPlans();
-            } catch (error) {
-              console.log('Failed to delete workout plan', error);
-            }
-          },
-        },
-      ]
-    );
-  };
+  const {
+    plans,
+    loading,
+    handleDeletePlan,
+  } = useWorkoutPlansViewModel();
 
   const getPlanImage = (name?: string) => {
     const planName = name?.toLowerCase() ?? '';
@@ -85,7 +45,7 @@ export function WorkoutPlansScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color="#2F3A34" />
         </Pressable>
         <Pressable
           style={styles.floatingAddButton}
@@ -107,22 +67,24 @@ export function WorkoutPlansScreen() {
         <FlatList
           ListHeaderComponent={
             <View>
-              <Text style={styles.plannerTitle}>Planner · Week {selectedWeek}</Text>
-              <View style={styles.weekRow}>
-                {[1, 2, 3, 4].map((week) => {
-                  const isSelected = selectedWeek === week;
-                  return (
-                    <Pressable
-                      key={week}
-                      style={[styles.weekChip, isSelected && styles.weekChipActive]}
-                      onPress={() => setSelectedWeek(week)}
-                    >
-                      <Text style={[styles.weekText, isSelected && styles.weekTextActive]}>
-                        Week {week}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+              <Text style={styles.plannerTitle}>My Workout Plans</Text>
+
+              <View style={styles.quickActions}>
+                <Pressable
+                  style={styles.quickActionCard}
+                  onPress={() => navigation.navigate('Favorites')}
+                >
+                  <Ionicons name="heart-outline" size={22} color="#2F3A34" />
+                  <Text style={styles.quickActionText}>Favorites</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.quickActionCard}
+                  onPress={() => navigation.navigate('WorkoutHistory')}
+                >
+                  <Ionicons name="time-outline" size={22} color="#2F3A34" />
+                  <Text style={styles.quickActionText}>History</Text>
+                </Pressable>
               </View>
             </View>
           }
@@ -131,7 +93,7 @@ export function WorkoutPlansScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyCard}>
-              <Ionicons name="barbell-outline" size={42} color="#86B587" />
+              <Ionicons name="barbell-outline" size={42} color="#2F3A34" />
               <Text style={styles.emptyTitle}>No workout plans yet</Text>
               <Text style={styles.emptyText}>Tap the plus button to create your first plan.</Text>
             </View>
@@ -173,7 +135,7 @@ export function WorkoutPlansScreen() {
                       handleDeletePlan(item.id);
                     }}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#D47A45" />
+                    <Ionicons name="trash-outline" size={20} color="#E65C3A" />
                   </Pressable>
                   <Ionicons name="chevron-forward" size={22} color="#B7B7B7" />
                 </Pressable>
@@ -187,15 +149,17 @@ export function WorkoutPlansScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAF7' },
+  container: { flex: 1, backgroundColor: '#F7F6F2' },
   header: {
-    backgroundColor: '#86B587',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 22,
     paddingTop: 34,
     paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E6E2D8',
   },
-  title: { color: '#fff', fontSize: 24, fontWeight: '800' },
-  subtitle: { color: '#F1FFF2', fontSize: 13, fontWeight: '700', marginTop: 4 },
+  title: { color: '#1F2420', fontSize: 24, fontWeight: '800' },
+  subtitle: { color: '#6F756E', fontSize: 13, fontWeight: '700', marginTop: 4 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   listContent: { padding: 22, paddingBottom: 120 },
   emptyCard: {
@@ -207,7 +171,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E2E2',
   },
   emptyTitle: {
-    color: '#5F8F64',
+    color: '#1F2420',
     fontSize: 18,
     fontWeight: '800',
     marginTop: 12,
@@ -219,22 +183,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cardContent: { flex: 1 },
-  planName: { color: '#245C32', fontSize: 16, fontWeight: '800' },
   planDescription: { color: '#777', fontSize: 12, fontWeight: '600', marginTop: 2 },
+  planName: { color: '#1F2420', fontSize: 16, fontWeight: '800' },
   badge: {
-    backgroundColor: '#DCEADB',
+    backgroundColor: '#DDE3DE',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
     alignSelf: 'flex-start',
     marginTop: 10,
   },
-  badgeText: { color: '#6F9B73', fontSize: 11, fontWeight: '800' },
+  badgeText: { color: '#2F3A34', fontSize: 11, fontWeight: '800' },
   deleteButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFE1D0',
+    backgroundColor: '#FBE4DC',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -243,7 +207,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: '#F2F1EC',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -257,9 +221,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignItems: 'center',
   },
-  weekChipActive: { backgroundColor: '#86B587' },
+  weekChipActive: { backgroundColor: '#2F3A34' },
   weekText: { color: '#555', fontWeight: '700', fontSize: 12 },
-  weekTextActive: { color: '#fff' },
+  weekTextActive: { color: '#FFFFFF' },
   daySection: { marginBottom: 20 },
   dayHeader: {
     flexDirection: 'row',
@@ -278,6 +242,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EFEFEF',
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   plannerImageBox: {
     width: 64,
@@ -290,19 +259,42 @@ const styles = StyleSheet.create({
   plannerImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   floatingAddButton: {
     position: 'absolute',
-    right: 24,
-    bottom: 70,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#5F8F64',
+    right: 20,
+    bottom: 78,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2F3A34',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.18,
     shadowRadius: 8,
     elevation: 8,
     zIndex: 999,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 18,
+  },
+
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E6E2D8',
+  },
+
+  quickActionText: {
+    marginTop: 6,
+    color: '#1F2420',
+    fontWeight: '800',
+    fontSize: 13,
   },
 });

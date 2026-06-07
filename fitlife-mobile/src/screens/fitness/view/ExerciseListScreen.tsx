@@ -1,155 +1,89 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  ScrollView,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { addFavoriteExercise, getExercises, getFavoriteExercises, deleteFavoriteExercise } from '../../../api/fitnessApi';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
-const categories = ['All', 'Chest', 'Back', 'Legs', 'Arms', 'Waist'];
-const levels = ['Beginner', 'Intermediate'];
+import {
+  categories,
+  levels,
+  useExerciseListViewModel,
+} from '../viewmodels/useExerciseListViewModel';
 
 export function ExerciseListScreen() {
   const navigation = useNavigation<any>();
-  const [exercises, setExercises] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchText, setSearchText] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedLevel, setSelectedLevel] = useState<'Beginner' | 'Intermediate'>('Intermediate');
-  const [showMenu, setShowMenu] = useState(false);
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const favoriteIds = favorites.map((f) => f.externalExerciseId);
 
-  useEffect(() => {
-    loadExercises();
-    loadFavorites();
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadFavorites();
-    }, [])
-  );
-
-  const loadExercises = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const page1 = await getExercises(0, 10);
-      const page2 = await getExercises(10, 10);
-      const page3 = await getExercises(20, 10);
-      const page4 = await getExercises(30, 10);
-      const page5 = await getExercises(40, 10);
-      const page6 = await getExercises(50, 10);
-      const data = [...page1, ...page2, ...page3, ...page4, ...page5, ...page6];
-      setExercises(data);
-    } catch (err) {
-      setError('Could not load exercises');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadFavorites = async () => {
-    try {
-      const data = await getFavoriteExercises();
-      setFavorites(data);
-    } catch (error) {
-      console.log('Failed to load favorites');
-    }
-  };
+  const {
+    loading,
+    error,
+    searchText,
+    setSearchText,
+    selectedCategory,
+    setSelectedCategory,
+    selectedLevel,
+    setSelectedLevel,
+    favoriteIds,
+    filteredExercises,
+    loadExercises,
+    handleToggleFavorite,
+    clearFilters,
+  } = useExerciseListViewModel();
 
   const getFitnessExerciseIcon = (bodyPart?: string) => {
     const part = bodyPart?.toLowerCase() ?? '';
+
     if (part.includes('waist')) return 'body-outline';
     if (part.includes('chest')) return 'barbell-outline';
     if (part.includes('back')) return 'add-circle-outline';
-    if (part.includes('upper legs') || part.includes('lower legs')) return 'walk-outline';
-    if (part.includes('upper arms') || part.includes('lower arms')) return 'barbell-outline';
+    if (part.includes('upper legs') || part.includes('lower legs')) {
+      return 'walk-outline';
+    }
+    if (part.includes('upper arms') || part.includes('lower arms')) {
+      return 'barbell-outline';
+    }
+
     return 'fitness-outline';
   };
 
   const getExerciseImage = (bodyPart?: string) => {
     const part = bodyPart?.toLowerCase() ?? '';
-    if (part.includes('chest')) return require('../../../../assets/images/fitness-images/chest.jpg');
-    if (part.includes('back')) return require('../../../../assets/images/fitness-images/back.jpg');
+
+    if (part.includes('chest')) {
+      return require('../../../../assets/images/fitness-images/chest.jpg');
+    }
+
+    if (part.includes('back')) {
+      return require('../../../../assets/images/fitness-images/back.jpg');
+    }
+
     if (part.includes('upper legs') || part.includes('lower legs')) {
       return require('../../../../assets/images/fitness-images/legs.jpg');
     }
+
     if (part.includes('upper arms') || part.includes('lower arms')) {
       return require('../../../../assets/images/fitness-images/arms.jpg');
     }
-    if (part.includes('waist')) return require('../../../../assets/images/fitness-images/core.jpg');
+
+    if (part.includes('waist')) {
+      return require('../../../../assets/images/fitness-images/core.jpg');
+    }
+
     return null;
-  };
-
-  const handleToggleFavorite = async (exercise: any) => {
-    const exerciseId = exercise.externalExerciseId ?? exercise.id?.toString();
-    const existingFavorite = favorites.find((f) => f.externalExerciseId === exerciseId);
-    try {
-      if (existingFavorite) {
-        await deleteFavoriteExercise(existingFavorite.id);
-        setFavorites((prev) => prev.filter((f) => f.externalExerciseId !== exerciseId));
-        return;
-      }
-      const newFavorite = await addFavoriteExercise({
-        externalExerciseId: exerciseId,
-        exerciseName: exercise.exerciseName || exercise.name,
-        bodyPart: exercise.bodyPart,
-        targetMuscle: exercise.targetMuscle || exercise.target,
-        equipment: exercise.equipment,
-        gifUrl: exercise.gifUrl ?? null,
-      });
-      setFavorites((prev) => [...prev, newFavorite]);
-    } catch (error) {
-      Alert.alert('Error', 'Could not update favorite.');
-    }
-  };
-
-  const filteredExercises = useMemo(() => {
-    return exercises.filter((exercise) => {
-      const exerciseName = exercise.exerciseName || exercise.name || '';
-      const bodyPart = exercise.bodyPart?.toLowerCase() ?? '';
-      const targetMuscle = exercise.targetMuscle || exercise.target || '';
-      const level = exercise.level?.toLowerCase();
-      const matchesLevel = !level || level === selectedLevel.toLowerCase();
-      const matchesSearch =
-        exerciseName.toLowerCase().includes(searchText.toLowerCase()) ||
-        bodyPart.includes(searchText.toLowerCase()) ||
-        targetMuscle.toLowerCase().includes(searchText.toLowerCase());
-      const matchesCategory =
-        selectedCategory === 'All' ||
-        bodyPart.includes(selectedCategory.toLowerCase()) ||
-        targetMuscle.toLowerCase().includes(selectedCategory.toLowerCase());
-      return matchesSearch && matchesCategory && matchesLevel;
-    });
-  }, [exercises, searchText, selectedCategory, selectedLevel]);
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'Chest': return 'barbell-outline';
-      case 'Back': return 'body-outline';
-      case 'Legs': return 'walk-outline';
-      case 'Arms': return 'fitness-outline';
-      case 'Waist': return 'body-outline';
-      default: return null;
-    }
   };
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7FAE83" />
+        <ActivityIndicator size="large" color="#2F3A34" />
         <Text style={styles.loadingText}>Loading exercises...</Text>
       </View>
     );
@@ -170,30 +104,27 @@ export function ExerciseListScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Exercise Library</Text>
+          <Text style={styles.title}>Fitness</Text>
           <Text style={styles.subtitle}>{filteredExercises.length} exercises available</Text>
         </View>
-        <Pressable style={styles.menuButton} onPress={() => setShowMenu(!showMenu)}>
-          <Ionicons name="menu" size={28} color="#6F9B73" />
-        </Pressable>
       </View>
 
-      {showMenu && (
-        <View style={styles.dropdownMenu}>
-          <Pressable style={styles.dropdownItem} onPress={() => { setShowMenu(false); navigation.navigate('WorkoutPlans'); }}>
-            <Ionicons name="list-outline" size={20} color="#5F8F64" />
-            <Text style={styles.dropdownText}>My Workout Plans</Text>
-          </Pressable>
-          <Pressable style={styles.dropdownItem} onPress={() => { setShowMenu(false); navigation.navigate('Favorites'); }}>
-            <Ionicons name="heart-outline" size={20} color="#5F8F64" />
-            <Text style={styles.dropdownText}>Favorites</Text>
-          </Pressable>
-          <Pressable style={styles.dropdownItem} onPress={() => { setShowMenu(false); navigation.navigate('WorkoutHistory'); }}>
-            <Ionicons name="time-outline" size={20} color="#5F8F64" />
-            <Text style={styles.dropdownText}>Workout History</Text>
-          </Pressable>
-        </View>
-      )}
+      <View style={styles.fitnessTabs}>
+        <Pressable style={[styles.fitnessTab, styles.fitnessTabActive]}>
+          <Text style={[styles.fitnessTabText, styles.fitnessTabTextActive]}>
+            Library
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.fitnessTab}
+          onPress={() => navigation.navigate('WorkoutPlans')}
+        >
+          <Text style={styles.fitnessTabText}>
+            My Workouts
+          </Text>
+        </Pressable>
+      </View>
 
       <View style={styles.searchBox}>
         <Ionicons name="search" size={20} color="#8E8E8E" />
@@ -206,28 +137,28 @@ export function ExerciseListScreen() {
         />
       </View>
 
-      <View style={styles.categoryWrapper}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoryScroll}
+        contentContainerStyle={styles.categoryWrapper}
+      >
         {categories.map((category) => {
           const isSelected = selectedCategory === category;
-          const iconName = getCategoryIcon(category);
+
           return (
             <Pressable
               key={category}
               onPress={() => setSelectedCategory(category)}
               style={[styles.categoryChip, isSelected && styles.categoryChipActive]}
             >
-              <View style={styles.categoryContent}>
-                {iconName && (
-                  <Ionicons name={iconName as any} size={17} color={isSelected ? '#FFFFFF' : '#2E6B3A'} />
-                )}
-                <Text style={[styles.categoryText, isSelected && styles.categoryTextActive]}>
-                  {category}
-                </Text>
-              </View>
+              <Text style={[styles.categoryText, isSelected && styles.categoryTextActive]}>
+                {category}
+              </Text>
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
 
       <View style={styles.levelWrapper}>
         {levels.map((level) => {
@@ -239,7 +170,7 @@ export function ExerciseListScreen() {
               style={[styles.levelChip, isSelected && styles.levelChipActive]}
             >
               <View style={styles.levelContent}>
-                <Ionicons name="bar-chart-outline" size={18} color={isSelected ? '#FFFFFF' : '#4F8F5D'} />
+                <Ionicons name="bar-chart-outline" size={18} color={isSelected ? '#FFFFFF' : '#8E978F'} />
                 <Text style={[styles.levelTextFilter, isSelected && styles.levelTextFilterActive]}>
                   {level}
                 </Text>
@@ -258,7 +189,7 @@ export function ExerciseListScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="search-outline" size={46} color="#86B587" />
+            <Ionicons name="search-outline" size={46} color="#8E978F" />
             <Text style={styles.emptyTitle}>No exercises found</Text>
             <Text style={styles.emptyText}>Try changing the search text or selected filters.</Text>
             <Pressable style={styles.clearButton} onPress={() => { setSearchText(''); setSelectedCategory('All'); setSelectedLevel('Intermediate'); }}>
@@ -280,7 +211,7 @@ export function ExerciseListScreen() {
                   {imageSource ? (
                     <Image source={imageSource} style={styles.exerciseImage} />
                   ) : (
-                    <Ionicons name={iconName as any} size={36} color="#5F8F64" />
+                    <Ionicons name={iconName as any} size={36} color="#8E978F" />
                   )}
                 </View>
                 <View style={styles.cardContent}>
@@ -298,7 +229,7 @@ export function ExerciseListScreen() {
               </Pressable>
               <View style={styles.cardActions}>
                 <Pressable style={styles.favoriteButton} onPress={() => handleToggleFavorite(item)}>
-                  <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color="#2F7D3B" />
+                  <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color={isFavorite ? '#60645f' : '#8E978F'} />
                 </Pressable>
                 <Pressable style={styles.chevronButton} onPress={() => navigation.navigate('ExerciseDetails', { exercise: item })}>
                   <Ionicons name="chevron-forward" size={25} color="#777" />
@@ -317,25 +248,83 @@ const styles = StyleSheet.create({
   center: { flex: 1, backgroundColor: '#F8FAF7', alignItems: 'center', justifyContent: 'center', padding: 20 },
   loadingText: { marginTop: 10, color: '#6E8B70', fontWeight: '600' },
   errorText: { color: '#B00020', fontWeight: '600', marginBottom: 12 },
-  retryButton: { backgroundColor: '#7FAE83', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 18 },
+  retryButton: { backgroundColor: '#2F3A34', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 18 },
   retryText: { color: '#fff', fontWeight: '700' },
-  header: { backgroundColor: '#86B587', paddingHorizontal: 22, paddingTop: 34, paddingBottom: 22, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { color: '#fff', fontSize: 24, fontWeight: '800' },
-  subtitle: { color: '#F1FFF2', fontSize: 13, fontWeight: '700', marginTop: 4 },
-  menuButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E8ECE6', alignItems: 'center', justifyContent: 'center' },
-  searchBox: { marginHorizontal: 22, marginTop: 24, backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, height: 54, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E2E2E2' },
-  searchInput: { flex: 1, marginLeft: 10, color: '#333', fontSize: 15, fontWeight: '600' },
-  categoryWrapper: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 22, marginTop: 16 },
-  categoryChip: { backgroundColor: '#FFFFFF', minWidth: 72, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 3 },
-  categoryChipActive: { backgroundColor: '#5DAA68' },
-  categoryContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  categoryText: { color: '#2E6B3A', fontWeight: '800', fontSize: 13 },
-  categoryTextActive: { color: '#FFFFFF' },
-  levelWrapper: { flexDirection: 'row', paddingHorizontal: 22, marginTop: 12, gap: 12 },
+  header: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E6E2D8', paddingHorizontal: 22, paddingTop: 34, paddingBottom: 22, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: {
+    fontSize: 38,
+    fontWeight: '900',
+    color: '#1F2420',
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#6F756E',
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  searchBox: {
+    marginHorizontal: 22,
+    marginTop: 22,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    height: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E6E2D8',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  categoryWrapper: {
+    gap: 10,
+    paddingHorizontal: 22,
+    paddingRight: 34,
+    alignItems: 'center',
+  },
+  categoryChip: {
+    minWidth: 96,
+    height: 40,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DDE3DE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  categoryText: {
+    color: '#4D5B52',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  categoryChipActive: {
+    backgroundColor: '#2F3A34',
+    borderColor: '#2F3A34',
+    borderWidth: 1,
+  },
+
+  categoryTextActive: {
+    color: '#FFFFFF',
+  },
+  levelWrapper: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 22,
+    marginTop: 12,
+    marginBottom: 20,
+  },
   levelChip: { flex: 1, height: 42, borderRadius: 21, backgroundColor: '#F4F4F4', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 4, elevation: 2 },
-  levelChipActive: { backgroundColor: '#5DAA68' },
+  levelChipActive: { backgroundColor: '#8E978F' },
   levelContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  levelTextFilter: { color: '#4F8F5D', fontWeight: '800', fontSize: 14 },
+  levelTextFilter: { color: '#8E978F', fontWeight: '800', fontSize: 14 },
   levelTextFilterActive: { color: '#FFFFFF' },
   listContent: { padding: 22, paddingBottom: 120 },
   card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 14, marginBottom: 14, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4 },
@@ -343,22 +332,82 @@ const styles = StyleSheet.create({
   exerciseImageBox: { width: 110, height: 82, borderRadius: 18, overflow: 'hidden', backgroundColor: '#DDEBDC', marginRight: 16, alignItems: 'center', justifyContent: 'center' },
   exerciseImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   cardContent: { flex: 1, paddingRight: 8 },
-  exerciseName: { color: '#245C32', fontSize: 17, fontWeight: '900', textTransform: 'capitalize', lineHeight: 22 },
+  exerciseName: { color: '#1F2420', fontSize: 17, fontWeight: '900', textTransform: 'capitalize', lineHeight: 22 },
   exerciseMeta: { color: '#6F766F', fontSize: 13, marginTop: 4, textTransform: 'capitalize' },
   badgeRow: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
-  levelBadge: { backgroundColor: '#DCEADB', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
-  levelText: { color: '#6F9B73', fontSize: 11, fontWeight: '800' },
-  bodyBadge: { backgroundColor: '#FFE1D0', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
-  bodyText: { color: '#D47A45', fontSize: 11, fontWeight: '800', textTransform: 'capitalize' },
-  dropdownMenu: { marginHorizontal: 22, marginTop: -12, backgroundColor: '#fff', borderRadius: 18, paddingVertical: 8, borderWidth: 1, borderColor: '#E2E2E2', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 3, zIndex: 10 },
-  dropdownItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
-  dropdownText: { color: '#5F8F64', fontSize: 14, fontWeight: '800' },
-  favoriteButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E8F7E4', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 },
+  levelBadge: {
+    backgroundColor: '#DDE3DE',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+
+  levelText: {
+    color: '#2F3A34',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  bodyBadge: {
+    backgroundColor: '#DDE3DE',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+
+  bodyText: {
+    color: '#2F3A34',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'capitalize',
+  },
+
+  favoriteButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F2F1EC', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 24 },
-  emptyTitle: { marginTop: 14, color: '#5F8F64', fontSize: 18, fontWeight: '800' },
-  emptyText: { marginTop: 6, color: '#7FAE83', fontSize: 14, fontWeight: '600', textAlign: 'center', lineHeight: 20 },
-  clearButton: { marginTop: 18, backgroundColor: '#86B587', paddingHorizontal: 20, paddingVertical: 11, borderRadius: 18 },
+  emptyTitle: { marginTop: 14, color: '#8E978F', fontSize: 18, fontWeight: '800' },
+  emptyText: { marginTop: 6, color: '#2F3A34', fontSize: 14, fontWeight: '600', textAlign: 'center', lineHeight: 20 },
+  clearButton: { marginTop: 18, backgroundColor: '#8E978F', paddingHorizontal: 20, paddingVertical: 11, borderRadius: 18 },
   clearButtonText: { color: '#fff', fontWeight: '800' },
   chevronButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F4F4F4', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 2 },
   cardActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  categoryScroll: {
+    marginTop: 18,
+    flexGrow: 0,
+    height: 52,
+  },
+
+  fitnessTabs: {
+    flexDirection: 'row',
+    marginHorizontal: 22,
+    marginTop: 18,
+    backgroundColor: '#F2F1EC',
+    borderRadius: 24,
+    padding: 4,
+  },
+
+  fitnessTab: {
+    flex: 1,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  fitnessTabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  fitnessTabText: {
+    color: '#6F756E',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  fitnessTabTextActive: {
+    color: '#1F2420',
+  },
 });

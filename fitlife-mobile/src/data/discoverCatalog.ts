@@ -1,4 +1,3 @@
-/** Katalog demo për Fitness / Yoga — kërkohet në Discover; lidh me API më vonë. */
 export type DiscoverModality = 'pilates' | 'fitness' | 'yoga';
 
 export type DiscoverCatalogItem = {
@@ -7,7 +6,6 @@ export type DiscoverCatalogItem = {
   title: string;
   description: string;
   minutes: number;
-  /** Fjalë për kërkim */
   tags: string[];
 };
 
