@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import { createWorkoutPlan } from '../../../api/fitnessApi';
+import { scheduleWorkoutPlanReminder } from '../../../utils/notifications';
 
 export function useCreateWorkoutPlanViewModel(onSuccess: () => void) {
     const [name, setName] = useState('');
@@ -17,6 +18,7 @@ export function useCreateWorkoutPlanViewModel(onSuccess: () => void) {
         try {
             setSaving(true);
             await createWorkoutPlan({ name, description, level });
+            await scheduleWorkoutPlanReminder(name);
             onSuccess();
         } catch (error) {
             Alert.alert('Error', 'Could not create workout plan.');

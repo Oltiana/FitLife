@@ -31,6 +31,7 @@ import { AdminDashboard } from './src/screens/admin/view/AdminDashboard';
 import { FitnessManagerDashboard } from './src/screens/admin/view/FitnessManagerDashboard';
 import { InspectorDashboard } from './src/screens/admin/view/InspectorDashboard';
 import { AuthProvider, useAuth } from './src/hooks/useAuth';
+import { requestNotificationPermissions } from './src/utils/notifications';
 
 function Root({ children }: { children: React.ReactNode }) {
   if (Platform.OS === 'web') {
@@ -69,6 +70,12 @@ function ThemedNavigation() {
     if (isAuthenticated) void checkRole();
     else setRole(null);
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    requestNotificationPermissions().catch((error) => {
+      console.log('Notification permission error:', error);
+    });
+  }, []);
 
   const handleLoginSuccess = async () => {
     const r = await tokenStorage.getRole();

@@ -7,6 +7,7 @@ import {
     startWorkoutSession,
     updateWorkoutExercise,
 } from '../../../api/fitnessApi';
+import { cancelUnfinishedWorkoutReminder } from '../../../utils/notifications';
 
 export function useWorkoutSessionViewModel(
     workoutPlanId: number,
@@ -118,6 +119,7 @@ export function useWorkoutSessionViewModel(
             setTimeout(() => {
                 navigation.goBack();
             }, 1200);
+            await cancelUnfinishedWorkoutReminder();
         } catch {
             Alert.alert('Error', 'Could not complete workout.');
         }

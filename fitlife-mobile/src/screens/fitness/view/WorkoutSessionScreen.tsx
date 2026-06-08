@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FitnessStackParamList } from '../../../navigation/FitnessStack';
 import { useWorkoutSessionViewModel } from '../viewmodels/useWorkoutSessionViewModel';
+import { cancelUnfinishedWorkoutReminder, scheduleUnfinishedWorkoutReminder, } from '../../../utils/notifications';
 
 type WorkoutSessionRouteProp = RouteProp<FitnessStackParamList, 'WorkoutSession'>;
 
@@ -53,16 +54,36 @@ export function WorkoutSessionScreen() {
     handleUpdateExercise,
   } = useWorkoutSessionViewModel(workoutPlanId, navigation);
 
-  const getExerciseImage = (bodyPart?: string) => {
-    const part = bodyPart?.toLowerCase() ?? '';
-    if (part.includes('chest')) return require('../../../../assets/images/fitness-images/chest.jpg');
-    if (part.includes('back')) return require('../../../../assets/images/fitness-images/back.jpg');
-    if (part.includes('upper legs') || part.includes('lower legs')) return require('../../../../assets/images/fitness-images/legs.jpg');
-    if (part.includes('upper arms') || part.includes('lower arms')) return require('../../../../assets/images/fitness-images/arms.jpg');
-    if (part.includes('waist')) return require('../../../../assets/images/fitness-images/core.jpg');
-    return require('../../../../assets/images/fitness-images/chest.jpg');
-  };
+ const getExerciseImage = (bodyPart?: string) => {
+  const part = bodyPart?.toLowerCase() ?? '';
 
+  if (part.includes('chest')) {
+    return require('../../../../assets/images/fitness-images/chest.jpg');
+  }
+
+  if (part.includes('back')) {
+    return require('../../../../assets/images/fitness-images/back.jpg');
+  }
+
+  if (part.includes('legs') || part.includes('upper legs') || part.includes('lower legs')) {
+    return require('../../../../assets/images/fitness-images/legs.jpg');
+  }
+
+  if (
+    part.includes('arms') ||
+    part.includes('upper arms') ||
+    part.includes('lower arms') ||
+    part.includes('shoulders')
+  ) {
+    return require('../../../../assets/images/fitness-images/arms.jpg');
+  }
+
+  if (part.includes('core') || part.includes('waist') || part.includes('abs')) {
+    return require('../../../../assets/images/fitness-images/core.jpg');
+  }
+
+  return require('../../../../assets/images/fitness-images/chest.jpg');
+};
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -135,7 +156,19 @@ export function WorkoutSessionScreen() {
               <Pressable style={styles.smallControlButton} onPress={handlePreviousExercise}>
                 <Ionicons name="refresh-outline" size={30} color="#9A9A9A" />
               </Pressable>
-              <Pressable style={styles.pauseButton} onPress={() => setIsPaused((prev) => !prev)}>
+              <Pressable
+                style={styles.pauseButton}
+                onPress={async () => {
+                  const nextPausedState = !isPaused;
+                  setIsPaused(nextPausedState);
+
+                  if (nextPausedState) {
+                    await scheduleUnfinishedWorkoutReminder(plan.name);
+                  } else {
+                    await cancelUnfinishedWorkoutReminder();
+                  }
+                }}
+              >
                 <Ionicons name={isPaused ? 'play' : 'pause'} size={44} color="#fff" />
               </Pressable>
               <Pressable style={styles.nextControlButton} onPress={handleNextExercise}>
