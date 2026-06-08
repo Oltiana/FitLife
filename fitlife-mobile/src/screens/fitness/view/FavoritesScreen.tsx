@@ -121,7 +121,7 @@ export function FavoritesScreen() {
                   style={styles.deleteButton}
                   onPress={() => handleDeleteFavorite(item.id)}
                 >
-                  <Ionicons name="trash-outline" size={22} color="#6F756E" />
+                  <Ionicons name="trash-outline" size={22} color="#E65C3A" />
                 </Pressable>
               </View>
             );
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F2F1EC',
+    backgroundColor: '#FBE4DC',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -55,15 +55,26 @@ export function ExerciseDetailScreen() {
 
 
 
-  const getExerciseImage = (bodyPart?: string) => {
-    const part = bodyPart?.toLowerCase() ?? '';
-    if (part.includes('chest')) return require('../../../../assets/images/fitness-images/chest.jpg');
-    if (part.includes('back')) return require('../../../../assets/images/fitness-images/back.jpg');
-    if (part.includes('upper legs') || part.includes('lower legs')) return require('../../../../assets/images/fitness-images/legs.jpg');
-    if (part.includes('upper arms') || part.includes('lower arms')) return require('../../../../assets/images/fitness-images/arms.jpg');
-    if (part.includes('waist')) return require('../../../../assets/images/fitness-images/core.jpg');
-    return null;
-  };
+ const getExerciseImage = (bodyPart?: string) => {
+  const part = bodyPart?.toLowerCase() ?? '';
+
+  if (part.includes('chest')) return require('../../../../assets/images/fitness-images/chest.jpg');
+  if (part.includes('back')) return require('../../../../assets/images/fitness-images/back.jpg');
+
+  if (part.includes('legs') || part.includes('upper legs') || part.includes('lower legs')) {
+    return require('../../../../assets/images/fitness-images/legs.jpg');
+  }
+
+  if (part.includes('arms') || part.includes('upper arms') || part.includes('lower arms') || part.includes('shoulders')) {
+    return require('../../../../assets/images/fitness-images/arms.jpg');
+  }
+
+  if (part.includes('core') || part.includes('waist') || part.includes('abs')) {
+    return require('../../../../assets/images/fitness-images/core.jpg');
+  }
+
+  return require('../../../../assets/images/fitness-images/chest.jpg');
+};
 
   const iconName = getFitnessExerciseIcon(exercise?.bodyPart);
   const imageSource = getExerciseImage(exercise?.bodyPart);

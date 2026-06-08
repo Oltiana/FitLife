@@ -3,7 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FitLifeAPI.Data;
 using FitLifeAPI.DTOs.Requests;
+using FitLifeAPI.DTOs.Responses;
 using FitLifeAPI.Services;
+using FitLifeAPI.Models.Entities;
+
 
 namespace FitLifeAPI.Controllers
 {
@@ -436,91 +439,186 @@ namespace FitLifeAPI.Controllers
 
             return Ok(new { message = "Workout plan deleted successfully" });
         }
+        [HttpGet("fitness/exercises")]
+        [Authorize(Roles = "Admin,FitnessManager")]
+        public async Task<IActionResult> GetFitnessExercises()
+        {
+            var exercises = await _context.FitnessExercises
+                .OrderByDescending(e => e.CreatedAt)
+                .Select(e => new FitnessExerciseResponse
+                {
+                    Id = e.Id,
+                    ExerciseName = e.ExerciseName,
+                    BodyPart = e.BodyPart,
+                    TargetMuscle = e.TargetMuscle,
+                    Equipment = e.Equipment,
+                    Level = e.Level,
+                    GifUrl = e.GifUrl,
+                    CreatedAt = e.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(exercises);
+        }
+
+        [HttpPost("fitness/exercises")]
+        [Authorize(Roles = "Admin,FitnessManager")]
+        public async Task<IActionResult> CreateFitnessExercise(
+            [FromBody] FitnessExerciseRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.ExerciseName))
+                return BadRequest("Exercise name is required.");
+
+            var exercise = new FitnessExercise
+            {
+                ExerciseName = request.ExerciseName.Trim(),
+                BodyPart = request.BodyPart,
+                TargetMuscle = request.TargetMuscle,
+                Equipment = request.Equipment,
+                Level = string.IsNullOrWhiteSpace(request.Level) ? "Beginner" : request.Level,
+                GifUrl = request.GifUrl,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.FitnessExercises.Add(exercise);
+            await _context.SaveChangesAsync();
+
+            return Ok(new FitnessExerciseResponse
+            {
+                Id = exercise.Id,
+                ExerciseName = exercise.ExerciseName,
+                BodyPart = exercise.BodyPart,
+                TargetMuscle = exercise.TargetMuscle,
+                Equipment = exercise.Equipment,
+                Level = exercise.Level,
+                GifUrl = exercise.GifUrl,
+                CreatedAt = exercise.CreatedAt
+            });
+        }
+
+        [HttpPut("fitness/exercises/{id}")]
+        [Authorize(Roles = "Admin,FitnessManager")]
+        public async Task<IActionResult> UpdateFitnessExercise(
+            int id,
+            [FromBody] FitnessExerciseRequest request)
+        {
+            var exercise = await _context.FitnessExercises.FindAsync(id);
+
+            if (exercise == null)
+                return NotFound("Exercise not found.");
+
+            exercise.ExerciseName = request.ExerciseName.Trim();
+            exercise.BodyPart = request.BodyPart;
+            exercise.TargetMuscle = request.TargetMuscle;
+            exercise.Equipment = request.Equipment;
+            exercise.Level = string.IsNullOrWhiteSpace(request.Level) ? "Beginner" : request.Level;
+            exercise.GifUrl = request.GifUrl;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Exercise updated successfully" });
+        }
+
+        [HttpDelete("fitness/exercises/{id}")]
+        [Authorize(Roles = "Admin,FitnessManager")]
+        public async Task<IActionResult> DeleteFitnessExercise(int id)
+        {
+            var exercise = await _context.FitnessExercises.FindAsync(id);
+
+            if (exercise == null)
+                return NotFound("Exercise not found.");
+
+            _context.FitnessExercises.Remove(exercise);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Exercise deleted successfully" });
+        }
+
         [HttpGet("activity-logs")]
-[Authorize(Roles = "Admin")]
-public async Task<IActionResult> GetActivityLogs(
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetActivityLogs(
     [FromQuery] int? userId = null,
     [FromQuery] string? entityType = null,
     [FromQuery] int page = 1,
     [FromQuery] int pageSize = 50)
-{
-    var query = _context.ActivityLogs
-        .Include(a => a.User)
-        .AsQueryable();
-
-    if (userId.HasValue)
-        query = query.Where(a => a.UserId == userId.Value);
-
-    if (!string.IsNullOrEmpty(entityType))
-        query = query.Where(a => a.EntityType == entityType);
-
-    var total = await query.CountAsync();
-
-    var logs = await query
-        .OrderByDescending(a => a.CreatedAt)
-        .Skip((page - 1) * pageSize)
-        .Take(pageSize)
-        .Select(a => new
         {
-            a.Id,
-            a.UserId,
-            UserFullName = a.User.FullName,
-            UserEmail = a.User.Email,
-            a.Action,
-            a.EntityType,
-            a.EntityId,
-            a.Description,
-            a.IpAddress,
-            a.CreatedAt
-        })
-        .ToListAsync();
+            var query = _context.ActivityLogs
+                .Include(a => a.User)
+                .AsQueryable();
 
-    return Ok(new { total, page, pageSize, logs });
-}
+            if (userId.HasValue)
+                query = query.Where(a => a.UserId == userId.Value);
 
-[HttpGet("enrollments")]
-[Authorize(Roles = "Admin")]
-public async Task<IActionResult> GetAllEnrollments()
-{
-    var users = await _context.Users
-        .Select(u => new
+            if (!string.IsNullOrEmpty(entityType))
+                query = query.Where(a => a.EntityType == entityType);
+
+            var total = await query.CountAsync();
+
+            var logs = await query
+                .OrderByDescending(a => a.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.UserId,
+                    UserFullName = a.User.FullName,
+                    UserEmail = a.User.Email,
+                    a.Action,
+                    a.EntityType,
+                    a.EntityId,
+                    a.Description,
+                    a.IpAddress,
+                    a.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new { total, page, pageSize, logs });
+        }
+
+        [HttpGet("enrollments")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllEnrollments()
         {
-            u.Id,
-            u.FullName,
-            u.Email,
-            PilatesEnrollments = _context.UserPilatesEnrollments
-                .Where(e => e.UserId == u.Id)
-                .Select(e => new
+            var users = await _context.Users
+                .Select(u => new
                 {
-                    e.Id,
-                    ProgramName = e.Program.Name,
-                    e.EnrolledAt,
-                    e.CompletedAt
+                    u.Id,
+                    u.FullName,
+                    u.Email,
+                    PilatesEnrollments = _context.UserPilatesEnrollments
+                        .Where(e => e.UserId == u.Id)
+                        .Select(e => new
+                        {
+                            e.Id,
+                            ProgramName = e.Program.Name,
+                            e.EnrolledAt,
+                            e.CompletedAt
+                        })
+                        .ToList(),
+                    YogaBookings = _context.Bookings
+                        .Where(b => b.UserName == u.Email)
+                        .Select(b => new
+                        {
+                            b.Id,
+                            b.BookingDate,
+                            b.SessionId
+                        })
+                        .ToList(),
+                    FitnessPlans = _context.WorkoutPlans
+                        .Where(w => w.UserId == u.Id)
+                        .Select(w => new
+                        {
+                            w.Id,
+                            w.Name,
+                            w.Level,
+                            w.CreatedAt
+                        })
+                        .ToList()
                 })
-                .ToList(),
-            YogaBookings = _context.Bookings
-                .Where(b => b.UserName == u.Email)
-                .Select(b => new
-                {
-                    b.Id,
-                    b.BookingDate,
-                    b.SessionId
-                })
-                .ToList(),
-            FitnessPlans = _context.WorkoutPlans
-                .Where(w => w.UserId == u.Id)
-                .Select(w => new
-                {
-                    w.Id,
-                    w.Name,
-                    w.Level,
-                    w.CreatedAt
-                })
-                .ToList()
-        })
-        .ToListAsync();
+                .ToListAsync();
 
-    return Ok(users);
-}
+            return Ok(users);
+        }
     }
 }

@@ -12,12 +12,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdminFitnessScreen } from './AdminFitnessScreen';
 import { AdminAnalyticsScreen } from './AdminAnalyticsScreen';
+import { AdminFitnessExercisesScreen } from './AdminFitnessExercisesScreen';
 
 type Section = 'home' | 'fitness' | 'analytics';
 
 const NAV_ITEMS = [
-  { id: 'home',      label: 'Dashboard', icon: 'grid-outline'        },
-  { id: 'fitness',   label: 'Fitness',   icon: 'barbell-outline'     },
+  { id: 'home', label: 'Dashboard', icon: 'grid-outline' },
+  { id: 'fitness', label: 'Fitness', icon: 'barbell-outline' },
   { id: 'analytics', label: 'Analytics', icon: 'stats-chart-outline' },
 ] as const;
 
@@ -113,10 +114,7 @@ export function FitnessManagerDashboard({ onLogout }: { onLogout: () => void }) 
             </View>
           )}
           {activeSection === 'fitness' && (
-            <AdminFitnessScreen
-              onShowPopup={setPopupContent}
-              onHidePopup={() => setPopupContent(null)}
-            />
+            <AdminFitnessExercisesScreen />
           )}
           {activeSection === 'analytics' && (
             <AdminAnalyticsScreen onBack={() => setActiveSection('home')} />

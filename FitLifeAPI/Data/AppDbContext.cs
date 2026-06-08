@@ -26,6 +26,7 @@ namespace FitLifeAPI.Data
         public DbSet<PilatesProgressPeriodSetting> PilatesProgressPeriodSettings { get; set; }
         public DbSet<PilatesMotivationMessage> PilatesMotivationMessages { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
+        public DbSet<FitnessExercise> FitnessExercises { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)  

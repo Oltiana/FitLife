@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using FitLifeAPI.DTOs.Requests;
 using FitLifeAPI.Services.Interfaces;
+using FitLifeAPI.DTOs.Responses;
+using Microsoft.EntityFrameworkCore;
+using FitLifeAPI.Data;
+
 
 namespace FitLifeAPI.Controllers
 {
@@ -14,12 +18,14 @@ namespace FitLifeAPI.Controllers
         private readonly IFitnessService _fitnessService;
         private readonly IExerciseApiService _exerciseApiService;
         private readonly IActivityLogService _activityLogService;
+        private readonly AppDbContext _context;
 
-        public FitnessController(IFitnessService fitnessService, IExerciseApiService exerciseApiService, IActivityLogService activityLogService)
+        public FitnessController(IFitnessService fitnessService, IExerciseApiService exerciseApiService, IActivityLogService activityLogService, AppDbContext context)
         {
             _fitnessService = fitnessService;
             _exerciseApiService = exerciseApiService;
             _activityLogService = activityLogService;
+            _context = context;
         }
 
         private int GetUserId() => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
@@ -160,31 +166,53 @@ namespace FitLifeAPI.Controllers
 
         [AllowAnonymous]
         [HttpGet("exercises")]
-        public async Task<IActionResult> GetExercises([FromQuery] int offset = 0, [FromQuery] int limit = 80)
+        public async Task<IActionResult> GetExercises(
+     [FromQuery] int offset = 0,
+     [FromQuery] int limit = 80)
         {
-            try
-            {
-                var exercises = await _exerciseApiService.GetExercisesAsync(offset, limit);
-                return Ok(exercises);
-            }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-            {
-                return StatusCode(429, new { message = "Too many requests to the exercise API. Try again later." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message });
-            }
+            var exercises = await _context.FitnessExercises
+                .OrderByDescending(e => e.CreatedAt)
+                .Skip(offset)
+                .Take(limit)
+                .Select(e => new FitnessExerciseResponse
+                {
+                    Id = e.Id,
+                    ExerciseName = e.ExerciseName,
+                    BodyPart = e.BodyPart,
+                    TargetMuscle = e.TargetMuscle,
+                    Equipment = e.Equipment,
+                    Level = e.Level,
+                    GifUrl = e.GifUrl,
+                    CreatedAt = e.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(exercises);
         }
 
         [AllowAnonymous]
-        [HttpGet("exercises/{id}")]
-        public async Task<IActionResult> GetExerciseById(string id)
+        [HttpGet("exercises/{id:int}")]
+        public async Task<IActionResult> GetExerciseById(int id)
         {
-            var result = await _exerciseApiService.GetExerciseByIdAsync(id);
-            if (result == null)
+            var exercise = await _context.FitnessExercises
+                .Where(e => e.Id == id)
+                .Select(e => new FitnessExerciseResponse
+                {
+                    Id = e.Id,
+                    ExerciseName = e.ExerciseName,
+                    BodyPart = e.BodyPart,
+                    TargetMuscle = e.TargetMuscle,
+                    Equipment = e.Equipment,
+                    Level = e.Level,
+                    GifUrl = e.GifUrl,
+                    CreatedAt = e.CreatedAt
+                })
+                .FirstOrDefaultAsync();
+
+            if (exercise == null)
                 return NotFound("Exercise not found");
-            return Ok(result);
+
+            return Ok(exercise);
         }
     }
 }

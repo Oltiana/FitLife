@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginBottom: 14,
   }, emptyCard: { backgroundColor: '#fff', borderRadius: 20, padding: 28, alignItems: 'center', borderWidth: 1, borderColor: '#E2E2E2' },
-  emptyTitle: { color: '#5F8F64', fontSize: 18, fontWeight: '800', marginTop: 12 },
+  emptyTitle: { color: '#6F756E', fontSize: 18, fontWeight: '800', marginTop: 12 },
   emptyText: { color: '#777', textAlign: 'center', marginTop: 6, fontWeight: '600' },
   exerciseCard: { backgroundColor: '#fff', borderRadius: 18, borderWidth: 1, borderColor: '#E2E2E2', padding: 12, marginBottom: 14, flexDirection: 'row', alignItems: 'center' },
   exerciseImageBox: { width: 76, height: 76, borderRadius: 16, overflow: 'hidden', backgroundColor: '#C9DEC9', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
@@ -460,6 +460,6 @@ const styles = StyleSheet.create({
   cancelButtonText: { color: '#555', fontWeight: '800' },
   saveButton: { flex: 1, backgroundColor: '#2F3A34', paddingVertical: 13, borderRadius: 16, alignItems: 'center' },
   saveButtonText: { color: '#fff', fontWeight: '800' },
-  addExercisesButton: { backgroundColor: '#86B587', paddingHorizontal: 22, paddingVertical: 12, borderRadius: 18, marginTop: 16 },
+  addExercisesButton: { backgroundColor: '#9BA19A', paddingHorizontal: 22, paddingVertical: 12, borderRadius: 18, marginTop: 16 },
   addExercisesButtonText: { color: '#fff', fontWeight: '900' },
 });

@@ -83,19 +83,35 @@ export function ExerciseListScreen() {
     return 'fitness-outline';
   };
 
-  const getExerciseImage = (bodyPart?: string) => {
-    const part = bodyPart?.toLowerCase() ?? '';
-    if (part.includes('chest')) return require('../../../../assets/images/fitness-images/chest.jpg');
-    if (part.includes('back')) return require('../../../../assets/images/fitness-images/back.jpg');
-    if (part.includes('upper legs') || part.includes('lower legs')) {
-      return require('../../../../assets/images/fitness-images/legs.jpg');
-    }
-    if (part.includes('upper arms') || part.includes('lower arms')) {
-      return require('../../../../assets/images/fitness-images/arms.jpg');
-    }
-    if (part.includes('waist')) return require('../../../../assets/images/fitness-images/core.jpg');
-    return null;
-  };
+const getExerciseImage = (bodyPart?: string) => {
+  const part = bodyPart?.toLowerCase() ?? '';
+
+  if (part.includes('chest')) {
+    return require('../../../../assets/images/fitness-images/chest.jpg');
+  }
+
+  if (part.includes('back')) {
+    return require('../../../../assets/images/fitness-images/back.jpg');
+  }
+
+  if (part.includes('legs') || part.includes('upper legs') || part.includes('lower legs')) {
+    return require('../../../../assets/images/fitness-images/legs.jpg');
+  }
+
+  if (part.includes('arms') || part.includes('upper arms') || part.includes('lower arms')) {
+    return require('../../../../assets/images/fitness-images/arms.jpg');
+  }
+
+  if (part.includes('waist') || part.includes('core') || part.includes('abs')) {
+    return require('../../../../assets/images/fitness-images/core.jpg');
+  }
+
+  if (part.includes('shoulders')) {
+    return require('../../../../assets/images/fitness-images/arms.jpg');
+  }
+
+  return require('../../../../assets/images/fitness-images/chest.jpg');
+};
 
   const handleToggleFavorite = async (exercise: any) => {
     const exerciseId = exercise.externalExerciseId ?? exercise.id?.toString();
@@ -399,7 +415,7 @@ subtitle: {
   listContent: { padding: 22, paddingBottom: 120 },
   card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 14, marginBottom: 14, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4 },
   cardPressArea: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  exerciseImageBox: { width: 110, height: 82, borderRadius: 18, overflow: 'hidden', backgroundColor: '#DDEBDC', marginRight: 16, alignItems: 'center', justifyContent: 'center' },
+  exerciseImageBox: { width: 110, height: 82, borderRadius: 18, overflow: 'hidden', backgroundColor: '#FFFFFF', marginRight: 16, alignItems: 'center', justifyContent: 'center' },
   exerciseImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   cardContent: { flex: 1, paddingRight: 8 },
   exerciseName: { color: '#1F2420', fontSize: 17, fontWeight: '900', textTransform: 'capitalize', lineHeight: 22 },

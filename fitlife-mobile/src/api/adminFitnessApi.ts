@@ -71,3 +71,76 @@ export async function deleteAdminFitnessWorkoutPlan(id: number): Promise<void> {
   if (!res.ok) throw new Error('Failed to delete workout plan');
 }
 
+export type AdminFitnessExerciseLibraryItem = {
+  id: number;
+  exerciseName: string;
+  bodyPart: string | null;
+  targetMuscle: string | null;
+  equipment: string | null;
+  level: string;
+  gifUrl: string | null;
+};
+
+export type CreateAdminFitnessExerciseRequest = {
+  exerciseName: string;
+  bodyPart?: string;
+  targetMuscle?: string;
+  equipment?: string;
+  level: string;
+  gifUrl?: string | null;
+};
+
+export async function getAdminFitnessExercises(): Promise<AdminFitnessExerciseLibraryItem[]> {
+  const res = await fetch(`${BASE_URL}/Admin/fitness/exercises`, {
+    headers: await authHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch fitness exercises');
+  }
+
+  return res.json();
+}
+
+export async function createAdminFitnessExercise(
+  data: CreateAdminFitnessExerciseRequest
+): Promise<AdminFitnessExerciseLibraryItem> {
+  const res = await fetch(`${BASE_URL}/Admin/fitness/exercises`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to create fitness exercise');
+  }
+
+  return res.json();
+}
+
+export async function updateAdminFitnessExercise(
+  id: number,
+  data: CreateAdminFitnessExerciseRequest
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/Admin/fitness/exercises/${id}`, {
+    method: 'PUT',
+    headers: await authHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to update fitness exercise');
+  }
+}
+
+export async function deleteAdminFitnessExercise(id: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/Admin/fitness/exercises/${id}`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to delete fitness exercise');
+  }
+}
+

@@ -11,16 +11,19 @@ async function authHeaders() {
   };
 }
 
-export async function getExercises(offset = 0, limit = 80) {
-  const response = await fetch(
-    `${BASE_URL}/fitness/exercises?offset=${offset}&limit=${limit}`
+export async function getExercises(offset = 0, limit = 20) {
+  const res = await fetch(
+    `${BASE_URL}/Fitness/exercises?offset=${offset}&limit=${limit}`,
+    {
+      headers: await authHeaders(),
+    }
   );
 
-  if (!response.ok) {
+  if (!res.ok) {
     throw new Error('Failed to fetch exercises');
   }
 
-  return response.json();
+  return res.json();
 }
 
 export async function getWorkoutPlans() {
