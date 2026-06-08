@@ -13,6 +13,12 @@ describe('caloriesEstimate', () => {
     expect(estimatePilatesCalories(30)).toBe(98);
   });
 
+  it('estimatePilatesCalories increases MET by level', () => {
+    expect(estimatePilatesCalories(60, 'beginner')).toBe(195);
+    expect(estimatePilatesCalories(60, 'intermediate')).toBe(247);
+    expect(estimatePilatesCalories(60, 'advanced')).toBe(286);
+  });
+
   it('caloriesForCompletion prefers stored caloriesBurned', () => {
     const base: WorkoutCompletion = {
       id: '1',

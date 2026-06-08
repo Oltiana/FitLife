@@ -17,6 +17,10 @@ import {
 } from "@react-navigation/native";
 import SimpleMonthCalendar from "../../../components/SimpleMonthCalendar";
 import { colors } from "../../../theme/colors";
+import {
+  buildCalendarMarkedDates,
+  filterSessionsByInstructor,
+} from "../../../domain/yogaSessionUtils";
 import { useScheduleViewModel } from "../viewmodels/ScheduleViewModel";
 import { api } from "../../../services/api";
 import { IMAGE_BASE_URL } from "../../../constants/apiConfig";
@@ -49,41 +53,14 @@ export default function ScheduleScreen() {
   instructors,
 } = useScheduleViewModel(selected);
 
-  const marked = useMemo(() => {
-  const dates: any = {};
+  const marked = useMemo(
+    () => buildCalendarMarkedDates(allSessions, selected),
+    [allSessions, selected],
+  );
 
-  allSessions.forEach((s: any) => {
-    const date = s.sessionDate?.slice(0, 10);
-
-    if (!date) return;
-
-    if (s.capacity > 0) {
-      dates[date] = {
-        marked: true,
-        dotColor: "#22C55E",
-      };
-    }
-  });
-
-  dates[selected] = {
-    ...dates[selected],
-    selected: true,
-    marked: true,
-    dotColor: "#22C55E",
-  };
-
-  return dates;
-}, [allSessions, selected]);
-
-  const filteredSessions = sessions.filter(
-    (s: any) => {
-      if (!selectedInstructor) return true;
-
-      return (
-        s.instructorName ===
-        selectedInstructor
-      );
-    }
+  const filteredSessions = filterSessionsByInstructor(
+    sessions,
+    selectedInstructor,
   );
 
   return (

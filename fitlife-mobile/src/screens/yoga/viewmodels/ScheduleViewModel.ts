@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../../../services/api";
+import {
+  decrementSessionCapacity,
+  filterSessionsByDate,
+  uniqueInstructorNames,
+} from "../../../domain/yogaSessionUtils";
 import { tokenStorage } from "../../../storage/tokenStorage";
 
 export function useScheduleViewModel(selectedDate: string) {
@@ -17,12 +22,7 @@ export function useScheduleViewModel(selectedDate: string) {
 
       setAllSessions(all);
 
-      const filtered = all.filter(
-        (s: any) =>
-          s.sessionDate?.slice(0, 10) === selectedDate
-      );
-
-      setSessions(filtered);
+      setSessions(filterSessionsByDate(all, selectedDate));
     } catch (err) {
       console.log(err);
       setSessions([]);
@@ -46,37 +46,14 @@ export function useScheduleViewModel(selectedDate: string) {
         currentUser.fullName
       );
 
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === id && s.capacity > 0
-            ? {
-                ...s,
-                capacity: s.capacity - 1,
-              }
-            : s
-        )
-      );
-
-      setAllSessions((prev) =>
-        prev.map((s) =>
-          s.id === id && s.capacity > 0
-            ? {
-                ...s,
-                capacity: s.capacity - 1,
-              }
-            : s
-        )
-      );
+      setSessions((prev) => decrementSessionCapacity(prev, id));
+      setAllSessions((prev) => decrementSessionCapacity(prev, id));
     } catch (err) {
       console.log(err);
     }
   };
 
-  const instructors = [
-    ...new Set(
-      sessions.map((s) => s.instructorName)
-    ),
-  ];
+  const instructors = uniqueInstructorNames(sessions);
 
   useEffect(() => {
     loadSessions();
