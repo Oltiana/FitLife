@@ -31,8 +31,6 @@ const ALL_NAV_ITEMS = [
   { id: 'analytics',     label: 'Analytics',     icon: 'stats-chart-outline',   roles: ['Admin'] },
   { id: 'enrollments',   label: 'Enrollments',   icon: 'list-outline',          roles: ['Admin'] },
   { id: 'activityLog',   label: 'Activity Log',  icon: 'time-outline',          roles: ['Admin'] },
-  { id: 'notifications', label: 'Notifications', icon: 'notifications-outline', roles: ['Admin'] },
-  { id: 'settings',      label: 'Settings',      icon: 'settings-outline',      roles: ['Admin'] },
 ] as const;
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -53,8 +51,6 @@ const ACTION_COLORS: Record<string, { color: string; bg: string; icon: string }>
   analytics:     { color: '#7c6aad', bg: '#f0ecf8', icon: 'stats-chart-outline' },
   enrollments: { color: '#1a3a6b', bg: '#e8eef8', icon: 'list-outline' },
   activityLog:   { color: '#2e7d8c', bg: '#e0f4f7', icon: 'time-outline' },
-  notifications: { color: '#e0a020', bg: '#fef9e7', icon: 'notifications-outline' },
-  settings:      { color: '#6b7a6b', bg: '#f0f4f0', icon: 'settings-outline' },
 };
 
 const screenWidth = Dimensions.get('window').width;
@@ -192,20 +188,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           )}
           {activeSection === 'enrollments' && <AdminEnrollmentsScreen />}
           {activeSection === 'activityLog' && <AdminActivityLogScreen />}
-          {activeSection === 'notifications' && (
-            <View style={styles.comingSoon}>
-              <Ionicons name="notifications-outline" size={48} color="#e0a020" />
-              <Text style={styles.comingSoonTitle}>Notifications</Text>
-              <Text style={styles.comingSoonText}>Coming soon — push notifications to all users.</Text>
-            </View>
-          )}
-          {activeSection === 'settings' && (
-            <View style={styles.comingSoon}>
-              <Ionicons name="settings-outline" size={48} color="#6b7a6b" />
-              <Text style={styles.comingSoonTitle}>Settings</Text>
-              <Text style={styles.comingSoonText}>Coming soon — app configuration and settings.</Text>
-            </View>
-          )}
+         
         </ScrollView>
       </View>
 
@@ -259,8 +242,7 @@ function HomeSection({
   { id: 'analytics',     label: 'Analytics',     icon: 'stats-chart-outline',   color: '#7c6aad', bg: '#f0ecf8' },
   { id: 'enrollments', label: 'Enrollments', icon: 'list-outline', color: '#1a3a6b', bg: '#e8eef8' },          
   { id: 'activityLog',   label: 'Activity Log',  icon: 'time-outline',          color: '#2e7d8c', bg: '#e0f4f7' },
-  { id: 'notifications', label: 'Notifications', icon: 'notifications-outline', color: '#e0a020', bg: '#fef9e7' },
-  { id: 'settings',      label: 'Settings',      icon: 'settings-outline',      color: '#6b7a6b', bg: '#f0f4f0' },
+ 
 ] as const;
 
   return (
